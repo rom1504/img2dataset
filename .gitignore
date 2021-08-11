@@ -1,0 +1,6 @@
+*.egg-info
+.vscode
+.env
+output_folder
+myimglist.txt
+__pycache__
