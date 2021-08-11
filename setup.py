@@ -9,7 +9,7 @@ if __name__ == "__main__":
         name = 'img2dataset',
         packages = find_packages(),
         include_package_data = True,
-        version = '1.0.0',
+        version = '1.0.1',
         license='MIT',
         description = 'Easily turn a set of image urls to an image dataset',
         long_description=long_description,
@@ -18,7 +18,7 @@ if __name__ == "__main__":
         author = 'Romain Beaumont',
         author_email = 'romain.rom1@gmail.com',
         url = 'https://github.com/rom1504/img2dataset',
-        data_files=[(".", ["requirements.txt", "README.md"])],
+        data_files=[(".", ["README.md"])],
         keywords = [
             'machine learning',
             'computer vision',
