@@ -74,10 +74,10 @@ def test_download(resize_mode, resize_only_if_bigger):
     generate_url_list_txt(url_list_name)
 
     download(url_list_name, image_size=256, output_folder=unresized_folder,\
-         thread_count=256, resize_mode="no", resize_only_if_bigger=resize_only_if_bigger)
+         thread_count=32, resize_mode="no", resize_only_if_bigger=resize_only_if_bigger)
 
     download(url_list_name, image_size=256, output_folder=image_folder_name,\
-         thread_count=256, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
+         thread_count=32, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
 
     l = get_all_files(image_folder_name)
     l_unresized = get_all_files(unresized_folder)
