@@ -22,8 +22,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install opencv
-      run: sudo apt-get install -y python3-opencv
     - name: Install, lint and unit tests
       run: |
         python3 -m venv .env
