@@ -56,7 +56,7 @@ This tool work as it. However in the future goals will include:
 * WebDataset format option
 * support for multiple input files
 * support for csv or parquet files as input
-* more resizing options (currently resizing with borders, other options are often useful)
+* benchmarks for 1M, 10M, 100M pictures
 
 ## For development
 
