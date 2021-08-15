@@ -66,7 +66,7 @@ def resize_with_border(im, desired_size=256):
         value=color)
     return new_im
 
-def download(url_list, image_size=256, output_folder='images', thread_count=32, resize_mode="border", resize_only_if_bigger=False):
+def download(url_list, image_size=256, output_folder='images', thread_count=256, resize_mode="border", resize_only_if_bigger=False):
     IMAGE_SIZE = image_size
 
     IMAGE_DIR = output_folder
