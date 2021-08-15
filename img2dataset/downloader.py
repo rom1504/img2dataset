@@ -1,14 +1,12 @@
 from multiprocessing import Pool
 from tqdm import tqdm
-import csv
 import cv2
 import os
 import urllib.request
-import hashlib
 import fire
 import functools
 
-def process_image(row, IMAGE_SIZE):
+def process_image(row, IMAGE_SIZE, resize_mode, resize_only_if_bigger):
     url, filename = row
     if os.path.exists(filename):
         return
@@ -22,7 +20,13 @@ def process_image(row, IMAGE_SIZE):
         with open(filename, 'wb') as outfile:
             outfile.write(content)
         img = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
-        img = resize_with_border(img, IMAGE_SIZE)
+        if not resize_only_if_bigger or img.shape[0] > IMAGE_SIZE or img.shape[1] > IMAGE_SIZE:
+            if resize_mode == "border":
+                img = resize_with_border(img, IMAGE_SIZE)
+            elif resize_mode == "no":
+                img = img
+            elif resize_mode == "keep_ratio":
+                img = resize_keep_ratio(img, IMAGE_SIZE)
 
         cv2.imwrite(filename, img)
     except Exception as e:
@@ -31,7 +35,18 @@ def process_image(row, IMAGE_SIZE):
             os.remove(filename)
         pass
 
+# keep the ratio, smaller side is desired_size
+def resize_keep_ratio(im, desired_size=256):
+    old_size = im.shape[:2] # old_size is in (height, width) format
 
+    ratio = float(desired_size)/min(old_size)
+    new_size = tuple([int(x*ratio) for x in old_size])
+    # new_size should be in (width, height) format
+    im = cv2.resize(im, (new_size[1], new_size[0]))
+
+    return im
+
+# resize and add a border, larger side is desired_size
 def resize_with_border(im, desired_size=256):
     old_size = im.shape[:2] # old_size is in (height, width) format
 
@@ -39,7 +54,6 @@ def resize_with_border(im, desired_size=256):
     new_size = tuple([int(x*ratio) for x in old_size])
 
     # new_size should be in (width, height) format
-
     im = cv2.resize(im, (new_size[1], new_size[0]))
 
     delta_w = desired_size - new_size[1]
@@ -52,9 +66,8 @@ def resize_with_border(im, desired_size=256):
         value=color)
     return new_im
 
-def download(url_list, image_size=256, output_folder='images', thread_count=256):
+def download(url_list, image_size=256, output_folder='images', thread_count=256, resize_mode="border", resize_only_if_bigger=False):
     IMAGE_SIZE = image_size
-    IMAGE_FORMAT = 'jpg'
 
     IMAGE_DIR = output_folder
     if not os.path.exists(IMAGE_DIR):
@@ -75,7 +88,8 @@ def download(url_list, image_size=256, output_folder='images', thread_count=256)
 
     images_to_dl = images_to_dl
 
-    downloader = functools.partial(process_image, IMAGE_SIZE=IMAGE_SIZE)
+    downloader = functools.partial(process_image, IMAGE_SIZE=IMAGE_SIZE,\
+         resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
     pool = Pool(thread_count)
     for _ in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
         pass

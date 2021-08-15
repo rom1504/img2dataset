@@ -35,6 +35,20 @@ with each number being the position in the list. The subfolders avoids having to
 
 This can then easily be fed into machine learning training or any other use case.
 
+## API
+
+This module exposes a single function `download` which takes the same arguments as the command line tool:
+
+* url_list A file with the list of url of images to download, one by line (required)
+* image_size The side to resize image to (default 256)
+* output_folder The path to the output folder (default "images")
+* thread_count The number of threads used for downloading the pictures. This is important to be high for performance. (default 256)
+* resize_mode The way to resize pictures, can be no, border or keep_ratio (default border)
+  * no doesn't resize at all
+  * border will make the image image_size x image_size and add a border
+  * keep ratio will keep the ratio and make the smallest side of the picture image_size
+* resize_only_if_bigger resize pictures only if bigger that the image_size (default False)
+
 ## Road map
 
 This tool work as it. However in the future goals will include:
@@ -56,3 +70,11 @@ source .env/bin/activate
 pip install -e .
 ```
 
+to run tests:
+```
+pip install -r requirements-test.txt
+```
+then 
+```
+python -m pytest -v tests
+```
