@@ -1,3 +1,7 @@
+## 1.1.0
+
+* add image resizing mode
+
 ## 1.0.1
 
 * fixes
