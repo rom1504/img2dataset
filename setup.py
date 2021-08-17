@@ -14,7 +14,7 @@ if __name__ == "__main__":
         description = 'Easily turn a set of image urls to an image dataset',
         long_description=long_description,
         long_description_content_type="text/markdown",
-        entry_points={"console_scripts": ["img2dataset = img2dataset.main"]},
+        entry_points={"console_scripts": ["img2dataset = img2dataset:main"]},
         author = 'Romain Beaumont',
         author_email = 'romain.rom1@gmail.com',
         url = 'https://github.com/rom1504/img2dataset',
