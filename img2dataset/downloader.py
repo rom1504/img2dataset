@@ -62,6 +62,33 @@ def resize_with_border(im, desired_size=256):
         value=color)
     return new_im
 
+
+def files_writer(pool, downloader, images_to_dl, IMAGE_DIR):
+    for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
+            if key is None:
+                continue
+            part = key // 10000
+            folder = f"{IMAGE_DIR}/{part}"
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            filename = f'{folder}/{key}.jpg'
+            cv2.imwrite(filename, img)
+
+def webdataset_writer(pool, downloader, images_to_dl, IMAGE_DIR):
+    pattern = os.path.join(IMAGE_DIR, f"%06d.tar")
+    with wds.ShardWriter(pattern, maxsize=1e9, maxcount=10000) as sink:
+        for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
+            if key is None:
+                continue
+
+            img_str = cv2.imencode('.jpg', img)[1].tobytes()
+            key = "%09d" % key
+            sample = {
+                "__key__": key,
+                "jpg": img_str
+            }
+            sink.write(sample)
+
 def download(
     url_list,
     image_size=256,
@@ -85,35 +112,9 @@ def download(
     pool = Pool(thread_count)
 
     if output_format == "files":
-        for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
-            if key is None:
-                continue
-            part = key // 10000
-            folder = f"{IMAGE_DIR}/{part}"
-            if not os.path.exists(folder):
-                os.mkdir(folder)
-            filename = f'{folder}/{key}.jpg'
-            cv2.imwrite(filename, img)
-            pass
-    
+        files_writer(pool, downloader, images_to_dl, IMAGE_DIR)
     elif output_format == "webdataset":
-        pattern = os.path.join(output_folder, f"%06d.tar")
-        with wds.ShardWriter(pattern, maxsize=1e9, maxcount=10000) as sink:
-            pool = Pool(thread_count)
-            for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
-                if key is None:
-                    continue
-
-
-                img_str = cv2.imencode('.jpg', img)[1].tobytes()
-
-                key = "%09d" % key
-
-                sample = {
-                    "__key__": key,
-                    "jpg": img_str
-                }
-                sink.write(sample)
+        webdataset_writer(pool, downloader, images_to_dl, IMAGE_DIR)
 
 
 def main():

@@ -95,4 +95,4 @@ cd tests
 bash benchmark.js
 ```
 
-500 images/s is the currently observed performance. 1.8M images/s
+1000 images/s is the currently observed performance. 3.6M images/s
