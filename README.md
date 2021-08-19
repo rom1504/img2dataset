@@ -63,7 +63,6 @@ This module exposes a single function `download` which takes the same arguments 
 
 This tool work as it. However in the future goals will include:
 
-* WebDataset format option
 * support for multiple input files
 * support for csv or parquet files as input
 * benchmarks for 1M, 10M, 100M pictures
