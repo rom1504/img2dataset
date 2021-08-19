@@ -5,21 +5,20 @@ import os
 import urllib.request
 import fire
 import functools
+import webdataset as wds
+import io
+import numpy as np
 
 def process_image(row, IMAGE_SIZE, resize_mode, resize_only_if_bigger):
-    url, filename = row
-    if os.path.exists(filename):
-        return
+    key, url = row
     try:
         request = urllib.request.Request(
                 url,
                 data=None,
                 headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0'}
             )
-        content = urllib.request.urlopen(request, timeout=10).read()
-        with open(filename, 'wb') as outfile:
-            outfile.write(content)
-        img = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
+        img_stream = io.BytesIO(urllib.request.urlopen(request, timeout=10).read())
+        img = cv2.imdecode(np.frombuffer(img_stream.read(), np.uint8), 1)
         if not resize_only_if_bigger or img.shape[0] > IMAGE_SIZE or img.shape[1] > IMAGE_SIZE:
             if resize_mode == "border":
                 img = resize_with_border(img, IMAGE_SIZE)
@@ -28,12 +27,9 @@ def process_image(row, IMAGE_SIZE, resize_mode, resize_only_if_bigger):
             elif resize_mode == "keep_ratio":
                 img = resize_keep_ratio(img, IMAGE_SIZE)
 
-        cv2.imwrite(filename, img)
-    except Exception as e:
-        # todo remove
-        if os.path.exists(filename):
-            os.remove(filename)
-        pass
+        return key, img
+    except Exception as _:
+        return None, None
 
 # keep the ratio, smaller side is desired_size
 def resize_keep_ratio(im, desired_size=256):
@@ -66,33 +62,58 @@ def resize_with_border(im, desired_size=256):
         value=color)
     return new_im
 
-def download(url_list, image_size=256, output_folder='images', thread_count=256, resize_mode="border", resize_only_if_bigger=False):
-    IMAGE_SIZE = image_size
+def download(
+    url_list,
+    image_size=256,
+    output_folder='images',
+    thread_count=256,
+    resize_mode="border",
+    resize_only_if_bigger=False,
+    output_format="files"):
 
+    IMAGE_SIZE = image_size
     IMAGE_DIR = output_folder
     if not os.path.exists(IMAGE_DIR):
         os.mkdir(IMAGE_DIR)
 
-
     images_to_dl = []
     with open(url_list, encoding='utf-8') as file:
-        lines = file.readlines()
-        for i, line in tqdm(enumerate(lines)):
-            url = line
-            part = i // 10000
-            folder = f"{IMAGE_DIR}/{part}"
-            if not os.path.exists(folder):
-                os.mkdir(folder)
-            filename = f'{folder}/{i}.jpg'
-            images_to_dl.append((url, filename))
-
-    images_to_dl = images_to_dl
+        images_to_dl = list(enumerate(file.readlines()))
 
     downloader = functools.partial(process_image, IMAGE_SIZE=IMAGE_SIZE,\
          resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
     pool = Pool(thread_count)
-    for _ in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
-        pass
+
+    if output_format == "files":
+        for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
+            if key is None:
+                continue
+            part = key // 10000
+            folder = f"{IMAGE_DIR}/{part}"
+            if not os.path.exists(folder):
+                os.mkdir(folder)
+            filename = f'{folder}/{key}.jpg'
+            cv2.imwrite(filename, img)
+            pass
+    
+    elif output_format == "webdataset":
+        pattern = os.path.join(output_folder, f"%06d.tar")
+        with wds.ShardWriter(pattern, maxsize=1e9, maxcount=10000) as sink:
+            pool = Pool(thread_count)
+            for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
+                if key is None:
+                    continue
+
+
+                img_str = cv2.imencode('.jpg', img)[1].tobytes()
+
+                key = "%09d" % key
+
+                sample = {
+                    "__key__": key,
+                    "jpg": img_str
+                }
+                sink.write(sample)
 
 
 def main():
