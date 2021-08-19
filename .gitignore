@@ -4,3 +4,4 @@
 output_folder
 myimglist.txt
 __pycache__
+.envtest

@@ -29,7 +29,8 @@ if __name__ == "__main__":
         install_requires=[
             'tqdm',
             'opencv-python',
-            'fire'
+            'fire',
+            'webdataset'
         ],
         classifiers=[
             'Development Status :: 4 - Beta',

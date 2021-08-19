@@ -3,6 +3,8 @@ import os
 import shutil
 import cv2
 import pytest
+import glob
+import time
 
 def test_basic():
     print("it works !")
@@ -79,6 +81,7 @@ def test_download(resize_mode, resize_only_if_bigger):
     download(url_list_name, image_size=256, output_folder=image_folder_name,\
          thread_count=32, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
 
+    l = glob.glob("")
     l = get_all_files(image_folder_name)
     l_unresized = get_all_files(unresized_folder)
     assert(len(l) == 5)
@@ -89,3 +92,41 @@ def test_download(resize_mode, resize_only_if_bigger):
     shutil.rmtree(unresized_folder)
 
 
+def test_webdataset():
+    current_folder = os.path.dirname(__file__)
+
+    url_list_name = os.path.join(current_folder, "url_list.txt")
+    image_folder_name = os.path.join(current_folder, "images")
+
+    generate_url_list_txt(url_list_name)
+
+    download(url_list_name, image_size=256, output_folder=image_folder_name, thread_count=32, output_format="webdataset")
+
+    l = glob.glob(image_folder_name+"/*")
+    assert(len(l) == 1)
+    if l[0] != image_folder_name+"/000000.tar":
+        raise Exception(l[0] + "is not 000000.tar")
+
+    os.remove(url_list_name)
+    shutil.rmtree(image_folder_name)
+
+@pytest.mark.parametrize("output_format", ["webdataset", "files"])
+def test_benchmark(output_format):
+    current_folder = os.path.dirname(__file__)
+
+    prefix = output_format + "_"
+    url_list_name = os.path.join(current_folder, "test1000.txt")
+    image_folder_name = os.path.join(current_folder, prefix+"images")
+
+    t = time.time()
+
+    download(url_list_name, image_size=256, output_folder=image_folder_name, thread_count=32, output_format=output_format)
+
+    took = time.time() - t
+
+    print("Took "+ str(took)+"s")
+
+    if took > 100:
+        raise Exception("Very slow, took "+str(took))
+
+    shutil.rmtree(image_folder_name)

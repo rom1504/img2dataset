@@ -29,5 +29,5 @@ jobs:
         pip install --upgrade pip
         pip install -e .
         pip install -r requirements-test.txt
-        python -m pytest -v tests
+        python -m pytest -v tests -s
 

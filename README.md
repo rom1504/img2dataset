@@ -31,6 +31,13 @@ The tool will then automatically download the urls, resize them, and store them 
         * 1.jpg
         * 2.jpg
 
+or as this format if choosing webdataset:
+* output_folder
+    * 0.tar containing:
+        * 0.jpg
+        * 1.jpg
+        * 2.jpg
+
 with each number being the position in the list. The subfolders avoids having too many files in a single folder.
 
 This can then easily be fed into machine learning training or any other use case.
@@ -48,6 +55,9 @@ This module exposes a single function `download` which takes the same arguments 
   * border will make the image image_size x image_size and add a border
   * keep ratio will keep the ratio and make the smallest side of the picture image_size
 * resize_only_if_bigger resize pictures only if bigger that the image_size (default False)
+* output_format: decides how to save pictures
+  * files: saves as a set of subfolder containing pictures
+  * webdataset: saves as tars containing pictures
 
 ## Road map
 
@@ -76,5 +86,14 @@ pip install -r requirements-test.txt
 ```
 then 
 ```
-python -m pytest -v tests
+python -m pytest -v tests -s
 ```
+
+## Benchmarks
+
+```
+cd tests
+bash benchmark.js
+```
+
+500 images/s is the currently observed performance. 1.8M images/s
