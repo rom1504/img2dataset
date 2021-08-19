@@ -3,7 +3,9 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rom1504/img2dataset/blob/master/notebook/img2dataset_getting_started.ipynb)
 [![Try it on gitpod](https://img.shields.io/badge/try-on%20gitpod-brightgreen.svg)](https://gitpod.io/#https://github.com/rom1504/img2dataset)
 
-Easily turn a set of image urls to an image dataset
+Easily turn a set of image urls to an image dataset.
+
+Also supports saving captions for url+caption datasets.
 
 ## Install
 
@@ -40,24 +42,33 @@ or as this format if choosing webdataset:
 
 with each number being the position in the list. The subfolders avoids having too many files in a single folder.
 
+If **captions** are provided, they will be saved as 0.txt, 1.txt, ...
+
 This can then easily be fed into machine learning training or any other use case.
 
 ## API
 
 This module exposes a single function `download` which takes the same arguments as the command line tool:
 
-* **url_list** A file with the list of url of images to download, one by line (required)
-* **image_size** The side to resize image to (default 256)
-* **output_folder** The path to the output folder (default "images")
-* **thread_count** The number of threads used for downloading the pictures. This is important to be high for performance. (default 256)
-* **resize_mode** The way to resize pictures, can be no, border or keep_ratio (default border)
+* **url_list** A file with the list of url of images to download, one by line (*required*)
+* **image_size** The side to resize image to (default *256*)
+* **output_folder** The path to the output folder (default *"images"*)
+* **thread_count** The number of threads used for downloading the pictures. This is important to be high for performance. (default *256*)
+* **resize_mode** The way to resize pictures, can be no, border or keep_ratio (default *border*)
   * **no** doesn't resize at all
   * **border** will make the image image_size x image_size and add a border
   * **keep_ratio** will keep the ratio and make the smallest side of the picture image_size
-* **resize_only_if_bigger** resize pictures only if bigger that the image_size (default False)
-* **output_format** decides how to save pictures
+* **resize_only_if_bigger** resize pictures only if bigger that the image_size (default *False*)
+* **output_format** decides how to save pictures (default *files*)
   * **files** saves as a set of subfolder containing pictures
   * **webdataset** saves as tars containing pictures
+* **input_format** decides how to load the urls (default *txt*)
+  * **txt** loads the urls as a text file of url, one per line
+  * **csv** loads the urls and optional caption as a csv
+  * **parquet** loads the urls and optional caption as a parquet
+* **url_col** the name of the url column for parquet and csv (default *url*)
+* **caption_col** the name of the caption column for parquet and csv (default *None*)
+
 
 ## Road map
 

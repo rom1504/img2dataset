@@ -5,18 +5,34 @@ import cv2
 import pytest
 import glob
 import time
+import pandas as pd
+import tarfile
 
 def test_basic():
     print("it works !")
 
+test_list = [ 
+    ["first", "https://placekitten.com/400/600"], 
+    ["second", "https://placekitten.com/200/300"],
+    ["third", "https://placekitten.com/300/200"],
+    ["fourth", "https://placekitten.com/400/400"],
+    ["fifth", "https://placekitten.com/200/200"],
+]
+    
 def generate_url_list_txt(output_file):
     with open(output_file, "w") as f:
-        # in python
-        f.write("https://placekitten.com/400/600\n")
-        f.write("https://placekitten.com/200/300\n")
-        f.write("https://placekitten.com/300/200\n")
-        f.write("https://placekitten.com/400/400\n")
-        f.write("https://placekitten.com/200/200\n")
+        for _, url in test_list:
+            f.write(url+"\n")
+
+
+def generate_csv(output_file):
+    df = pd.DataFrame(test_list, columns=['caption', 'url'])
+    df.to_csv(output_file)
+
+def generate_parquet(output_file):
+    df = pd.DataFrame(test_list, columns=['caption', 'url'])
+    df.to_parquet(output_file)
+
 
 def get_all_files(folder):
     l = []
@@ -65,7 +81,7 @@ testdata = [
 
 
 @pytest.mark.parametrize("resize_mode, resize_only_if_bigger", testdata)
-def test_download(resize_mode, resize_only_if_bigger):
+def test_download_resize(resize_mode, resize_only_if_bigger):
     current_folder = os.path.dirname(__file__)
 
     prefix = resize_mode +"_" + str(resize_only_if_bigger) + "_"
@@ -81,7 +97,6 @@ def test_download(resize_mode, resize_only_if_bigger):
     download(url_list_name, image_size=256, output_folder=image_folder_name,\
          thread_count=32, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
 
-    l = glob.glob("")
     l = get_all_files(image_folder_name)
     l_unresized = get_all_files(unresized_folder)
     assert(len(l) == 5)
@@ -90,6 +105,42 @@ def test_download(resize_mode, resize_only_if_bigger):
     os.remove(url_list_name)
     shutil.rmtree(image_folder_name)
     shutil.rmtree(unresized_folder)
+
+
+@pytest.mark.parametrize("input_format, output_format", [["txt", "files"], ["txt", "webdataset"], 
+["csv", "files"], ["csv", "webdataset"], ["parquet", "files"], ["parquet", "webdataset"]])
+def test_download_input_format(input_format, output_format):
+    current_folder = os.path.dirname(__file__)
+
+    prefix = str(input_format) + "_"
+    url_list_name = os.path.join(current_folder, prefix + "url_list.txt")
+    image_folder_name = os.path.join(current_folder, prefix + "images")
+
+    if input_format == "txt":
+        generate_url_list_txt(url_list_name)
+    elif input_format == "csv":
+        generate_csv(url_list_name)
+    elif input_format == "parquet":
+        generate_parquet(url_list_name)
+
+    download(url_list_name, image_size=256, output_folder=image_folder_name,\
+         thread_count=32, input_format=input_format, output_format=output_format, url_col="url", caption_col="caption")
+
+    expected_file_count = 5 if input_format == "txt" else 10
+    if output_format == "files":
+        l = get_all_files(image_folder_name)
+        assert(len(l) == expected_file_count)
+    elif output_format == "webdataset":
+        l = glob.glob(image_folder_name+"/*")
+        assert(len(l) == 1)
+        if l[0] != image_folder_name+"/000000.tar":
+            raise Exception(l[0] + "is not 000000.tar")
+
+        assert(len(tarfile.open(image_folder_name+"/000000.tar").getnames()) == expected_file_count)
+
+    os.remove(url_list_name)
+    shutil.rmtree(image_folder_name)
+
 
 
 def test_webdataset():
@@ -107,20 +158,24 @@ def test_webdataset():
     if l[0] != image_folder_name+"/000000.tar":
         raise Exception(l[0] + "is not 000000.tar")
 
+    assert(len(tarfile.open(image_folder_name+"/000000.tar").getnames()) == 5)
+
     os.remove(url_list_name)
     shutil.rmtree(image_folder_name)
 
+#@pytest.mark.skip(reason="slow")
 @pytest.mark.parametrize("output_format", ["webdataset", "files"])
 def test_benchmark(output_format):
     current_folder = os.path.dirname(__file__)
 
     prefix = output_format + "_"
-    url_list_name = os.path.join(current_folder, "test1000.txt")
+    url_list_name = os.path.join(current_folder, "test_1000.parquet")
     image_folder_name = os.path.join(current_folder, prefix+"images")
 
     t = time.time()
 
-    download(url_list_name, image_size=256, output_folder=image_folder_name, thread_count=32, output_format=output_format)
+    download(url_list_name, image_size=256, output_folder=image_folder_name, thread_count=32, output_format=output_format, 
+    input_format="parquet", url_col="URL", caption_col="TEXT")
 
     took = time.time() - t
 
