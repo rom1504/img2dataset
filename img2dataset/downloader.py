@@ -8,15 +8,16 @@ import functools
 import webdataset as wds
 import io
 import numpy as np
+import pandas as pd
 
 def process_image(row, IMAGE_SIZE, resize_mode, resize_only_if_bigger):
-    key, url = row
+    key, caption, url = row
     try:
         request = urllib.request.Request(
-                url,
-                data=None,
-                headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0'}
-            )
+            url,
+            data=None,
+            headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0'}
+        )
         img_stream = io.BytesIO(urllib.request.urlopen(request, timeout=10).read())
         img = cv2.imdecode(np.frombuffer(img_stream.read(), np.uint8), 1)
         if not resize_only_if_bigger or img.shape[0] > IMAGE_SIZE or img.shape[1] > IMAGE_SIZE:
@@ -27,9 +28,9 @@ def process_image(row, IMAGE_SIZE, resize_mode, resize_only_if_bigger):
             elif resize_mode == "keep_ratio":
                 img = resize_keep_ratio(img, IMAGE_SIZE)
 
-        return key, img
+        return key, caption, img
     except Exception as _:
-        return None, None
+        return None, None, None
 
 # keep the ratio, smaller side is desired_size
 def resize_keep_ratio(im, desired_size=256):
@@ -64,20 +65,24 @@ def resize_with_border(im, desired_size=256):
 
 
 def files_writer(pool, downloader, images_to_dl, IMAGE_DIR):
-    for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
-            if key is None:
-                continue
-            part = key // 10000
-            folder = f"{IMAGE_DIR}/{part}"
-            if not os.path.exists(folder):
-                os.mkdir(folder)
-            filename = f'{folder}/{key}.jpg'
-            cv2.imwrite(filename, img)
+    for key, caption, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
+        if key is None:
+            continue
+        part = key // 10000
+        folder = f"{IMAGE_DIR}/{part}"
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        filename = f'{folder}/{key}.jpg'
+        cv2.imwrite(filename, img)
+        if caption is not None:
+            caption_filename = f'{folder}/{key}.txt'
+            with open(caption_filename, "w") as f:
+                f.write(caption)
 
 def webdataset_writer(pool, downloader, images_to_dl, IMAGE_DIR):
     pattern = os.path.join(IMAGE_DIR, f"%06d.tar")
     with wds.ShardWriter(pattern, maxsize=1e9, maxcount=10000) as sink:
-        for key, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
+        for key, caption, img in tqdm(pool.imap_unordered(downloader, images_to_dl), total=len(images_to_dl)):
             if key is None:
                 continue
 
@@ -87,6 +92,8 @@ def webdataset_writer(pool, downloader, images_to_dl, IMAGE_DIR):
                 "__key__": key,
                 "jpg": img_str
             }
+            if caption is not None:
+                sample["txt"] = caption
             sink.write(sample)
 
 def download(
@@ -96,16 +103,30 @@ def download(
     thread_count=256,
     resize_mode="border",
     resize_only_if_bigger=False,
-    output_format="files"):
+    output_format="files",
+    input_format="txt",
+    url_col="url",
+    caption_col=None
+    ):
 
     IMAGE_SIZE = image_size
     IMAGE_DIR = output_folder
     if not os.path.exists(IMAGE_DIR):
         os.mkdir(IMAGE_DIR)
 
-    images_to_dl = []
-    with open(url_list, encoding='utf-8') as file:
-        images_to_dl = list(enumerate(file.readlines()))
+    if input_format == "txt":
+        images_to_dl = []
+        with open(url_list, encoding='utf-8') as file:
+            images_to_dl = [(i, None, url) for i, url in enumerate(file.readlines())]
+    elif input_format == "csv" or input_format=="parquet":
+        if input_format == "csv":
+            df = pd.read_csv(url_list)
+        elif input_format == "parquet":
+            df = pd.read_parquet(url_list)
+        if caption_col is not None:
+            images_to_dl = [(i, caption, url) for i, (caption, url) in enumerate(zip(df[caption_col], df[url_col]))]
+        else:
+            images_to_dl = [(i, None, url) for i, url in enumerate(df[url_col])]
 
     downloader = functools.partial(process_image, IMAGE_SIZE=IMAGE_SIZE,\
          resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
