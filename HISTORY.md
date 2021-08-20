@@ -1,3 +1,8 @@
+## 1.2.0
+
+* add webdataset support and benchmarks
+* supports reading as parquet and csv
+
 ## 1.1.1
 
 * fix cli
