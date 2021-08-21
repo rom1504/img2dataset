@@ -39,7 +39,7 @@ def resize_keep_ratio(im, desired_size=256):
     ratio = float(desired_size)/min(old_size)
     new_size = tuple([int(x*ratio) for x in old_size])
     # new_size should be in (width, height) format
-    im = cv2.resize(im, (new_size[1], new_size[0]))
+    im = cv2.resize(im, (new_size[1], new_size[0]), interpolation = cv2.INTER_LANCZOS4)
 
     return im
 
