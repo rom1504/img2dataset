@@ -23,7 +23,7 @@ def download_image(row):
         )
         img_stream = io.BytesIO(urllib.request.urlopen(request, timeout=10).read())
         return key, caption, img_stream, url
-    except Exception as _:
+    except Exception as err:
         return None, None, None, None
 
 
@@ -107,17 +107,28 @@ def files_sample_writer(img_str, key, caption, url, output_folder):
 def one_process_downloader(row, sample_writer_builder, resizer, thread_count, display_processus_bar):
     shard_id, shard_to_dl = row
     sample_writer = sample_writer_builder(shard_id)
+    good=0
+    fail_download=0
+    fail_resize=0
+    done=0
     with ThreadPool(thread_count) as thread_pool:
         iterator = thread_pool.imap_unordered(download_image, shard_to_dl)
         if display_processus_bar:
             iterator = tqdm(iterator, total=len(shard_to_dl))
         for key, caption, img_stream, url in iterator:
+            if (done+1) % 3000 == 0:
+                print("good", 1.0*good/done)
+                print("failed download", 1.0*fail_download/done)
+                print("failed resize", 1.0*fail_resize/done)
+            done+=1
             if key is None:
+                fail_download+=1
                 continue
             img = resizer(img_stream)
             if img is None:
+                fail_resize+=1
                 continue
-
+            good+=1
             sample_writer(img, key, caption, url)
     return
                
