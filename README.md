@@ -53,6 +53,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **url_list** A file with the list of url of images to download, one by line (*required*)
 * **image_size** The side to resize image to (default *256*)
 * **output_folder** The path to the output folder (default *"images"*)
+* **processes_count** The number of processes used for downloading the pictures. This is important to be high for performance. (default *1*)
 * **thread_count** The number of threads used for downloading the pictures. This is important to be high for performance. (default *256*)
 * **resize_mode** The way to resize pictures, can be no, border or keep_ratio (default *border*)
   * **no** doesn't resize at all
@@ -68,7 +69,15 @@ This module exposes a single function `download` which takes the same arguments 
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
+* **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
 
+## How to tweak the options
+
+The default values should be good enough for small sized dataset. For larger ones, these tips may help you get the best performance:
+
+* set the processes_count as the number of cores your machine has
+* increase thread_count as long as your bandwidth and cpu are below the limits
+* I advise to set output_format to webdataset if your dataset has more than 1M elements, it will be easier to manipulate few tars rather than million of files
 
 ## Road map
 
@@ -77,6 +86,49 @@ This tool work as it. However in the future goals will include:
 * support for multiple input files
 * support for csv or parquet files as input
 * benchmarks for 1M, 10M, 100M pictures
+
+## Architecture notes
+
+This tool is designed to download pictures as fast as possible.
+This put a stress on various kind of resources. Some numbers assuming 1350 image/s:
+* Bandwidth: downloading a thousand average image per second requires about 130MB/s
+* CPU: resizing one image may take several milliseconds, several thousand per second can use up to 16 cores
+* DNS querying: million of urls mean million of domains, default OS setting usually are not enough. Setting up a local bind9 resolver may be required
+* Disk: if using resizing, up to 30MB/s write speed is necessary. If not using resizing, up to 130MB/s. Writing in few tar files make it possible to use rotational drives instead of a SSD.
+
+With these information in mind, the design choice was done in this way:
+* the list of urls is split in N shards. N is usually chosen as the number of cores
+* N processes are started (using multiprocessing process pool)
+  * each process starts M threads. M should be maximized in order to use as much network as possible while keeping cpu usage below 100%.
+  * each of this thread download 1 image and returns it
+  * the parent thread handle resizing (which means there is at most N resizing running at once, using up the cores but not more)
+  * the parent thread saves to a tar file that is different from other process
+
+This design make it possible to use the CPU resource efficiently by doing only 1 resize per core, reduce disk overhead by opening 1 file per core, while using the bandwidth resource as much as possible by using M thread per process.
+
+## Setting up a bind9 resolver
+
+In order to keep the success rate high, it is necessary to use an efficient DNS resolver.
+I tried several options: systemd-resolved, dnsmaskq and bind9 and reached the conclusion that bind9 reaches the best performance for this use case.
+Here is how to set this up on ubuntu:
+```
+sudo apt install bind9
+sudo vim /etc/bind/named.conf.options
+
+Add this in options:
+        recursive-clients 10000;
+        resolver-query-timeout 30000;
+        max-clients-per-query 10000;
+
+sudo systemctl restart bind9
+
+sudo vim /etc/resolv.conf
+
+Put this content:
+nameserver 127.0.0.1
+```
+This will make it possible to keep an high success rate while doing thousands of dns queries.
+You may also want to [setup bind9 logging](https://nsrc.org/activities/agendas/en/dnssec-3-days/dns/materials/labs/en/dns-bind-logging.html) in order to check that few dns errors happen.
 
 ## For development
 
@@ -101,9 +153,23 @@ python -m pytest -v tests -s
 
 ## Benchmarks
 
+### 10000 image benchmark
+
 ```
 cd tests
-bash benchmark.js
+bash benchmark.sh
 ```
 
-1000 images/s is the currently observed performance. 3.6M images/s
+
+### 18M image benchmark
+
+Download crawling at home first part, then:
+
+```
+cd tests
+bash large_bench.sh
+```
+It takes 3.7h to download 18M pictures
+
+1350 images/s is the currently observed performance. 4.8M images per hour, 116M images per 24h.
+

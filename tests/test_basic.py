@@ -133,10 +133,10 @@ def test_download_input_format(input_format, output_format):
     elif output_format == "webdataset":
         l = glob.glob(image_folder_name+"/*")
         assert(len(l) == 1)
-        if l[0] != image_folder_name+"/000000.tar":
-            raise Exception(l[0] + "is not 000000.tar")
+        if l[0] != image_folder_name+"/00000.tar":
+            raise Exception(l[0] + " is not 00000.tar")
 
-        assert(len(tarfile.open(image_folder_name+"/000000.tar").getnames()) == expected_file_count)
+        assert(len(tarfile.open(image_folder_name+"/00000.tar").getnames()) == expected_file_count)
 
     os.remove(url_list_name)
     shutil.rmtree(image_folder_name)
@@ -155,10 +155,10 @@ def test_webdataset():
 
     l = glob.glob(image_folder_name+"/*")
     assert(len(l) == 1)
-    if l[0] != image_folder_name+"/000000.tar":
-        raise Exception(l[0] + "is not 000000.tar")
+    if l[0] != image_folder_name+"/00000.tar":
+        raise Exception(l[0] + " is not 00000.tar")
 
-    assert(len(tarfile.open(image_folder_name+"/000000.tar").getnames()) == 5)
+    assert(len(tarfile.open(image_folder_name+"/00000.tar").getnames()) == 5)
 
     os.remove(url_list_name)
     shutil.rmtree(image_folder_name)
