@@ -183,7 +183,7 @@ def one_process_downloader(row, sample_writer_builder, resizer, thread_count, sa
         df.to_parquet(output_folder+"/"+shard_name+".parquet")
     
     return (total, successes, failed_to_download, failed_to_resize)
-               
+
 def download(
     url_list,
     image_size=256,
@@ -200,63 +200,73 @@ def download(
     save_metadata=True,
     ):
 
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
-        start_shard_id=0
-    else:
-        existing_top_level_files = glob.glob(output_folder+"/*")
-        if len(existing_top_level_files) == 0:
+    def download_one_file(url_list):
+        if not os.path.exists(output_folder):
+            os.mkdir(output_folder)
             start_shard_id=0
         else:
-            start_shard_id=max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files])+1
+            existing_top_level_files = glob.glob(output_folder+"/*")
+            if len(existing_top_level_files) == 0:
+                start_shard_id=0
+            else:
+                start_shard_id=max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files])+1
 
-    if input_format == "txt":
-        images_to_dl = []
-        with open(url_list, encoding='utf-8') as file:
-            images_to_dl = [(None, url) for url in file.readlines()]
-    elif input_format == "csv" or input_format=="parquet":
-        if input_format == "csv":
-            df = pd.read_csv(url_list)
-        elif input_format == "parquet":
-            df = pd.read_parquet(url_list)
-        if caption_col is not None:
-            images_to_dl = list(zip(df[caption_col], df[url_col]))
-        else:
-            images_to_dl = [(None, url) for url in df[url_col]]
+        if input_format == "txt":
+            images_to_dl = []
+            with open(url_list, encoding='utf-8') as file:
+                images_to_dl = [(None, url) for url in file.readlines()]
+        elif input_format == "csv" or input_format=="parquet":
+            if input_format == "csv":
+                df = pd.read_csv(url_list)
+            elif input_format == "parquet":
+                df = pd.read_parquet(url_list)
+            if caption_col is not None:
+                images_to_dl = list(zip(df[caption_col], df[url_col]))
+            else:
+                images_to_dl = [(None, url) for url in df[url_col]]
 
-    sharded_images_to_dl = []
-    number_samples = len(images_to_dl)
-    number_shards = math.ceil(number_samples / number_sample_per_shard)
-    for shard_id in range(number_shards):
-        begin_shard = shard_id * number_sample_per_shard
-        end_shard = min(number_samples, (1+shard_id) * number_sample_per_shard)
-        sharded_images_to_dl.append((shard_id+start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard]))))
+        sharded_images_to_dl = []
+        number_samples = len(images_to_dl)
+        number_shards = math.ceil(number_samples / number_sample_per_shard)
+        for shard_id in range(number_shards):
+            begin_shard = shard_id * number_sample_per_shard
+            end_shard = min(number_samples, (1+shard_id) * number_sample_per_shard)
+            sharded_images_to_dl.append((shard_id+start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard]))))
 
-    if output_format == "webdataset":
-        sample_writer_builder = functools.partial(webdataset_sample_writer_builder, output_folder=output_folder)    
-    elif output_format == "files":
-        sample_writer_builder = functools.partial(files_sample_writer_builder, output_folder=output_folder)
+        if output_format == "webdataset":
+            sample_writer_builder = functools.partial(webdataset_sample_writer_builder, output_folder=output_folder)    
+        elif output_format == "files":
+            sample_writer_builder = functools.partial(files_sample_writer_builder, output_folder=output_folder)
+        
+        resizer = functools.partial(resize_image, image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
+        downloader = functools.partial(one_process_downloader, sample_writer_builder=sample_writer_builder, resizer=resizer, \
+            thread_count=thread_count, save_metadata=save_metadata, output_folder=output_folder)
+
+        total_total = 0
+        total_success = 0
+        total_failed_to_download = 0
+        total_failed_to_resize = 0
+        with Pool(processes_count, maxtasksperchild=5) as process_pool:
+            for total, successes, failed_to_download, failed_to_resize in tqdm(process_pool.imap_unordered(downloader, sharded_images_to_dl),\
+                total=len(sharded_images_to_dl)):
+                total_total+=total 
+                total_success+=successes
+                total_failed_to_download+=failed_to_download
+                total_failed_to_resize+=failed_to_resize
+                message=f"success={1.0*total_success/total_total:.2f} "
+                message+=f"failed download={1.0*total_failed_to_download/total_total:.2f} "
+                message+=f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
+                print(message+"\n" , sep=' ', end='', flush=True)
+                pass
+
+    if os.path.isdir(url_list):
+        input_files = glob.glob(url_list+"/*")
+    else:
+        input_files = [url_list]
     
-    resizer = functools.partial(resize_image, image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
-    downloader = functools.partial(one_process_downloader, sample_writer_builder=sample_writer_builder, resizer=resizer, \
-        thread_count=thread_count, save_metadata=save_metadata, output_folder=output_folder)
-
-    total_total = 0
-    total_success = 0
-    total_failed_to_download = 0
-    total_failed_to_resize = 0
-    with Pool(processes_count, maxtasksperchild=5) as process_pool:
-        for total, successes, failed_to_download, failed_to_resize in tqdm(process_pool.imap_unordered(downloader, sharded_images_to_dl),\
-             total=len(sharded_images_to_dl)):
-            total_total+=total 
-            total_success+=successes
-            total_failed_to_download+=failed_to_download
-            total_failed_to_resize+=failed_to_resize
-            message=f"success={1.0*total_success/total_total:.2f} "
-            message+=f"failed download={1.0*total_failed_to_download/total_total:.2f} "
-            message+=f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
-            print(message+"\n" , sep=' ', end='', flush=True)
-            pass
+    for i, input_file in enumerate(input_files):
+        print("Downloading file number "+str(i+1) +" of "+str(len(input_files))+" called "+input_file)
+        download_one_file(input_file)
 
 
 def main():
