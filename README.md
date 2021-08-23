@@ -3,7 +3,8 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rom1504/img2dataset/blob/master/notebook/img2dataset_getting_started.ipynb)
 [![Try it on gitpod](https://img.shields.io/badge/try-on%20gitpod-brightgreen.svg)](https://gitpod.io/#https://github.com/rom1504/img2dataset)
 
-Easily turn a set of image urls to an image dataset.
+Easily turn large sets of image urls to an image dataset.
+Can download, resize and package 100M urls in 20h on one machine.
 
 Also supports saving captions for url+caption datasets.
 
@@ -96,11 +97,12 @@ The default values should be good enough for small sized dataset. For larger one
 
 ## Road map
 
-This tool work as it. However in the future goals will include:
+This tool works very well in the current state for up to 100M elements. Future goals include:
 
-* support for multiple input files
-* support for csv or parquet files as input
-* benchmarks for 1M, 10M, 100M pictures
+* a benchmark for 1B pictures which may require
+  * further optimization on the resizing part
+  * better multi node support
+  * integrated support for incremental support (only download new elements)
 
 ## Architecture notes
 
@@ -188,3 +190,8 @@ It takes 3.7h to download 18M pictures
 
 1350 images/s is the currently observed performance. 4.8M images per hour, 116M images per 24h.
 
+
+### 36M image benchmark
+
+downloading 2 parquet files of 18M items (result 936GB) took 7h24
+average of 1345 image/s
