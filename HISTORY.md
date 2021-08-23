@@ -1,3 +1,7 @@
+## 1.5.0
+
+* add a save_additional_columns option
+
 ## 1.4.0
 
 * Multiple file support
