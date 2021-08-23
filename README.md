@@ -56,6 +56,8 @@ If **save_metadata** option is turned on (that's the default), then .json files 
 * error_message
 * width
 * height
+* original_width
+* original_height
 * exif
 Also a .parquet file will be saved with the same name as the subfolder/tar files containing these same metadata.
 It can be used to analyze the results efficiently.
@@ -85,6 +87,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
 * **save_metadata** if true, saves one parquet file per folder/tar and json files with metadata (default *True*)
+* **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)
 
 ## How to tweak the options
 

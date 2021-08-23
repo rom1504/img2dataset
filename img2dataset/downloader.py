@@ -18,7 +18,7 @@ import logging
 logging.getLogger('exifread').setLevel(level=logging.CRITICAL)
 
 def download_image(row):
-    key, (_, url) = row
+    key, url = row
     try:
         request = urllib.request.Request(
             url,
@@ -34,6 +34,8 @@ def download_image(row):
 def resize_image(img_stream, image_size, resize_mode, resize_only_if_bigger):
     try:
         img = cv2.imdecode(np.frombuffer(img_stream.read(), np.uint8), 1)
+        original_height = img.shape[0]
+        original_width = img.shape[1]
         if not resize_only_if_bigger or img.shape[0] > image_size or img.shape[1] > image_size:
             if resize_mode == "border":
                 img = resize_with_border(img, image_size)
@@ -44,9 +46,9 @@ def resize_image(img_stream, image_size, resize_mode, resize_only_if_bigger):
         height = img.shape[0]
         width = img.shape[1]
         img_str = cv2.imencode('.jpg', img)[1].tobytes()
-        return img_str, width, height, None
+        return img_str, width, height, original_width, original_height, None
     except Exception as err:
-        return None, None, None, str(err)
+        return None, None, None, None, None, str(err)
 
 # keep the ratio, smaller side is desired_size
 def resize_keep_ratio(im, desired_size=256):
@@ -128,14 +130,14 @@ def one_process_downloader(row, sample_writer_builder, resizer, thread_count, sa
     successes = 0
     failed_to_download = 0
     failed_to_resize = 0
+    key_url_list = [(key, x["url"]) for key, x in shard_to_dl]
 
     sample_writer = sample_writer_builder(shard_id)
     with ThreadPool(thread_count) as thread_pool:
-        for key, img_stream, error_message in thread_pool.imap_unordered(download_image, shard_to_dl):
-            _, (caption, url) = shard_to_dl[key]
+        for key, img_stream, error_message in thread_pool.imap_unordered(download_image, key_url_list):
+            _, sample_data = shard_to_dl[key]
             meta = {
-                    "url": url,
-                    "caption": caption,
+                    **sample_data,
                     "key": key,
                     "shard_id": shard_id,
                     "status": None,
@@ -151,7 +153,7 @@ def one_process_downloader(row, sample_writer_builder, resizer, thread_count, sa
                     meta["status"] = status
                     metadatas.append(meta)
                 continue
-            img, width, height, error_message = resizer(img_stream)
+            img, width, height, original_width, original_height, error_message = resizer(img_stream)
             if error_message is not None:
                 failed_to_resize+=1
                 status="failed_to_resize"
@@ -170,12 +172,14 @@ def one_process_downloader(row, sample_writer_builder, resizer, thread_count, sa
                 meta["status"] = status
                 meta["width"] = width
                 meta["height"] = height
+                meta["original_width"] = original_width
+                meta["original_height"] = original_height
                 meta["exif"] = exif
                 metadatas.append(meta)
             else:
                 meta=None
 
-            sample_writer(img, key, caption, meta)
+            sample_writer(img, key, sample_data["caption"] if "caption" in sample_data else None, meta)
 
     if save_metadata:
         df = pd.DataFrame(metadatas)
@@ -198,6 +202,7 @@ def download(
     thread_count=256,
     number_sample_per_shard=10000,
     save_metadata=True,
+    save_additional_columns=None
     ):
 
     def download_one_file(url_list):
@@ -214,16 +219,19 @@ def download(
         if input_format == "txt":
             images_to_dl = []
             with open(url_list, encoding='utf-8') as file:
-                images_to_dl = [(None, url) for url in file.readlines()]
+                images_to_dl = [{"url": url} for url in file.readlines()]
         elif input_format == "csv" or input_format=="parquet":
             if input_format == "csv":
                 df = pd.read_csv(url_list)
             elif input_format == "parquet":
                 df = pd.read_parquet(url_list)
+            column_list = save_additional_columns if save_additional_columns is not None else []
+            df = df.rename(columns={caption_col: "caption", url_col: "url"})
             if caption_col is not None:
-                images_to_dl = list(zip(df[caption_col], df[url_col]))
+                column_list = column_list + ["caption", "url"]
             else:
-                images_to_dl = [(None, url) for url in df[url_col]]
+                column_list = column_list + ["url"]
+            images_to_dl = df[column_list].to_dict('records')
 
         sharded_images_to_dl = []
         number_samples = len(images_to_dl)
