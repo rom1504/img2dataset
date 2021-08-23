@@ -65,7 +65,7 @@ This module exposes a single function `download` which takes the same arguments 
 
 * **url_list** A file with the list of url of images to download, one by line (*required*)
 * **image_size** The side to resize image to (default *256*)
-* **output_folder** The path to the output folder (default *"images"*)
+* **output_folder** The path to the output folder. If existing subfolder are present, the tool will continue to the next number. (default *"images"*)
 * **processes_count** The number of processes used for downloading the pictures. This is important to be high for performance. (default *1*)
 * **thread_count** The number of threads used for downloading the pictures. This is important to be high for performance. (default *256*)
 * **resize_mode** The way to resize pictures, can be no, border or keep_ratio (default *border*)
