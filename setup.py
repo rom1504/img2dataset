@@ -32,7 +32,8 @@ if __name__ == "__main__":
             'fire',
             'webdataset',
             'pandas',
-            'pyarrow'
+            'pyarrow',
+            'exifread'
         ],
         classifiers=[
             'Development Status :: 4 - Beta',
