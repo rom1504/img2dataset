@@ -5,3 +5,5 @@ output_folder
 myimglist.txt
 __pycache__
 .envtest
+bench
+test_folder

@@ -11,10 +11,14 @@ import io
 import numpy as np
 import pandas as pd
 import math
-
+import exifread
+import json
+import glob
+import logging
+logging.getLogger('exifread').setLevel(level=logging.CRITICAL)
 
 def download_image(row):
-    key, caption, url = row
+    key, (_, url) = row
     try:
         request = urllib.request.Request(
             url,
@@ -22,9 +26,9 @@ def download_image(row):
             headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0'}
         )
         img_stream = io.BytesIO(urllib.request.urlopen(request, timeout=10).read())
-        return key, caption, img_stream, url
-    except Exception as _:
-        return None, None, None, None
+        return key, img_stream, None
+    except Exception as err:
+        return key, None, str(err)
 
 
 def resize_image(img_stream, image_size, resize_mode, resize_only_if_bigger):
@@ -37,10 +41,12 @@ def resize_image(img_stream, image_size, resize_mode, resize_only_if_bigger):
                 img = img
             elif resize_mode == "keep_ratio":
                 img = resize_keep_ratio(img, image_size)
+        height = img.shape[0]
+        width = img.shape[1]
         img_str = cv2.imencode('.jpg', img)[1].tobytes()
-        return img_str
-    except Exception as _:
-        return None
+        return img_str, width, height, None
+    except Exception as err:
+        return None, None, None, str(err)
 
 # keep the ratio, smaller side is desired_size
 def resize_keep_ratio(im, desired_size=256):
@@ -78,7 +84,7 @@ def webdataset_sample_writer_builder(shard_id, output_folder):
     tarwriter = wds.TarWriter(f"{output_folder}/{shard_name}.tar")
     return functools.partial(webdataset_sample_writer, tarwriter=tarwriter)
 
-def webdataset_sample_writer(img_str, key, caption, url, tarwriter):
+def webdataset_sample_writer(img_str, key, caption, meta, tarwriter):
     key = "%09d" % key
     sample = {
         "__key__": key,
@@ -86,6 +92,8 @@ def webdataset_sample_writer(img_str, key, caption, url, tarwriter):
     }
     if caption is not None:
         sample["txt"] = caption
+    if meta is not None:
+        sample["json"] = json.dumps(meta, indent=4)
     tarwriter.write(sample)
 
 def files_sample_writer_builder(shard_id, output_folder):
@@ -95,8 +103,8 @@ def files_sample_writer_builder(shard_id, output_folder):
         os.mkdir(subfolder)
     return functools.partial(files_sample_writer, output_folder=subfolder)
 
-def files_sample_writer(img_str, key, caption, url, output_folder):
-    key = "%09d" % key
+def files_sample_writer(img_str, key, caption, meta, output_folder):
+    key = "%04d" % key
     filename = f'{output_folder}/{key}.jpg'
     with open(filename, "wb") as f:
         f.write(img_str)
@@ -104,21 +112,77 @@ def files_sample_writer(img_str, key, caption, url, output_folder):
         caption_filename = f'{output_folder}/{key}.txt'
         with open(caption_filename, "w") as f:
             f.write(caption)
+    if meta is not None:
+        j = json.dumps(meta, indent=4)
+        meta_filename = f'{output_folder}/{key}.json'
+        with open(meta_filename, "w") as f:
+            f.write(j)
 
-def one_process_downloader(row, sample_writer_builder, resizer, thread_count):
+def one_process_downloader(row, sample_writer_builder, resizer, thread_count, save_metadata, output_folder):
     shard_id, shard_to_dl = row
+
+    if save_metadata:
+        metadatas = []
+    
+    total = len(shard_to_dl)
+    successes = 0
+    failed_to_download = 0
+    failed_to_resize = 0
+
     sample_writer = sample_writer_builder(shard_id)
     with ThreadPool(thread_count) as thread_pool:
-        iterator = thread_pool.imap_unordered(download_image, shard_to_dl)
-        for key, caption, img_stream, url in iterator:
-            if key is None:
+        for key, img_stream, error_message in thread_pool.imap_unordered(download_image, shard_to_dl):
+            _, (caption, url) = shard_to_dl[key]
+            meta = {
+                    "url": url,
+                    "caption": caption,
+                    "key": key,
+                    "shard_id": shard_id,
+                    "status": None,
+                    "error_message": error_message,
+                    "width": None,
+                    "height": None,
+                    "exif": None,
+                }
+            if error_message is not None:
+                failed_to_download+=1
+                status="failed_to_download"
+                if save_metadata:
+                    meta["status"] = status
+                    metadatas.append(meta)
                 continue
-            img = resizer(img_stream)
-            if img is None:
+            img, width, height, error_message = resizer(img_stream)
+            if error_message is not None:
+                failed_to_resize+=1
+                status="failed_to_resize"
+                if save_metadata:
+                    meta["status"] = status
+                    metadatas.append(meta)
                 continue
+            successes+=1
+            status="success"
 
-            sample_writer(img, key, caption, url)
-    return
+            if save_metadata:
+                try:
+                    exif = json.dumps({k:str(v).strip()  for k, v in exifread.process_file(img_stream, details=False).items() if v is not None})
+                except Exception as _:
+                    exif = None
+                meta["status"] = status
+                meta["width"] = width
+                meta["height"] = height
+                meta["exif"] = exif
+                metadatas.append(meta)
+            else:
+                meta=None
+
+            sample_writer(img, key, caption, meta)
+
+    if save_metadata:
+        df = pd.DataFrame(metadatas)
+        shard_name = "%05d" % shard_id
+        df.to_parquet(output_folder+"/"+shard_name+".parquet")
+    
+    return (total, successes, failed_to_download, failed_to_resize)
                
 def download(
     url_list,
@@ -133,24 +197,32 @@ def download(
     caption_col=None,
     thread_count=256,
     number_sample_per_shard=10000,
+    save_metadata=True,
     ):
 
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
+        start_shard_id=0
+    else:
+        existing_top_level_files = glob.glob(output_folder+"/*")
+        if len(existing_top_level_files) == 0:
+            start_shard_id=0
+        else:
+            start_shard_id=max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files])+1
 
     if input_format == "txt":
         images_to_dl = []
         with open(url_list, encoding='utf-8') as file:
-            images_to_dl = [(i, None, url) for i, url in enumerate(file.readlines())]
+            images_to_dl = [(None, url) for url in file.readlines()]
     elif input_format == "csv" or input_format=="parquet":
         if input_format == "csv":
             df = pd.read_csv(url_list)
         elif input_format == "parquet":
             df = pd.read_parquet(url_list)
         if caption_col is not None:
-            images_to_dl = [(i, caption, url) for i, (caption, url) in enumerate(zip(df[caption_col], df[url_col]))]
+            images_to_dl = list(zip(df[caption_col], df[url_col]))
         else:
-            images_to_dl = [(i, None, url) for i, url in enumerate(df[url_col])]
+            images_to_dl = [(None, url) for url in df[url_col]]
 
     sharded_images_to_dl = []
     number_samples = len(images_to_dl)
@@ -158,7 +230,7 @@ def download(
     for shard_id in range(number_shards):
         begin_shard = shard_id * number_sample_per_shard
         end_shard = min(number_samples, (1+shard_id) * number_sample_per_shard)
-        sharded_images_to_dl.append((shard_id, images_to_dl[begin_shard:end_shard]))
+        sharded_images_to_dl.append((shard_id+start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard]))))
 
     if output_format == "webdataset":
         sample_writer_builder = functools.partial(webdataset_sample_writer_builder, output_folder=output_folder)    
@@ -167,10 +239,23 @@ def download(
     
     resizer = functools.partial(resize_image, image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
     downloader = functools.partial(one_process_downloader, sample_writer_builder=sample_writer_builder, resizer=resizer, \
-        thread_count=thread_count)
+        thread_count=thread_count, save_metadata=save_metadata, output_folder=output_folder)
 
-    with Pool(processes_count, maxtasksperchild=10) as process_pool:
-        for _ in tqdm(process_pool.imap_unordered(downloader, sharded_images_to_dl), total=len(sharded_images_to_dl)):
+    total_total = 0
+    total_success = 0
+    total_failed_to_download = 0
+    total_failed_to_resize = 0
+    with Pool(processes_count, maxtasksperchild=5) as process_pool:
+        for total, successes, failed_to_download, failed_to_resize in tqdm(process_pool.imap_unordered(downloader, sharded_images_to_dl),\
+             total=len(sharded_images_to_dl)):
+            total_total+=total 
+            total_success+=successes
+            total_failed_to_download+=failed_to_download
+            total_failed_to_resize+=failed_to_resize
+            message=f"success={1.0*total_success/total_total:.2f} "
+            message+=f"failed download={1.0*total_failed_to_download/total_total:.2f} "
+            message+=f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
+            print(message+"\n" , sep=' ', end='', flush=True)
             pass
 
 

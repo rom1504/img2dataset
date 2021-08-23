@@ -46,6 +46,19 @@ If **captions** are provided, they will be saved as 0.txt, 1.txt, ...
 
 This can then easily be fed into machine learning training or any other use case.
 
+If **save_metadata** option is turned on (that's the default), then .json files named 0.json, 1.json,... are saved with these keys:
+* url
+* caption
+* key
+* shard_id
+* status : whether the download succeeded
+* error_message
+* width
+* height
+* exif
+Also a .parquet file will be saved with the same name as the subfolder/tar files containing these same metadata.
+It can be used to analyze the results efficiently.
+
 ## API
 
 This module exposes a single function `download` which takes the same arguments as the command line tool:
@@ -70,6 +83,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
+* **save_metadata** if true, saves one parquet file per folder/tar and json files with metadata (default *True*)
 
 ## How to tweak the options
 
@@ -78,6 +92,7 @@ The default values should be good enough for small sized dataset. For larger one
 * set the processes_count as the number of cores your machine has
 * increase thread_count as long as your bandwidth and cpu are below the limits
 * I advise to set output_format to webdataset if your dataset has more than 1M elements, it will be easier to manipulate few tars rather than million of files
+* keeping metdata to True can be useful to check what items were already saved and avoid redownloading them
 
 ## Road map
 
