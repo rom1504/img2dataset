@@ -1,3 +1,8 @@
+## 1.4.0
+
+* Multiple file support
+* Status dataframe
+
 ## 1.3.0
 
 * Uses a resizing method less prone to aliasing (thanks @skylion)

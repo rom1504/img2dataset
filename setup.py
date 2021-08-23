@@ -9,7 +9,7 @@ if __name__ == "__main__":
         name = 'img2dataset',
         packages = find_packages(),
         include_package_data = True,
-        version = '1.3.0',
+        version = '1.4.0',
         license='MIT',
         description = 'Easily turn a set of image urls to an image dataset',
         long_description=long_description,
