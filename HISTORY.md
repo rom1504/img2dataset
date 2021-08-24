@@ -1,3 +1,7 @@
+## 1.5.2
+
+* improve memory usage
+
 ## 1.5.1
 
 * glob only input files of the right ext
