@@ -139,6 +139,7 @@ Add this in options:
         recursive-clients 10000;
         resolver-query-timeout 30000;
         max-clients-per-query 10000;
+        max-cache-size 2000m;
 
 sudo systemctl restart bind9
 

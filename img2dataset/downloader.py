@@ -268,7 +268,7 @@ def download(
                 pass
 
     if os.path.isdir(url_list):
-        input_files = glob.glob(url_list+"/*")
+        input_files = glob.glob(url_list+"/*."+input_format)
     else:
         input_files = [url_list]
     
