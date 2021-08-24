@@ -25,7 +25,8 @@ def download_image(row):
             data=None,
             headers={'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0'}
         )
-        img_stream = io.BytesIO(urllib.request.urlopen(request, timeout=10).read())
+        with urllib.request.urlopen(request, timeout=10) as r:
+            img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:
         return key, None, str(err)
@@ -120,7 +121,7 @@ def files_sample_writer(img_str, key, caption, meta, output_folder):
         with open(meta_filename, "w") as f:
             f.write(j)
 
-def one_process_downloader(row, sample_writer_builder, resizer, thread_count, save_metadata, output_folder):
+def one_process_downloader(row, sample_writer_builder, resizer, thread_count, save_metadata, output_folder, column_list):
     shard_id, shard_to_dl = row
 
     if save_metadata:
@@ -130,14 +131,16 @@ def one_process_downloader(row, sample_writer_builder, resizer, thread_count, sa
     successes = 0
     failed_to_download = 0
     failed_to_resize = 0
-    key_url_list = [(key, x["url"]) for key, x in shard_to_dl]
+    url_indice = column_list.index("url")
+    caption_indice = column_list.index("caption") if "caption" in column_list else None
+    key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
     sample_writer = sample_writer_builder(shard_id)
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(download_image, key_url_list):
             _, sample_data = shard_to_dl[key]
             meta = {
-                    **sample_data,
+                    **{column_list[i]:sample_data[i] for i in range(len(column_list))},
                     "key": key,
                     "shard_id": shard_id,
                     "status": None,
@@ -179,7 +182,7 @@ def one_process_downloader(row, sample_writer_builder, resizer, thread_count, sa
             else:
                 meta=None
 
-            sample_writer(img, key, sample_data["caption"] if "caption" in sample_data else None, meta)
+            sample_writer(img, key, sample_data[caption_indice] if caption_indice is not None else None, meta)
 
     if save_metadata:
         df = pd.DataFrame(metadatas)
@@ -219,7 +222,8 @@ def download(
         if input_format == "txt":
             images_to_dl = []
             with open(url_list, encoding='utf-8') as file:
-                images_to_dl = [{"url": url} for url in file.readlines()]
+                images_to_dl = [(url, ) for url in file.readlines()]
+            column_list=["url"]
         elif input_format == "csv" or input_format=="parquet":
             if input_format == "csv":
                 df = pd.read_csv(url_list)
@@ -231,7 +235,8 @@ def download(
                 column_list = column_list + ["caption", "url"]
             else:
                 column_list = column_list + ["url"]
-            images_to_dl = df[column_list].to_dict('records')
+            images_to_dl = df[column_list].to_records(index=False)
+            del df
 
         sharded_images_to_dl = []
         number_samples = len(images_to_dl)
@@ -240,6 +245,7 @@ def download(
             begin_shard = shard_id * number_sample_per_shard
             end_shard = min(number_samples, (1+shard_id) * number_sample_per_shard)
             sharded_images_to_dl.append((shard_id+start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard]))))
+        del images_to_dl
 
         if output_format == "webdataset":
             sample_writer_builder = functools.partial(webdataset_sample_writer_builder, output_folder=output_folder)    
@@ -248,7 +254,7 @@ def download(
         
         resizer = functools.partial(resize_image, image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger)
         downloader = functools.partial(one_process_downloader, sample_writer_builder=sample_writer_builder, resizer=resizer, \
-            thread_count=thread_count, save_metadata=save_metadata, output_folder=output_folder)
+            thread_count=thread_count, save_metadata=save_metadata, output_folder=output_folder, column_list=column_list)
 
         total_total = 0
         total_success = 0
