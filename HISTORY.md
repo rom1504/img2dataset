@@ -1,3 +1,7 @@
+## 1.5.1
+
+* glob only input files of the right ext
+
 ## 1.5.0
 
 * add a save_additional_columns option
