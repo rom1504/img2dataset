@@ -1,3 +1,7 @@
+## 1.5.3
+
+* increase stability by closing the pool and tarwriter explictely
+
 ## 1.5.2
 
 * improve memory usage
