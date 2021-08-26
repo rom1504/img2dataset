@@ -199,3 +199,8 @@ It takes 3.7h to download 18M pictures
 
 downloading 2 parquet files of 18M items (result 936GB) took 7h24
 average of 1345 image/s
+
+## 190M benchmark
+
+downloading 190M images from the [crawling at home dataset](https://github.com/rom1504/cah-prepro) took 41h (result 5TB)
+average of 1280 image/s
