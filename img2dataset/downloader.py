@@ -295,7 +295,7 @@ def download(
                 message=f"success={1.0*total_success/total_total:.2f} "
                 message+=f"failed download={1.0*total_failed_to_download/total_total:.2f} "
                 message+=f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
-                tqdm.print(message+"\n" , sep=' ', end='', flush=True)
+                tqdm.write(message+"\n" , sep=' ', end='', flush=True)
                 pass
             process_pool.terminate()
             process_pool.join()
