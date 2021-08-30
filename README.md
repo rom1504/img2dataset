@@ -68,7 +68,7 @@ It can be used to analyze the results efficiently.
 This module exposes a single function `download` which takes the same arguments as the command line tool:
 
 * **url_list** A file with the list of url of images to download. It can be a folder of such files. (*required*)
-* **image_size** The size to resize image to (default *256*). No resizing if None.
+* **image_size** The size to resize image to (default *256*)
 * **output_folder** The path to the output folder. If existing subfolder are present, the tool will continue to the next number. (default *"images"*)
 * **processes_count** The number of processes used for downloading the pictures. This is important to be high for performance. (default *1*)
 * **thread_count** The number of threads used for downloading the pictures. This is important to be high for performance. (default *256*)
