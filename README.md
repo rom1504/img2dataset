@@ -59,6 +59,7 @@ If **save_metadata** option is turned on (that's the default), then .json files 
 * original_width
 * original_height
 * exif
+
 Also a .parquet file will be saved with the same name as the subfolder/tar files containing these same metadata.
 It can be used to analyze the results efficiently.
 
@@ -67,7 +68,7 @@ It can be used to analyze the results efficiently.
 This module exposes a single function `download` which takes the same arguments as the command line tool:
 
 * **url_list** A file with the list of url of images to download. It can be a folder of such files. (*required*)
-* **image_size** The side to resize image to (default *256*)
+* **image_size** The size to resize image to (default *256*). No resizing if None.
 * **output_folder** The path to the output folder. If existing subfolder are present, the tool will continue to the next number. (default *"images"*)
 * **processes_count** The number of processes used for downloading the pictures. This is important to be high for performance. (default *1*)
 * **thread_count** The number of threads used for downloading the pictures. This is important to be high for performance. (default *256*)
@@ -75,6 +76,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **no** doesn't resize at all
   * **border** will make the image image_size x image_size and add a border
   * **keep_ratio** will keep the ratio and make the smallest side of the picture image_size
+  * **center_crop** will keep the ratio and center crop the largest side so the picture is squared
 * **resize_only_if_bigger** resize pictures only if bigger that the image_size (default *False*)
 * **output_format** decides how to save pictures (default *files*)
   * **files** saves as a set of subfolder containing pictures
@@ -96,7 +98,7 @@ The default values should be good enough for small sized dataset. For larger one
 * set the processes_count as the number of cores your machine has
 * increase thread_count as long as your bandwidth and cpu are below the limits
 * I advise to set output_format to webdataset if your dataset has more than 1M elements, it will be easier to manipulate few tars rather than million of files
-* keeping metdata to True can be useful to check what items were already saved and avoid redownloading them
+* keeping metadata to True can be useful to check what items were already saved and avoid redownloading them
 
 ## Road map
 

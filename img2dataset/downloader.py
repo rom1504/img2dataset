@@ -38,12 +38,14 @@ def resize_image(img_stream, image_size, resize_mode, resize_only_if_bigger):
         original_height = img.shape[0]
         original_width = img.shape[1]
         if not resize_only_if_bigger or img.shape[0] > image_size or img.shape[1] > image_size:
-            if resize_mode == "border":
-                img = resize_with_border(img, image_size)
-            elif resize_mode == "no":
+            if resize_mode == "no" or image_size == original_height == original_width:
                 img = img
+            elif resize_mode == "border":
+                img = resize_with_border(img, image_size)
             elif resize_mode == "keep_ratio":
                 img = resize_keep_ratio(img, image_size)
+            elif resize_mode == "center_crop":
+                img = resize_center_crop(img, image_size)
         height = img.shape[0]
         width = img.shape[1]
         img_str = cv2.imencode('.jpg', img)[1].tobytes()
@@ -56,11 +58,19 @@ def resize_keep_ratio(im, desired_size=256):
     old_size = im.shape[:2] # old_size is in (height, width) format
 
     ratio = float(desired_size)/min(old_size)
-    new_size = tuple([int(x*ratio) for x in old_size])
+    new_size = tuple([int(round(x*ratio)) for x in old_size])
     # new_size should be in (width, height) format
     im = cv2.resize(im, (new_size[1], new_size[0]), interpolation = cv2.INTER_LANCZOS4)
 
     return im
+
+# keep the ratio, largest side center cropped so output is squared
+def resize_center_crop(im, desired_size=256):
+    im = resize_keep_ratio(im, desired_size)
+    h, w = im.shape[:2]
+    y1 = (h - desired_size) // 2
+    x1 = (w - desired_size) // 2
+    return im[y1:y1+desired_size, x1:x1+desired_size]
 
 # resize and add a border, larger side is desired_size
 def resize_with_border(im, desired_size=256):
@@ -237,9 +247,11 @@ def download(
             with open(url_list, encoding='utf-8') as file:
                 images_to_dl = [(url, ) for url in file.readlines()]
             column_list=["url"]
-        elif input_format == "csv" or input_format=="parquet":
+        elif input_format in ["csv", "tsv", "parquet"]:
             if input_format == "csv":
                 df = pd.read_csv(url_list)
+            elif input_format == "tsv":
+                df = pd.read_csv(url_list, sep='\t')
             elif input_format == "parquet":
                 df = pd.read_parquet(url_list)
             column_list = save_additional_columns if save_additional_columns is not None else []
