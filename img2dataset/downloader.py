@@ -251,7 +251,7 @@ def download(
             if input_format == "csv":
                 df = pd.read_csv(url_list)
             elif input_format == "tsv":
-                df = pd.read_csv(url_list, sep='\t')
+                df = pd.read_table(url_list)
             elif input_format == "parquet":
                 df = pd.read_parquet(url_list)
             column_list = save_additional_columns if save_additional_columns is not None else []
