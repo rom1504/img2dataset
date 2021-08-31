@@ -34,6 +34,10 @@ def generate_csv(output_file):
     df = pd.DataFrame(test_list, columns=['caption', 'url'])
     df.to_csv(output_file)
 
+def generate_tsv(output_file):
+    df = pd.DataFrame(test_list, columns=['caption', 'url'])
+    df.to_csv(output_file, sep="\t")
+
 def generate_parquet(output_file):
     df = pd.DataFrame(test_list, columns=['caption', 'url'])
     df.to_parquet(output_file)
@@ -116,7 +120,7 @@ def test_download_resize(resize_mode, resize_only_if_bigger):
 
 
 @pytest.mark.parametrize("input_format, output_format", [["txt", "files"], ["txt", "webdataset"], 
-["csv", "files"], ["csv", "webdataset"], ["parquet", "files"], ["parquet", "webdataset"]])
+["csv", "files"], ["csv", "webdataset"], ["tsv", "files"], ["tsv", "webdataset"], ["parquet", "files"], ["parquet", "webdataset"]])
 def test_download_input_format(input_format, output_format):
     prefix = input_format + "_" +output_format + "_"
     url_list_name = os.path.join(test_folder, prefix + "url_list.txt")
@@ -126,6 +130,8 @@ def test_download_input_format(input_format, output_format):
         generate_url_list_txt(url_list_name)
     elif input_format == "csv":
         generate_csv(url_list_name)
+    elif input_format == "tsv":
+        generate_tsv(url_list_name)
     elif input_format == "parquet":
         generate_parquet(url_list_name)
 
