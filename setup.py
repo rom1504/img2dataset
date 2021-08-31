@@ -33,7 +33,8 @@ if __name__ == "__main__":
             'webdataset==0.1.62',
             'pandas',
             'pyarrow',
-            'exifread'
+            'exifread',
+            'albumentations'
         ],
         classifiers=[
             'Development Status :: 4 - Beta',
