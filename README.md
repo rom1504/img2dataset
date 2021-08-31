@@ -84,6 +84,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **input_format** decides how to load the urls (default *txt*)
   * **txt** loads the urls as a text file of url, one per line
   * **csv** loads the urls and optional caption as a csv
+  * **tsv** loads the urls and optional caption as a tsv
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
