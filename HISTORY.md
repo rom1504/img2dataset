@@ -1,3 +1,7 @@
+## 1.6.0
+
+* feat: handle tsv + center crop (thanks @borisdayma)
+
 ## 1.5.3
 
 * increase stability by closing the pool and tarwriter explictely
