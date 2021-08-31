@@ -30,7 +30,7 @@ if __name__ == "__main__":
             'tqdm',
             'opencv-python',
             'fire',
-            'webdataset',
+            'webdataset==0.1.62',
             'pandas',
             'pyarrow',
             'exifread'
