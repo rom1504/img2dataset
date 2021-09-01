@@ -98,11 +98,9 @@ class Resizer:
                     and max(img.shape[:2]) > self.image_size
                 )
             ):
-                pass
+                img = self.resize_tfm(image=img)["image"]
 
-            img = self.resize_tfm(image=img)["image"]
             height, width = img.shape[:2]
-
             img_str = cv2.imencode(".jpg", img)[1].tobytes()
             return img_str, width, height, original_width, original_height, None
 
