@@ -37,6 +37,11 @@ def download_image(row):
         return key, None, str(err)
 
 
+# identity transform - lambda functions can't be pickled
+def tfm_identity(x):
+    return x
+
+
 class Resizer:
     """Resize images"""
 
@@ -44,10 +49,6 @@ class Resizer:
         self.image_size = image_size
         self.resize_mode = resize_mode
         self.resize_only_if_bigger = resize_only_if_bigger
-
-        # identity transform - lambda functions can't be pickled
-        def tfm_identity(x):
-            return x
 
         # define transform
         self.resize_tfm = (
