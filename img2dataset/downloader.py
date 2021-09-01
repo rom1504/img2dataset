@@ -45,9 +45,13 @@ class Resizer:
         self.resize_mode = resize_mode
         self.resize_only_if_bigger = resize_only_if_bigger
 
+        # identity transform - lambda functions can't be pickled
+        def tfm_identity(x):
+            return x
+
         # define transform
         self.resize_tfm = (
-            (lambda x: x)
+            tfm_identity
             if resize_mode == "no"
             else A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
             if resize_mode == "keep_ratio"
