@@ -37,11 +37,6 @@ def download_image(row):
         return key, None, str(err)
 
 
-# identity transform - lambda functions can't be pickled
-def tfm_identity(x):
-    return x
-
-
 class Resizer:
     """Resize images"""
 
@@ -51,10 +46,10 @@ class Resizer:
         self.resize_only_if_bigger = resize_only_if_bigger
 
         # define transform
+        if resize_mode not in ["no", "keep_ratio", "center_crop", "border"]:
+            raise Exception(f"Invalid option for resize_mode: {resize_mode}")
         self.resize_tfm = (
-            tfm_identity
-            if resize_mode == "no"
-            else A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
+            A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
             if resize_mode == "keep_ratio"
             else A.Compose(
                 [
@@ -77,8 +72,6 @@ class Resizer:
             if resize_mode == "border"
             else None
         )
-        if self.resize_tfm is None:
-            raise Exception(f"Invalid option for resize_mode: {resize_mode}")
 
     def __call__(self, img_stream):
         try:
@@ -86,7 +79,7 @@ class Resizer:
             original_height, original_width = img.shape[:2]
 
             # resizing in following conditions
-            if (
+            if self.resize_mode != "no" and (
                 not self.resize_only_if_bigger
                 or (
                     self.resize_mode in ["keep_ratio", "center_crop"]
