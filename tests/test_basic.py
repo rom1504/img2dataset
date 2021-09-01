@@ -92,6 +92,8 @@ testdata = [
     ("border", True),
     ("keep_ratio", True),
     ("keep_ratio", False),
+    ("center_crop", True),
+    ("center_crop", False),
 ]
 
 
