@@ -61,7 +61,12 @@ def check_image_size(file_list,l_unresized, image_size, resize_mode, resize_only
         height_unresized = img_unresized.shape[0]
         resized = True
         if resize_only_if_bigger:
-            if width_unresized <= image_size and height_unresized <= image_size:
+            if (
+                max(width_unresized, height_unresized) <= image_size
+                and resize_mode == "border"
+                or min(width_unresized, height_unresized) <= image_size
+                and resize_mode in ["keep_ratio", "center_crop"]
+            ):
                 if width_unresized != width or height_unresized != height:
                     raise Exception(f"Image size is not the same as the original one in resize only if bigger mode,"
                     f"expected={width_unresized}, {height_unresized} found={width}, {height}")
