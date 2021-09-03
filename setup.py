@@ -30,10 +30,11 @@ if __name__ == "__main__":
             'tqdm',
             'opencv-python',
             'fire',
-            'webdataset==0.1.62',
+            'webdataset',
             'pandas',
             'pyarrow',
-            'exifread'
+            'exifread',
+            'pyyaml'
         ],
         classifiers=[
             'Development Status :: 4 - Beta',
