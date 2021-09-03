@@ -34,6 +34,7 @@ if __name__ == "__main__":
             'pandas',
             'pyarrow',
             'exifread',
+            'albumentations',
             'pyyaml'
         ],
         classifiers=[
