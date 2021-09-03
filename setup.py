@@ -9,7 +9,7 @@ if __name__ == "__main__":
         name = 'img2dataset',
         packages = find_packages(),
         include_package_data = True,
-        version = '1.6.0',
+        version = '1.6.1',
         license='MIT',
         description = 'Easily turn a set of image urls to an image dataset',
         long_description=long_description,
@@ -30,11 +30,12 @@ if __name__ == "__main__":
             'tqdm',
             'opencv-python',
             'fire',
-            'webdataset==0.1.62',
+            'webdataset',
             'pandas',
             'pyarrow',
             'exifread',
-            'albumentations'
+            'albumentations',
+            'pyyaml'
         ],
         classifiers=[
             'Development Status :: 4 - Beta',
