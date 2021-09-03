@@ -1,3 +1,7 @@
+## 1.6.1
+
+* depend on pyyaml to be able to use the last webdataset
+
 ## 1.6.0
 
 * feat: handle tsv + center crop (thanks @borisdayma)
