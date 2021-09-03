@@ -1,3 +1,7 @@
+## 1.7.0
+
+* use albumentations for resizing (thanks @borisdayma)
+
 ## 1.6.1
 
 * depend on pyyaml to be able to use the last webdataset
