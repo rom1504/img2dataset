@@ -207,6 +207,8 @@ def one_process_downloader(
     url_indice = column_list.index("url")
     caption_indice = column_list.index("caption") if "caption" in column_list else None
     key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
+    # capture error/success
+    status_dict = dict()
 
     sample_writer = sample_writer_class(shard_id, output_folder)
     with ThreadPool(thread_count) as thread_pool:
@@ -227,6 +229,7 @@ def one_process_downloader(
             if error_message is not None:
                 failed_to_download += 1
                 status = "failed_to_download"
+                status_dict[error_message] = status_dict.get(error_message, 0) + 1
                 if save_metadata:
                     meta["status"] = status
                     metadatas.append(meta)
@@ -248,6 +251,7 @@ def one_process_downloader(
                 continue
             successes += 1
             status = "success"
+            status_dict["success"] = status_dict.get("success", 0) + 1
 
             if save_metadata:
                 try:
@@ -289,7 +293,14 @@ def one_process_downloader(
         shard_name = "%05d" % shard_id
         df.to_parquet(output_folder + "/" + shard_name + ".parquet")
 
-    return (total, successes, failed_to_download, failed_to_resize, speed_logger)
+    return (
+        total,
+        successes,
+        failed_to_download,
+        failed_to_resize,
+        speed_logger,
+        status_dict,
+    )
 
 
 def download(
@@ -391,14 +402,19 @@ def download(
         )
 
         # Start a W&B run
-        wandb.init(project="img2dataset", config=config_parameters, anonymous="allow")
+        run = wandb.init(
+            project="img2dataset", config=config_parameters, anonymous="allow"
+        )
 
         total_speed_logger = SpeedLogger("total")
+        # capture error messages
+        total_status_dict = {}
 
         total_total = 0
         total_success = 0
         total_failed_to_download = 0
         total_failed_to_resize = 0
+
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
             for (
                 total,
@@ -406,6 +422,7 @@ def download(
                 failed_to_download,
                 failed_to_resize,
                 speed_logger,
+                status_dict,
             ) in tqdm(
                 process_pool.imap_unordered(downloader, sharded_images_to_dl),
                 total=len(sharded_images_to_dl),
@@ -415,6 +432,7 @@ def download(
                 total_success += successes
                 total_failed_to_download += failed_to_download
                 total_failed_to_resize += failed_to_resize
+
                 speed_logger(
                     count=total,
                     success=successes,
@@ -427,6 +445,19 @@ def download(
                     failed_to_download=total_failed_to_download,
                     failed_to_resize=total_failed_to_resize,
                 )
+
+                # update status table
+                for k, v in status_dict.items():
+                    total_status_dict[k] = total_status_dict.get(k, 0) + v
+                status_table = wandb.Table(
+                    columns=["status", "frequency", "count"],
+                    data=[
+                        [k, 1.0 * v / total_total, v]
+                        for k, v in total_status_dict.items()
+                    ],
+                )
+                run.log({"status": status_table})
+
             process_pool.terminate()
             process_pool.join()
             del process_pool
