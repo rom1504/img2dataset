@@ -63,6 +63,27 @@ If **save_metadata** option is turned on (that's the default), then .json files 
 Also a .parquet file will be saved with the same name as the subfolder/tar files containing these same metadata.
 It can be used to analyze the results efficiently.
 
+## Integration with Weights & Biases
+
+Performance metrics are monitored through [Weights & Biases](https://wandb.com/).
+
+![W&B metrics](img/wandb_metrics.png)
+
+In addition, most frequent errors are logged for easier debugging.
+
+![W&B table](img/wandb_table.png)
+
+Other features are available:
+
+* logging of environment configuration (OS, python version, CPU count, Hostname, etc)
+* monitoring of hardware resources (GPU/CPU, RAM, Disk, Networking, etc)
+* custom graphs and reports
+* comparison of runs (convenient when optimizing parameters such as number of threads/cpus)
+
+When running the script for the first time, you can decide to either associate your metrics to your account or log them anonymously.
+
+You can also log in (or create an account) before by running `wandb login`.
+
 ## API
 
 This module exposes a single function `download` which takes the same arguments as the command line tool:
@@ -91,6 +112,8 @@ This module exposes a single function `download` which takes the same arguments 
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
 * **save_metadata** if true, saves one parquet file per folder/tar and json files with metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)
+* **timeout** maximum time (in seconds) to wait when trying to download an image (default *10*)
+* **wandb_project** name of W&B project used (default *img2dataset*)
 
 ## How to tweak the options
 
