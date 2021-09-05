@@ -16,8 +16,46 @@ import exifread
 import json
 import glob
 import logging
+import sys
+import time
+import wandb
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
+
+
+class SpeedLogger:
+    """Log number of items per seconds"""
+
+    def __init__(self, prefix):
+        self.start = time.perf_counter()
+        self.prefix = prefix
+
+    def __call__(self, count, success, failed_to_download, failed_to_resize):
+        """Log as time per count using key"""
+        duration = time.perf_counter() - self.start
+        img_per_sec = count / duration
+        success_ratio = 1.0 * success / count
+        failed_to_download_ratio = 1.0 * failed_to_download / count
+        failed_to_resize_ratio = 1.0 * failed_to_resize / count
+
+        print(
+            " - ".join(
+                [
+                    f"{self.prefix:<7}",
+                    f"success: {success_ratio:.3f}",
+                    f"failed to download: {failed_to_download_ratio:.3f}",
+                    f"failed to resize: {failed_to_resize_ratio:.3f}",
+                    f"images per sec: {img_per_sec:.0f}",
+                    f"count: {count}",
+                ]
+            )
+        )
+
+        wandb.log({f"{self.prefix}/img_per_sec": img_per_sec})
+        wandb.log({f"{self.prefix}/success": success_ratio})
+        wandb.log({f"{self.prefix}/failed_to_download": failed_to_download_ratio})
+        wandb.log({f"{self.prefix}/failed_to_resize": failed_to_resize_ratio})
+        wandb.log({f"{self.prefix}/count": count})
 
 
 def download_image(row, timeout):
@@ -156,6 +194,7 @@ def one_process_downloader(
     column_list,
     timeout,
 ):
+    speed_logger = SpeedLogger("current")
     shard_id, shard_to_dl = row
 
     if save_metadata:
@@ -250,7 +289,7 @@ def one_process_downloader(
         shard_name = "%05d" % shard_id
         df.to_parquet(output_folder + "/" + shard_name + ".parquet")
 
-    return (total, successes, failed_to_download, failed_to_resize)
+    return (total, successes, failed_to_download, failed_to_resize, speed_logger)
 
 
 def download(
@@ -270,6 +309,9 @@ def download(
     save_additional_columns=None,
     timeout=10,
 ):
+    # capture all config parameters
+    config_parameters = dict(locals())
+
     def download_one_file(url_list):
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
@@ -348,26 +390,43 @@ def download(
             timeout=timeout,
         )
 
+        # Start a W&B run
+        wandb.init(project="img2dataset", config=config_parameters, anonymous="allow")
+
+        total_speed_logger = SpeedLogger("total")
+
         total_total = 0
         total_success = 0
         total_failed_to_download = 0
         total_failed_to_resize = 0
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
-            for total, successes, failed_to_download, failed_to_resize in tqdm(
+            for (
+                total,
+                successes,
+                failed_to_download,
+                failed_to_resize,
+                speed_logger,
+            ) in tqdm(
                 process_pool.imap_unordered(downloader, sharded_images_to_dl),
                 total=len(sharded_images_to_dl),
+                file=sys.stdout,
             ):
                 total_total += total
                 total_success += successes
                 total_failed_to_download += failed_to_download
                 total_failed_to_resize += failed_to_resize
-                message = f"success={1.0*total_success/total_total:.2f} "
-                message += (
-                    f"failed download={1.0*total_failed_to_download/total_total:.2f} "
+                speed_logger(
+                    count=total,
+                    success=successes,
+                    failed_to_download=failed_to_download,
+                    failed_to_resize=failed_to_resize,
                 )
-                message += f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
-                print(message + "\n", sep=" ", end="", flush=True)
-                pass
+                total_speed_logger(
+                    count=total_total,
+                    success=total_success,
+                    failed_to_download=total_failed_to_download,
+                    failed_to_resize=total_failed_to_resize,
+                )
             process_pool.terminate()
             process_pool.join()
             del process_pool
