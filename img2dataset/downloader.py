@@ -16,9 +16,105 @@ import exifread
 import json
 import glob
 import logging
+import sys
+import time
+import wandb
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
+# define global counters
+total_count = 0
+total_success = 0
+total_failed_to_download = 0
+total_failed_to_resize = 0
+total_status_dict = {}
+
+
+class Logger:
+    def __init__(self, processes_count=1, min_interval=0):
+        """Log only every processes_count and if min_interval (seconds) have elapsed since last log"""
+        # wait for all processes to return
+        self.processes_count = processes_count
+        self.processes_returned = 0
+        # min time (in seconds) before logging a new table (avoids too many logs)
+        self.min_interval = min_interval
+        self.last = time.perf_counter()
+        # keep track of whether we logged the last call
+        self.last_call_logged = False
+        self.last_args = None
+        self.last_kwargs = None
+
+    def __call__(self, *args, **kwargs):
+        self.processes_returned += 1
+        if (
+            self.processes_returned % self.processes_count == 0
+            and time.perf_counter() - self.last > self.min_interval
+        ):
+            self.do_log(*args, **kwargs)
+            self.last = time.perf_counter()
+            self.last_call_logged = True
+        else:
+            self.last_call_logged = False
+            self.last_args = args
+            self.last_kwargs = kwargs
+
+    def do_log(self, *args, **kwargs):
+        raise NotImplemented
+
+    def sync(self):
+        """Ensure last call is logged"""
+        if not self.last_call_logged:
+            self.do_log(*self.last_args, **self.last_kwargs)
+            # reset for next file
+            self.processes_returned = 0
+
+
+class SpeedLogger(Logger):
+    """Log performance metrics"""
+
+    def __init__(self, prefix, **logger_args):
+        super().__init__(**logger_args)
+        self.prefix = prefix
+        self.start = time.perf_counter()
+
+    def do_log(self, count, success, failed_to_download, failed_to_resize):
+        duration = time.perf_counter() - self.start
+        img_per_sec = count / duration
+        success_ratio = 1.0 * success / count
+        failed_to_download_ratio = 1.0 * failed_to_download / count
+        failed_to_resize_ratio = 1.0 * failed_to_resize / count
+
+        print(
+            " - ".join(
+                [
+                    f"{self.prefix:<7}",
+                    f"success: {success_ratio:.3f}",
+                    f"failed to download: {failed_to_download_ratio:.3f}",
+                    f"failed to resize: {failed_to_resize_ratio:.3f}",
+                    f"images per sec: {img_per_sec:.0f}",
+                    f"count: {count}",
+                ]
+            )
+        )
+
+        wandb.log(
+            {
+                f"{self.prefix}/img_per_sec": img_per_sec,
+                f"{self.prefix}/success": success_ratio,
+                f"{self.prefix}/failed_to_download": failed_to_download_ratio,
+                f"{self.prefix}/failed_to_resize": failed_to_resize_ratio,
+                f"{self.prefix}/count": count,
+            }
+        )
+
+
+class StatusTableLogger(Logger):
+    """Log status table to W&B, up to `max_status` most frequent items"""
+
+    def __init__(self, max_status=100, min_interval=60, **logger_args):
+        super().__init__(min_interval=min_interval, **logger_args)
+        # avoids too many errors unique to a specific website (SSL certificates, etc)
+        self.max_status = max_status
 
 def download_image(row, timeout):
     key, url = row
@@ -156,18 +252,21 @@ def one_process_downloader(
     column_list,
     timeout,
 ):
+    speed_logger = SpeedLogger("process")
     shard_id, shard_to_dl = row
 
     if save_metadata:
         metadatas = []
 
-    total = len(shard_to_dl)
+    count = len(shard_to_dl)
     successes = 0
     failed_to_download = 0
     failed_to_resize = 0
     url_indice = column_list.index("url")
     caption_indice = column_list.index("caption") if "caption" in column_list else None
     key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
+    # capture error/success
+    status_dict = dict()
 
     sample_writer = sample_writer_class(shard_id, output_folder)
     with ThreadPool(thread_count) as thread_pool:
@@ -188,6 +287,7 @@ def one_process_downloader(
             if error_message is not None:
                 failed_to_download += 1
                 status = "failed_to_download"
+                status_dict[error_message] = status_dict.get(error_message, 0) + 1
                 if save_metadata:
                     meta["status"] = status
                     metadatas.append(meta)
@@ -209,6 +309,7 @@ def one_process_downloader(
                 continue
             successes += 1
             status = "success"
+            status_dict["success"] = status_dict.get("success", 0) + 1
 
             if save_metadata:
                 try:
@@ -250,7 +351,14 @@ def one_process_downloader(
         shard_name = "%05d" % shard_id
         df.to_parquet(output_folder + "/" + shard_name + ".parquet")
 
-    return (total, successes, failed_to_download, failed_to_resize)
+    return (
+        count,
+        successes,
+        failed_to_download,
+        failed_to_resize,
+        speed_logger,
+        status_dict,
+    )
 
 
 def download(
@@ -270,7 +378,10 @@ def download(
     save_additional_columns=None,
     timeout=10,
 ):
-    def download_one_file(url_list):
+    # capture all config parameters
+    config_parameters = dict(locals())
+
+    def download_one_file(url_list, total_speed_logger, status_table_logger):
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
             start_shard_id = 0
@@ -348,26 +459,52 @@ def download(
             timeout=timeout,
         )
 
-        total_total = 0
-        total_success = 0
-        total_failed_to_download = 0
-        total_failed_to_resize = 0
+        # Start a W&B run
+        wandb.init(project=wandb_project, config=config_parameters, anonymous="allow")
+
+        # retrieve global variables
+        global total_count, total_success, total_failed_to_download, total_failed_to_resize, total_status_dict
+
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
-            for total, successes, failed_to_download, failed_to_resize in tqdm(
+            for (
+                count,
+                successes,
+                failed_to_download,
+                failed_to_resize,
+                speed_logger,
+                status_dict,
+            ) in tqdm(
                 process_pool.imap_unordered(downloader, sharded_images_to_dl),
                 total=len(sharded_images_to_dl),
+                file=sys.stdout,
             ):
-                total_total += total
+                total_count += count
                 total_success += successes
                 total_failed_to_download += failed_to_download
                 total_failed_to_resize += failed_to_resize
-                message = f"success={1.0*total_success/total_total:.2f} "
-                message += (
-                    f"failed download={1.0*total_failed_to_download/total_total:.2f} "
+
+                speed_logger(
+                    count=count,
+                    success=successes,
+                    failed_to_download=failed_to_download,
+                    failed_to_resize=failed_to_resize,
                 )
-                message += f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
-                print(message + "\n", sep=" ", end="", flush=True)
-                pass
+                total_speed_logger(
+                    count=total_count,
+                    success=total_success,
+                    failed_to_download=total_failed_to_download,
+                    failed_to_resize=total_failed_to_resize,
+                )
+
+                # update status table
+                for k, v in status_dict.items():
+                    total_status_dict[k] = total_status_dict.get(k, 0) + v
+                status_table_logger(total_status_dict, total_count)
+
+            # ensure final sync
+            total_speed_logger.sync()
+            status_table_logger.sync()
+
             process_pool.terminate()
             process_pool.join()
             del process_pool
@@ -376,6 +513,9 @@ def download(
         input_files = glob.glob(url_list + "/*." + input_format)
     else:
         input_files = [url_list]
+
+    total_speed_logger = SpeedLogger("total", processes_count=processes_count)
+    status_table_logger = StatusTableLogger(processes_count=processes_count)
 
     for i, input_file in enumerate(input_files):
         print(
@@ -386,7 +526,7 @@ def download(
             + " called "
             + input_file
         )
-        download_one_file(input_file)
+        download_one_file(input_file, total_speed_logger, status_table_logger)
 
 
 def main():
