@@ -92,6 +92,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **save_metadata** if true, saves one parquet file per folder/tar and json files with metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)
 * **timeout** maximum time (in seconds) to wait when trying to download an image (default *10*)
+* **wandb_project** name of W&B project used (default *img2dataset*)
 
 ## How to tweak the options
 

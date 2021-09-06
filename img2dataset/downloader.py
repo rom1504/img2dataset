@@ -319,6 +319,7 @@ def download(
     save_metadata=True,
     save_additional_columns=None,
     timeout=10,
+    wandb_project="img2dataset",
 ):
     # capture all config parameters
     config_parameters = dict(locals())
@@ -403,7 +404,7 @@ def download(
 
         # Start a W&B run
         run = wandb.init(
-            project="img2dataset", config=config_parameters, anonymous="allow"
+            project=wandb_project, config=config_parameters, anonymous="allow"
         )
 
         total_speed_logger = SpeedLogger("total")
