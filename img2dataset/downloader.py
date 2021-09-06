@@ -51,11 +51,67 @@ class SpeedLogger:
             )
         )
 
-        wandb.log({f"{self.prefix}/img_per_sec": img_per_sec})
-        wandb.log({f"{self.prefix}/success": success_ratio})
-        wandb.log({f"{self.prefix}/failed_to_download": failed_to_download_ratio})
-        wandb.log({f"{self.prefix}/failed_to_resize": failed_to_resize_ratio})
-        wandb.log({f"{self.prefix}/count": count})
+        wandb.log(
+            {
+                f"{self.prefix}/img_per_sec": img_per_sec,
+                f"{self.prefix}/success": success_ratio,
+                f"{self.prefix}/failed_to_download": failed_to_download_ratio,
+                f"{self.prefix}/failed_to_resize": failed_to_resize_ratio,
+                f"{self.prefix}/count": count,
+            }
+        )
+
+
+class StatusTableLogger:
+    """Log status table"""
+
+    def __init__(self, run, processes_count=1, max_status=100, min_interval=60):
+        self.run = run
+        # wait for all processes to return to limit number of logged tables
+        self.processes_count = processes_count
+        self.processes_returned = 0
+        # log most common status - avoids too many errors unique to a specific website (SSL certificates, etc)
+        self.max_status = max_status
+        # min time (in seconds) before logging a new table (avoids too many logs)
+        self.min_interval = min_interval
+        self.last = time.perf_counter()
+        # keep track of whether we logged the last table for final sync
+        self.last_table_logged = False
+        self.last_status_dict = None
+        self.last_count = None
+
+    def __call__(self, status_dict, count):
+        """Log the table only after processes_count are returned and enough time has elapsed"""
+        self.processes_returned += 1
+        if (
+            self.processes_returned % self.processes_count == 0
+            and time.perf_counter() - self.last > self.min_interval
+        ):
+            self.log_table(status_dict, count)
+            self.last = time.perf_counter()
+            self.last_table_logged = True
+        else:
+            self.last_table_logged = False
+            self.last_status_dict = status_dict
+            self.last_count = count
+
+    def log_table(self, status_dict, count):
+        """Log the table to W&B, up to `max_status` most frequent items"""
+        status_table = wandb.Table(
+            columns=["status", "frequency", "count"],
+            data=[
+                [k, 1.0 * v / count, v]
+                for k, v in sorted(
+                    status_dict.items(), key=lambda x: x[1], reverse=True
+                )[: self.max_status]
+            ],
+        )
+        self.run.log({"status": status_table})
+
+    def sync(self):
+        """Ensure the last table has been logged"""
+        if not self.last_table_logged:
+            self.log_table(self.last_status_dict, self.last_count)
 
 
 def download_image(row, timeout):
@@ -410,6 +466,10 @@ def download(
         total_speed_logger = SpeedLogger("total")
         # capture error messages
         total_status_dict = {}
+        status_table_logger = StatusTableLogger(
+            run=run,
+            processes_count=processes_count,
+        )
 
         total_total = 0
         total_success = 0
@@ -450,17 +510,10 @@ def download(
                 # update status table
                 for k, v in status_dict.items():
                     total_status_dict[k] = total_status_dict.get(k, 0) + v
-                # log 100 most common status - avoids too many errors unique to a specific website (SSL certificates, etc)
-                status_table = wandb.Table(
-                    columns=["status", "frequency", "count"],
-                    data=[
-                        [k, 1.0 * v / total_total, v]
-                        for k, v in sorted(
-                            total_status_dict.items(), key=lambda x: x[1], reverse=True
-                        )[:50]
-                    ],
-                )
-                run.log({"status": status_table})
+                status_table_logger(total_status_dict, total_total)
+
+            # ensure final sync of last status table
+            status_table_logger.sync()
 
             process_pool.terminate()
             process_pool.join()
