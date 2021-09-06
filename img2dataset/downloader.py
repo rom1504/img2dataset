@@ -450,11 +450,14 @@ def download(
                 # update status table
                 for k, v in status_dict.items():
                     total_status_dict[k] = total_status_dict.get(k, 0) + v
+                # log 100 most common status - avoids too many errors unique to a specific website (SSL certificates, etc)
                 status_table = wandb.Table(
                     columns=["status", "frequency", "count"],
                     data=[
                         [k, 1.0 * v / total_total, v]
-                        for k, v in total_status_dict.items()
+                        for k, v in sorted(
+                            total_status_dict.items(), key=lambda x: x[1], reverse=True
+                        )[:50]
                     ],
                 )
                 run.log({"status": status_table})
