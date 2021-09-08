@@ -23,15 +23,52 @@ import wandb
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
 
-class SpeedLogger:
-    """Log number of items per seconds"""
+class Logger:
+    def __init__(self, processes_count=1, min_interval=0):
+        """Log only every processes_count and if min_interval (seconds) have elapsed since last log"""
+        # wait for all processes to return
+        self.processes_count = processes_count
+        self.processes_returned = 0
+        # min time (in seconds) before logging a new table (avoids too many logs)
+        self.min_interval = min_interval
+        self.last = time.perf_counter()
+        # keep track of whether we logged the last call
+        self.last_call_logged = False
+        self.last_args = None
+        self.last_kwargs = None
 
-    def __init__(self, prefix):
-        self.start = time.perf_counter()
+    def __call__(self, *args, **kwargs):
+        self.processes_returned += 1
+        if (
+            self.processes_returned % self.processes_count == 0
+            and time.perf_counter() - self.last > self.min_interval
+        ):
+            self.do_log(*args, **kwargs)
+            self.last = time.perf_counter()
+            self.last_call_logged = True
+        else:
+            self.last_call_logged = False
+            self.last_args = args
+            self.last_kwargs = kwargs
+
+    def do_log(self, *args, **kwargs):
+        raise NotImplemented
+
+    def sync(self):
+        """Ensure last call is logged"""
+        if not self.last_call_logged:
+            self.do_log(*self.last_args, **self.last_kwargs)
+
+
+class SpeedLogger(Logger):
+    """Log performance metrics"""
+
+    def __init__(self, prefix, **logger_args):
+        super().__init__(**logger_args)
         self.prefix = prefix
+        self.start = time.perf_counter()
 
-    def __call__(self, count, success, failed_to_download, failed_to_resize):
-        """Log as time per count using key"""
+    def do_log(self, count, success, failed_to_download, failed_to_resize):
         duration = time.perf_counter() - self.start
         img_per_sec = count / duration
         success_ratio = 1.0 * success / count
@@ -62,41 +99,15 @@ class SpeedLogger:
         )
 
 
-class StatusTableLogger:
-    """Log status table"""
+class StatusTableLogger(Logger):
+    """Log status table to W&B, up to `max_status` most frequent items"""
 
-    def __init__(self, run, processes_count=1, max_status=100, min_interval=60):
-        self.run = run
-        # wait for all processes to return to limit number of logged tables
-        self.processes_count = processes_count
-        self.processes_returned = 0
-        # log most common status - avoids too many errors unique to a specific website (SSL certificates, etc)
+    def __init__(self, max_status=100, min_interval=60, **logger_args):
+        super().__init__(min_interval=min_interval, **logger_args)
+        # avoids too many errors unique to a specific website (SSL certificates, etc)
         self.max_status = max_status
-        # min time (in seconds) before logging a new table (avoids too many logs)
-        self.min_interval = min_interval
-        self.last = time.perf_counter()
-        # keep track of whether we logged the last table for final sync
-        self.last_table_logged = False
-        self.last_status_dict = None
-        self.last_count = None
 
-    def __call__(self, status_dict, count):
-        """Log the table only after processes_count are returned and enough time has elapsed"""
-        self.processes_returned += 1
-        if (
-            self.processes_returned % self.processes_count == 0
-            and time.perf_counter() - self.last > self.min_interval
-        ):
-            self.log_table(status_dict, count)
-            self.last = time.perf_counter()
-            self.last_table_logged = True
-        else:
-            self.last_table_logged = False
-            self.last_status_dict = status_dict
-            self.last_count = count
-
-    def log_table(self, status_dict, count):
-        """Log the table to W&B, up to `max_status` most frequent items"""
+    def do_log(self, status_dict, count):
         status_table = wandb.Table(
             columns=["status", "frequency", "count"],
             data=[
@@ -106,12 +117,7 @@ class StatusTableLogger:
                 )[: self.max_status]
             ],
         )
-        self.run.log({"status": status_table})
-
-    def sync(self):
-        """Ensure the last table has been logged"""
-        if not self.last_table_logged:
-            self.log_table(self.last_status_dict, self.last_count)
+        wandb.run.log({"status": status_table})
 
 
 def download_image(row, timeout):
@@ -459,17 +465,12 @@ def download(
         )
 
         # Start a W&B run
-        run = wandb.init(
-            project=wandb_project, config=config_parameters, anonymous="allow"
-        )
+        wandb.init(project=wandb_project, config=config_parameters, anonymous="allow")
 
-        total_speed_logger = SpeedLogger("total")
+        total_speed_logger = SpeedLogger("total", processes_count=processes_count)
         # capture error messages
         total_status_dict = {}
-        status_table_logger = StatusTableLogger(
-            run=run,
-            processes_count=processes_count,
-        )
+        status_table_logger = StatusTableLogger(processes_count=processes_count)
 
         total_total = 0
         total_success = 0
@@ -512,7 +513,8 @@ def download(
                     total_status_dict[k] = total_status_dict.get(k, 0) + v
                 status_table_logger(total_status_dict, total_total)
 
-            # ensure final sync of last status table
+            # ensure final sync
+            total_speed_logger.sync()
             status_table_logger.sync()
 
             process_pool.terminate()
