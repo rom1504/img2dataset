@@ -22,6 +22,13 @@ import wandb
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
+# define global counters
+total_count = 0
+total_success = 0
+total_failed_to_download = 0
+total_failed_to_resize = 0
+total_status_dict = {}
+
 
 class Logger:
     def __init__(self, processes_count=1, min_interval=0):
@@ -58,6 +65,8 @@ class Logger:
         """Ensure last call is logged"""
         if not self.last_call_logged:
             self.do_log(*self.last_args, **self.last_kwargs)
+            # reset for next file
+            self.processes_returned = 0
 
 
 class SpeedLogger(Logger):
@@ -256,13 +265,13 @@ def one_process_downloader(
     column_list,
     timeout,
 ):
-    speed_logger = SpeedLogger("current")
+    speed_logger = SpeedLogger("process")
     shard_id, shard_to_dl = row
 
     if save_metadata:
         metadatas = []
 
-    total = len(shard_to_dl)
+    count = len(shard_to_dl)
     successes = 0
     failed_to_download = 0
     failed_to_resize = 0
@@ -356,7 +365,7 @@ def one_process_downloader(
         df.to_parquet(output_folder + "/" + shard_name + ".parquet")
 
     return (
-        total,
+        count,
         successes,
         failed_to_download,
         failed_to_resize,
@@ -386,7 +395,7 @@ def download(
     # capture all config parameters
     config_parameters = dict(locals())
 
-    def download_one_file(url_list):
+    def download_one_file(url_list, total_speed_logger, status_table_logger):
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
             start_shard_id = 0
@@ -467,19 +476,12 @@ def download(
         # Start a W&B run
         wandb.init(project=wandb_project, config=config_parameters, anonymous="allow")
 
-        total_speed_logger = SpeedLogger("total", processes_count=processes_count)
-        # capture error messages
-        total_status_dict = {}
-        status_table_logger = StatusTableLogger(processes_count=processes_count)
-
-        total_total = 0
-        total_success = 0
-        total_failed_to_download = 0
-        total_failed_to_resize = 0
+        # retrieve global variables
+        global total_count, total_success, total_failed_to_download, total_failed_to_resize, total_status_dict
 
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
             for (
-                total,
+                count,
                 successes,
                 failed_to_download,
                 failed_to_resize,
@@ -490,19 +492,19 @@ def download(
                 total=len(sharded_images_to_dl),
                 file=sys.stdout,
             ):
-                total_total += total
+                total_count += count
                 total_success += successes
                 total_failed_to_download += failed_to_download
                 total_failed_to_resize += failed_to_resize
 
                 speed_logger(
-                    count=total,
+                    count=count,
                     success=successes,
                     failed_to_download=failed_to_download,
                     failed_to_resize=failed_to_resize,
                 )
                 total_speed_logger(
-                    count=total_total,
+                    count=total_count,
                     success=total_success,
                     failed_to_download=total_failed_to_download,
                     failed_to_resize=total_failed_to_resize,
@@ -511,7 +513,7 @@ def download(
                 # update status table
                 for k, v in status_dict.items():
                     total_status_dict[k] = total_status_dict.get(k, 0) + v
-                status_table_logger(total_status_dict, total_total)
+                status_table_logger(total_status_dict, total_count)
 
             # ensure final sync
             total_speed_logger.sync()
@@ -526,6 +528,9 @@ def download(
     else:
         input_files = [url_list]
 
+    total_speed_logger = SpeedLogger("total", processes_count=processes_count)
+    status_table_logger = StatusTableLogger(processes_count=processes_count)
+
     for i, input_file in enumerate(input_files):
         print(
             "Downloading file number "
@@ -535,7 +540,7 @@ def download(
             + " called "
             + input_file
         )
-        download_one_file(input_file)
+        download_one_file(input_file, total_speed_logger, status_table_logger)
 
 
 def main():
