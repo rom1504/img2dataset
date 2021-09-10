@@ -1,3 +1,8 @@
+## 1.8.0
+
+* feat: custom timeout (thanks @borisdayma)
+* feat: support wandb (thanks @borisdayma)
+
 ## 1.7.0
 
 * use albumentations for resizing (thanks @borisdayma)
