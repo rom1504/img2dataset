@@ -1,3 +1,7 @@
+## 1.8.3
+
+* add back timeout properly
+
 ## 1.8.2
 
 * fixes
