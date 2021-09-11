@@ -173,8 +173,11 @@ pip install -r requirements-test.txt
 ```
 then 
 ```
-python -m pytest -v tests -s
+make lint
+make test
 ```
+
+You can use `make black` to reformat the code
 
 ## Benchmarks
 

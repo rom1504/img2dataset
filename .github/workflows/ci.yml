@@ -24,10 +24,5 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install, lint and unit tests
       run: |
-        python3 -m venv .env
-        source .env/bin/activate
-        pip install --upgrade pip
-        pip install -e .
-        pip install -r requirements-test.txt
-        python -m pytest -v tests -s
+        make venv-lint-test
 

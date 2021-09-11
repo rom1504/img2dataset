@@ -1,3 +1,5 @@
+"""Img2dataset"""
+
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 from tqdm import tqdm
@@ -21,19 +23,18 @@ logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
 
 def download_image(row, timeout):
+    """Download an image with urllib"""
     key, url = row
     try:
         request = urllib.request.Request(
             url,
             data=None,
-            headers={
-                "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
-            },
+            headers={"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"},
         )
-        with urllib.request.urlopen(request, timeout=10) as r:
+        with urllib.request.urlopen(request, timeout=timeout) as r:
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-except
         return key, None, str(err)
 
 
@@ -47,26 +48,18 @@ class Resizer:
 
         if resize_mode not in ["no", "keep_ratio", "center_crop", "border"]:
             raise Exception(f"Invalid option for resize_mode: {resize_mode}")
-        
+
         if resize_mode == "keep_ratio":
             self.resize_tfm = A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
         elif resize_mode == "center_crop":
             self.resize_tfm = A.Compose(
-                [
-                    A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4),
-                    A.CenterCrop(image_size, image_size),
-                ]
+                [A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4), A.CenterCrop(image_size, image_size),]
             )
         elif resize_mode == "border":
             self.resize_tfm = A.Compose(
                 [
                     A.LongestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4),
-                    A.PadIfNeeded(
-                        image_size,
-                        image_size,
-                        border_mode=cv2.BORDER_CONSTANT,
-                        value=[255, 255, 255],
-                    ),
+                    A.PadIfNeeded(image_size, image_size, border_mode=cv2.BORDER_CONSTANT, value=[255, 255, 255],),
                 ]
             )
         elif resize_mode == "no":
@@ -97,11 +90,13 @@ class Resizer:
             img_str = cv2.imencode(".jpg", img)[1].tobytes()
             return img_str, width, height, original_width, original_height, None
 
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-except
             return None, None, None, None, None, str(err)
 
 
 class WebDatasetSampleWriter:
+    """WebDatasetSampleWriter is a image+caption writer to webdataset"""
+
     def __init__(self, shard_id, output_folder):
         shard_name = "%05d" % shard_id
         self.tarwriter = wds.TarWriter(f"{output_folder}/{shard_name}.tar")
@@ -120,6 +115,8 @@ class WebDatasetSampleWriter:
 
 
 class FilesSampleWriter:
+    """FilesSampleWriter is a caption+image writer to files"""
+
     def __init__(self, shard_id, output_folder):
         shard_name = "%05d" % shard_id
         self.subfolder = f"{output_folder}/{shard_name}"
@@ -127,6 +124,7 @@ class FilesSampleWriter:
             os.mkdir(self.subfolder)
 
     def write(self, img_str, key, caption, meta):
+        """Write sample to disk"""
         key = "%04d" % key
         filename = f"{self.subfolder}/{key}.jpg"
         with open(filename, "wb") as f:
@@ -146,15 +144,9 @@ class FilesSampleWriter:
 
 
 def one_process_downloader(
-    row,
-    sample_writer_class,
-    resizer,
-    thread_count,
-    save_metadata,
-    output_folder,
-    column_list,
-    timeout,
+    row, sample_writer_class, resizer, thread_count, save_metadata, output_folder, column_list, timeout,
 ):
+    """Function to start an image downloading in one process"""
     shard_id, shard_to_dl = row
 
     if save_metadata:
@@ -191,14 +183,7 @@ def one_process_downloader(
                     meta["status"] = status
                     metadatas.append(meta)
                 continue
-            (
-                img,
-                width,
-                height,
-                original_width,
-                original_height,
-                error_message,
-            ) = resizer(img_stream)
+            (img, width, height, original_width, original_height, error_message,) = resizer(img_stream)
             if error_message is not None:
                 failed_to_resize += 1
                 status = "failed_to_resize"
@@ -214,13 +199,11 @@ def one_process_downloader(
                     exif = json.dumps(
                         {
                             k: str(v).strip()
-                            for k, v in exifread.process_file(
-                                img_stream, details=False
-                            ).items()
+                            for k, v in exifread.process_file(img_stream, details=False).items()
                             if v is not None
                         }
                     )
-                except Exception as _:
+                except Exception as _:  # pylint: disable=broad-except
                     exif = None
                 meta["status"] = status
                 meta["width"] = width
@@ -233,10 +216,7 @@ def one_process_downloader(
                 meta = None
 
             sample_writer.write(
-                img,
-                key,
-                sample_data[caption_indice] if caption_indice is not None else None,
-                meta,
+                img, key, sample_data[caption_indice] if caption_indice is not None else None, meta,
             )
 
         sample_writer.close()
@@ -269,6 +249,8 @@ def download(
     save_additional_columns=None,
     timeout=10,
 ):
+    """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
+
     def download_one_file(url_list):
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
@@ -278,15 +260,7 @@ def download(
             if len(existing_top_level_files) == 0:
                 start_shard_id = 0
             else:
-                start_shard_id = (
-                    max(
-                        [
-                            int(x.split("/")[-1].split(".")[0])
-                            for x in existing_top_level_files
-                        ]
-                    )
-                    + 1
-                )
+                start_shard_id = max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files]) + 1
 
         if input_format == "txt":
             images_to_dl = []
@@ -300,9 +274,7 @@ def download(
                 df = pd.read_table(url_list)
             elif input_format == "parquet":
                 df = pd.read_parquet(url_list)
-            column_list = (
-                save_additional_columns if save_additional_columns is not None else []
-            )
+            column_list = save_additional_columns if save_additional_columns is not None else []
             df = df.rename(columns={caption_col: "caption", url_col: "url"})
             if caption_col is not None:
                 column_list = column_list + ["caption", "url"]
@@ -318,10 +290,7 @@ def download(
             begin_shard = shard_id * number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * number_sample_per_shard)
             sharded_images_to_dl.append(
-                (
-                    shard_id + start_shard_id,
-                    list(enumerate(images_to_dl[begin_shard:end_shard])),
-                )
+                (shard_id + start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard])),)
             )
         del images_to_dl
 
@@ -330,11 +299,7 @@ def download(
         elif output_format == "files":
             sample_writer_class = FilesSampleWriter
 
-        resizer = Resizer(
-            image_size=image_size,
-            resize_mode=resize_mode,
-            resize_only_if_bigger=resize_only_if_bigger,
-        )
+        resizer = Resizer(image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger,)
 
         downloader = functools.partial(
             one_process_downloader,
@@ -344,7 +309,7 @@ def download(
             save_metadata=save_metadata,
             output_folder=output_folder,
             column_list=column_list,
-            timeout=timeout
+            timeout=timeout,
         )
 
         total_total = 0
@@ -353,17 +318,14 @@ def download(
         total_failed_to_resize = 0
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
             for total, successes, failed_to_download, failed_to_resize in tqdm(
-                process_pool.imap_unordered(downloader, sharded_images_to_dl),
-                total=len(sharded_images_to_dl),
+                process_pool.imap_unordered(downloader, sharded_images_to_dl), total=len(sharded_images_to_dl),
             ):
                 total_total += total
                 total_success += successes
                 total_failed_to_download += failed_to_download
                 total_failed_to_resize += failed_to_resize
                 message = f"success={1.0*total_success/total_total:.2f} "
-                message += (
-                    f"failed download={1.0*total_failed_to_download/total_total:.2f} "
-                )
+                message += f"failed download={1.0*total_failed_to_download/total_total:.2f} "
                 message += f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
                 print(message + "\n", sep=" ", end="", flush=True)
                 pass
@@ -377,14 +339,7 @@ def download(
         input_files = [url_list]
 
     for i, input_file in enumerate(input_files):
-        print(
-            "Downloading file number "
-            + str(i + 1)
-            + " of "
-            + str(len(input_files))
-            + " called "
-            + input_file
-        )
+        print("Downloading file number " + str(i + 1) + " of " + str(len(input_files)) + " called " + input_file)
         download_one_file(input_file)
 
 
