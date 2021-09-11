@@ -14,10 +14,10 @@ black: ## [Local development] Auto-format python code using black
 	python -m black -l 120 .
 
 venv-lint-test: ## [Continuous integration]
-	python3.6 -m venv .env && . .env/bin/activate && make install install-dev lint test && rm -rf .env
+	python3 -m venv .env && . .env/bin/activate && make install install-dev lint test && rm -rf .env
 
 test: ## [Local development] Run unit tests
-	python -m pytest -v --cov=img2dataset --cov-report term-missing --cov-fail-under .0001 tests/unit
+	python -m pytest -v --cov=img2dataset --cov-report term-missing --cov-fail-under .45 tests
 
 .PHONY: help
 
