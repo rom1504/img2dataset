@@ -1,3 +1,7 @@
+## 1.8.4
+
+* convert caption to str before writing
+
 ## 1.8.3
 
 * add back timeout properly
