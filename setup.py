@@ -35,8 +35,7 @@ if __name__ == "__main__":
             'pyarrow',
             'exifread',
             'albumentations',
-            'pyyaml',
-            'wandb'
+            'pyyaml'
         ],
         classifiers=[
             'Development Status :: 4 - Beta',

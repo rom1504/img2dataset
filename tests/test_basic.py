@@ -8,10 +8,6 @@ import time
 import pandas as pd
 import tarfile
 
-# no need to log on W&B
-os.environ["WANDB_MODE"] = "offline"
-
-
 def test_basic():
     print("it works !")
 
