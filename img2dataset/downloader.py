@@ -135,7 +135,7 @@ class FilesSampleWriter:
         if caption is not None:
             caption_filename = f"{self.subfolder}/{key}.txt"
             with open(caption_filename, "w") as f:
-                f.write(caption)
+                f.write(str(caption))
         if meta is not None:
             j = json.dumps(meta, indent=4)
             meta_filename = f"{self.subfolder}/{key}.json"
