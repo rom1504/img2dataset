@@ -45,20 +45,20 @@ class Resizer:
         self.resize_mode = resize_mode
         self.resize_only_if_bigger = resize_only_if_bigger
 
-        # define transform
         if resize_mode not in ["no", "keep_ratio", "center_crop", "border"]:
             raise Exception(f"Invalid option for resize_mode: {resize_mode}")
-        self.resize_tfm = (
-            A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
-            if resize_mode == "keep_ratio"
-            else A.Compose(
+        
+        if resize_mode == "keep_ratio":
+            self.resize_tfm = A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
+        elif resize_mode == "center_crop":
+            self.resize_tfm = A.Compose(
                 [
                     A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4),
                     A.CenterCrop(image_size, image_size),
                 ]
             )
-            if resize_mode == "center_crop"
-            else A.Compose(
+        elif resize_mode == "border":
+            self.resize_tfm = A.Compose(
                 [
                     A.LongestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4),
                     A.PadIfNeeded(
@@ -69,9 +69,8 @@ class Resizer:
                     ),
                 ]
             )
-            if resize_mode == "border"
-            else None
-        )
+        elif resize_mode == "no":
+            self.resize_mode = None
 
     def __call__(self, img_stream):
         try:
