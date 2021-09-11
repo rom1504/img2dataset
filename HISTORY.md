@@ -1,3 +1,7 @@
+## 1.8.1
+
+* revert wandb for now, code is too complex and there are issues
+
 ## 1.8.0
 
 * feat: custom timeout (thanks @borisdayma)
