@@ -154,6 +154,7 @@ def one_process_downloader(
     save_metadata,
     output_folder,
     column_list,
+    timeout,
 ):
     shard_id, shard_to_dl = row
 
@@ -171,7 +172,7 @@ def one_process_downloader(
     sample_writer = sample_writer_class(shard_id, output_folder)
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(
-            download_image, key_url_list
+            lambda x: download_image(x, timeout=timeout), key_url_list
         ):
             _, sample_data = shard_to_dl[key]
             meta = {
@@ -344,6 +345,7 @@ def download(
             save_metadata=save_metadata,
             output_folder=output_folder,
             column_list=column_list,
+            timeout=timeout
         )
 
         total_total = 0
