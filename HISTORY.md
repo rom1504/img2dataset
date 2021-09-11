@@ -1,3 +1,7 @@
+## 1.8.2
+
+* fixes
+
 ## 1.8.1
 
 * revert wandb for now, code is too complex and there are issues
