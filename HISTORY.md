@@ -1,3 +1,7 @@
+## 1.8.5
+
+* support for python 3.6
+
 ## 1.8.4
 
 * convert caption to str before writing
