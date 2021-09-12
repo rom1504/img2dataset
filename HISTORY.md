@@ -1,3 +1,7 @@
+## 1.9.0
+
+* wandb support is back
+
 ## 1.8.5
 
 * support for python 3.6
