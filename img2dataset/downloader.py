@@ -18,6 +18,9 @@ import exifread
 import json
 import glob
 import logging
+import time
+import wandb
+from .logging_utils import CappedCounter, SpeedLogger, StatusTableLogger
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
@@ -149,10 +152,13 @@ def one_process_downloader(
     """Function to start an image downloading in one process"""
     shard_id, shard_to_dl = row
 
+    start_time = time.perf_counter()
+    status_dict = CappedCounter()
+
     if save_metadata:
         metadatas = []
 
-    total = len(shard_to_dl)
+    count = len(shard_to_dl)
     successes = 0
     failed_to_download = 0
     failed_to_resize = 0
@@ -179,6 +185,7 @@ def one_process_downloader(
             if error_message is not None:
                 failed_to_download += 1
                 status = "failed_to_download"
+                status_dict.increment(error_message)
                 if save_metadata:
                     meta["status"] = status
                     metadatas.append(meta)
@@ -187,12 +194,14 @@ def one_process_downloader(
             if error_message is not None:
                 failed_to_resize += 1
                 status = "failed_to_resize"
+                status_dict.increment(error_message)
                 if save_metadata:
                     meta["status"] = status
                     metadatas.append(meta)
                 continue
             successes += 1
             status = "success"
+            status_dict.increment(status)
 
             if save_metadata:
                 try:
@@ -229,7 +238,8 @@ def one_process_downloader(
         shard_name = "%05d" % shard_id
         df.to_parquet(output_folder + "/" + shard_name + ".parquet")
 
-    return (total, successes, failed_to_download, failed_to_resize)
+    end_time = time.perf_counter()
+    return (count, successes, failed_to_download, failed_to_resize, end_time - start_time, status_dict)
 
 
 def download(
@@ -248,10 +258,25 @@ def download(
     save_metadata=True,
     save_additional_columns=None,
     timeout=10,
+    enable_wandb=False,
+    wandb_project="img2dataset",
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
+    config_parameters = dict(locals())
+    if enable_wandb:
+        wandb.init(project=wandb_project, config=config_parameters, anonymous="allow")
+    total_speed_logger = SpeedLogger("total", processes_count=processes_count, enable_wandb=enable_wandb)
+    status_table_logger = StatusTableLogger(processes_count=processes_count, enable_wandb=enable_wandb)
+    start_time = time.perf_counter()
+    total_status_dict = CappedCounter()
 
-    def download_one_file(url_list):
+    if os.path.isdir(url_list):
+        input_files = glob.glob(url_list + "/*." + input_format)
+    else:
+        input_files = [url_list]
+
+    for i, input_file in enumerate(input_files):
+        print("Downloading file number " + str(i + 1) + " of " + str(len(input_files)) + " called " + input_file)
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
             start_shard_id = 0
@@ -312,35 +337,34 @@ def download(
             timeout=timeout,
         )
 
-        total_total = 0
-        total_success = 0
-        total_failed_to_download = 0
-        total_failed_to_resize = 0
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
-            for total, successes, failed_to_download, failed_to_resize in tqdm(
+            for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
                 process_pool.imap_unordered(downloader, sharded_images_to_dl), total=len(sharded_images_to_dl),
             ):
-                total_total += total
-                total_success += successes
-                total_failed_to_download += failed_to_download
-                total_failed_to_resize += failed_to_resize
-                message = f"success={1.0*total_success/total_total:.2f} "
-                message += f"failed download={1.0*total_failed_to_download/total_total:.2f} "
-                message += f"failed resize={1.0*total_failed_to_resize/total_total:.2f}"
-                print(message + "\n", sep=" ", end="", flush=True)
+                SpeedLogger("worker", enable_wandb=enable_wandb)(
+                    duration=duration,
+                    count=count,
+                    success=successes,
+                    failed_to_download=failed_to_download,
+                    failed_to_resize=failed_to_resize,
+                )
+                total_speed_logger(
+                    duration=time.perf_counter() - start_time,
+                    count=count,
+                    success=successes,
+                    failed_to_download=failed_to_download,
+                    failed_to_resize=failed_to_resize,
+                )
+                total_status_dict.update(status_dict)
+                status_table_logger(total_status_dict, total_speed_logger.count)
                 pass
+
+            # ensure final sync
+            total_speed_logger.sync()
+            status_table_logger.sync()
             process_pool.terminate()
             process_pool.join()
             del process_pool
-
-    if os.path.isdir(url_list):
-        input_files = glob.glob(url_list + "/*." + input_format)
-    else:
-        input_files = [url_list]
-
-    for i, input_file in enumerate(input_files):
-        print("Downloading file number " + str(i + 1) + " of " + str(len(input_files)) + " called " + input_file)
-        download_one_file(input_file)
 
 
 def main():

@@ -7,5 +7,6 @@ __pycache__
 .envtest
 bench
 test_folder
-.coverage
+.coverage*
 .env*
+wandb

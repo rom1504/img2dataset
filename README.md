@@ -92,6 +92,8 @@ This module exposes a single function `download` which takes the same arguments 
 * **save_metadata** if true, saves one parquet file per folder/tar and json files with metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)
 * **timeout** maximum time (in seconds) to wait when trying to download an image (default *10*)
+* **enable_wandb** whether to enable wandb logging (default *False*)
+* **wandb_project** name of W&B project used (default *img2dataset*)
 
 ## How to tweak the options
 
@@ -101,6 +103,29 @@ The default values should be good enough for small sized dataset. For larger one
 * increase thread_count as long as your bandwidth and cpu are below the limits
 * I advise to set output_format to webdataset if your dataset has more than 1M elements, it will be easier to manipulate few tars rather than million of files
 * keeping metadata to True can be useful to check what items were already saved and avoid redownloading them
+
+## Integration with Weights & Biases
+
+To enable wandb, use the `--enable_wandb=True` option.
+
+Performance metrics are monitored through [Weights & Biases](https://wandb.com/).
+
+![W&B metrics](doc_assets/wandb_metrics.png)
+
+In addition, most frequent errors are logged for easier debugging.
+
+![W&B table](doc_assets/wandb_table.png)
+
+Other features are available:
+
+* logging of environment configuration (OS, python version, CPU count, Hostname, etc)
+* monitoring of hardware resources (GPU/CPU, RAM, Disk, Networking, etc)
+* custom graphs and reports
+* comparison of runs (convenient when optimizing parameters such as number of threads/cpus)
+
+When running the script for the first time, you can decide to either associate your metrics to your account or log them anonymously.
+
+You can also log in (or create an account) before by running `wandb login`.
 
 ## Road map
 
