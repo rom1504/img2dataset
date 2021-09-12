@@ -31,6 +31,7 @@ if __name__ == "__main__":
             "albumentations",
             "pyyaml",
             "dataclasses",
+            "wandb",
         ],
         classifiers=[
             "Development Status :: 4 - Beta",
