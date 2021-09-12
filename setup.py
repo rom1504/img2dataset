@@ -30,6 +30,7 @@ if __name__ == "__main__":
             "exifread",
             "albumentations",
             "pyyaml",
+            "dataclasses",
         ],
         classifiers=[
             "Development Status :: 4 - Beta",
