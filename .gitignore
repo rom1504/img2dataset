@@ -8,3 +8,4 @@ __pycache__
 bench
 test_folder
 .coverage
+.env*

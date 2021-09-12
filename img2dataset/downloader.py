@@ -280,7 +280,7 @@ def download(
                 column_list = column_list + ["caption", "url"]
             else:
                 column_list = column_list + ["url"]
-            images_to_dl = df[column_list].to_records(index=False)
+            images_to_dl = df[column_list].to_records(index=False).tolist()
             del df
 
         sharded_images_to_dl = []
