@@ -1,3 +1,7 @@
+## 1.9.1
+
+* fix for the new logging feature when cleaning the status dict
+
 ## 1.9.0
 
 * wandb support is back
