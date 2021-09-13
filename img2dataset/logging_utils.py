@@ -18,7 +18,7 @@ class CappedCounter:
         self.counter[key] += 1
 
     def _keep_most_frequent(self):
-        self.counter = Counter(dict(self.counter.most_common(self.max_size / 2)))
+        self.counter = Counter(dict(self.counter.most_common(int(self.max_size / 2))))
 
     def most_common(self, k):
         return self.counter.most_common(k)
