@@ -29,17 +29,17 @@ img2dataset --url_list=myimglist.txt --output_folder=output_folder --thread_coun
 
 The tool will then automatically download the urls, resize them, and store them with that format:
 * output_folder
-    * 0
-        * 0.jpg
-        * 1.jpg
-        * 2.jpg
+    * 00000
+        * 000000000.jpg
+        * 000000001.jpg
+        * 000000002.jpg
 
 or as this format if choosing webdataset:
 * output_folder
-    * 0.tar containing:
-        * 0.jpg
-        * 1.jpg
-        * 2.jpg
+    * 00000.tar containing:
+        * 000000000.jpg
+        * 000000001.jpg
+        * 000000002.jpg
 
 with each number being the position in the list. The subfolders avoids having too many files in a single folder.
 
@@ -50,8 +50,7 @@ This can then easily be fed into machine learning training or any other use case
 If **save_metadata** option is turned on (that's the default), then .json files named 0.json, 1.json,... are saved with these keys:
 * url
 * caption
-* key
-* shard_id
+* key of the form 000010005 : the first 5 digits are the shard id, the last 4 are the index in the shard
 * status : whether the download succeeded
 * error_message
 * width
@@ -94,6 +93,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **timeout** maximum time (in seconds) to wait when trying to download an image (default *10*)
 * **enable_wandb** whether to enable wandb logging (default *False*)
 * **wandb_project** name of W&B project used (default *img2dataset*)
+* **oom_shard_count** the order of magnitude of the number of shards, used only to decide what zero padding to use to name the shard files (default *5*)
 
 ## How to tweak the options
 

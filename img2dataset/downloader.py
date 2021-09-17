@@ -100,14 +100,15 @@ class Resizer:
 class WebDatasetSampleWriter:
     """WebDatasetSampleWriter is a image+caption writer to webdataset"""
 
-    def __init__(self, shard_id, output_folder, save_caption, save_metadata):
-        shard_name = "%05d" % shard_id
+    def __init__(self, shard_id, output_folder, save_caption, save_metadata, oom_shard_count):
+        self.oom_shard_count = oom_shard_count
+        shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+        self.shard_id = shard_id
         self.tarwriter = wds.TarWriter(f"{output_folder}/{shard_name}.tar")
         self.save_caption = save_caption
         self.save_metadata = save_metadata
 
     def write(self, img_str, key, caption, meta):
-        key = "%09d" % key
         sample = {"__key__": key, "jpg": img_str}
         if self.save_caption:
             sample["txt"] = str(caption) if caption is not None else ""
@@ -122,8 +123,10 @@ class WebDatasetSampleWriter:
 class FilesSampleWriter:
     """FilesSampleWriter is a caption+image writer to files"""
 
-    def __init__(self, shard_id, output_folder, save_caption, save_metadata):
-        shard_name = "%05d" % shard_id
+    def __init__(self, shard_id, output_folder, save_caption, save_metadata, oom_shard_count):
+        self.oom_shard_count = oom_shard_count
+        shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+        self.shard_id = shard_id
         self.subfolder = f"{output_folder}/{shard_name}"
         if not os.path.exists(self.subfolder):
             os.mkdir(self.subfolder)
@@ -132,7 +135,6 @@ class FilesSampleWriter:
 
     def write(self, img_str, key, caption, meta):
         """Write sample to disk"""
-        key = "%04d" % key
         filename = f"{self.subfolder}/{key}.jpg"
         with open(filename, "wb") as f:
             f.write(img_str)
@@ -151,8 +153,25 @@ class FilesSampleWriter:
         pass
 
 
+def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
+    true_key = (10 ** oom_sample_per_shard) * shard_id + key
+    key_format = oom_sample_per_shard + oom_shard_count
+    str_key = "{true_key:0{key_format}d}".format(key_format=key_format, true_key=true_key)
+    return str_key
+
+
 def one_process_downloader(
-    row, sample_writer_class, resizer, thread_count, save_caption, save_metadata, output_folder, column_list, timeout,
+    row,
+    sample_writer_class,
+    resizer,
+    thread_count,
+    save_caption,
+    save_metadata,
+    output_folder,
+    column_list,
+    timeout,
+    number_sample_per_shard,
+    oom_shard_count,
 ):
     """Function to start an image downloading in one process"""
     shard_id, shard_to_dl = row
@@ -171,16 +190,17 @@ def one_process_downloader(
     caption_indice = column_list.index("caption") if "caption" in column_list else None
     key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
-    sample_writer = sample_writer_class(shard_id, output_folder, save_caption, save_metadata)
+    sample_writer = sample_writer_class(shard_id, output_folder, save_caption, save_metadata, oom_shard_count)
+    oom_sample_per_shard = math.ceil(math.log10(number_sample_per_shard))
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(
             lambda x: download_image(x, timeout=timeout), key_url_list
         ):
             _, sample_data = shard_to_dl[key]
+            str_key = compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count)
             meta = {
                 **{column_list[i]: sample_data[i] for i in range(len(column_list))},
-                "key": key,
-                "shard_id": shard_id,
+                "key": str_key,
                 "status": None,
                 "error_message": error_message,
                 "width": None,
@@ -230,7 +250,7 @@ def one_process_downloader(
                 meta = None
 
             sample_writer.write(
-                img, key, sample_data[caption_indice] if caption_indice is not None else None, meta,
+                img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
             )
 
         sample_writer.close()
@@ -265,6 +285,7 @@ def download(
     timeout=10,
     enable_wandb=False,
     wandb_project="img2dataset",
+    oom_shard_count=5,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -342,6 +363,8 @@ def download(
             output_folder=output_folder,
             column_list=column_list,
             timeout=timeout,
+            number_sample_per_shard=number_sample_per_shard,
+            oom_shard_count=oom_shard_count,
         )
 
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
