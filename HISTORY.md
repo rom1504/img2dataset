@@ -1,3 +1,7 @@
+## 1.9.3
+
+* solve the stemming issue: make keys uniques
+
 ## 1.9.2
 
 * Save empty caption if caption are none instead of not having the caption file
