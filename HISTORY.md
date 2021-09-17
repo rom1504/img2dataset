@@ -1,3 +1,7 @@
+## 1.9.2
+
+* Save empty caption if caption are none instead of not having the caption file
+
 ## 1.9.1
 
 * fix for the new logging feature when cleaning the status dict
