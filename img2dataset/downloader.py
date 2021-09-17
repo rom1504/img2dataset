@@ -100,16 +100,18 @@ class Resizer:
 class WebDatasetSampleWriter:
     """WebDatasetSampleWriter is a image+caption writer to webdataset"""
 
-    def __init__(self, shard_id, output_folder):
+    def __init__(self, shard_id, output_folder, save_caption, save_metadata):
         shard_name = "%05d" % shard_id
         self.tarwriter = wds.TarWriter(f"{output_folder}/{shard_name}.tar")
+        self.save_caption = save_caption
+        self.save_metadata = save_metadata
 
     def write(self, img_str, key, caption, meta):
         key = "%09d" % key
         sample = {"__key__": key, "jpg": img_str}
-        if caption is not None:
-            sample["txt"] = caption
-        if meta is not None:
+        if self.save_caption:
+            sample["txt"] = str(caption) if caption is not None else ""
+        if self.save_metadata:
             sample["json"] = json.dumps(meta, indent=4)
         self.tarwriter.write(sample)
 
@@ -120,11 +122,13 @@ class WebDatasetSampleWriter:
 class FilesSampleWriter:
     """FilesSampleWriter is a caption+image writer to files"""
 
-    def __init__(self, shard_id, output_folder):
+    def __init__(self, shard_id, output_folder, save_caption, save_metadata):
         shard_name = "%05d" % shard_id
         self.subfolder = f"{output_folder}/{shard_name}"
         if not os.path.exists(self.subfolder):
             os.mkdir(self.subfolder)
+        self.save_caption = save_caption
+        self.save_metadata = save_metadata
 
     def write(self, img_str, key, caption, meta):
         """Write sample to disk"""
@@ -132,11 +136,12 @@ class FilesSampleWriter:
         filename = f"{self.subfolder}/{key}.jpg"
         with open(filename, "wb") as f:
             f.write(img_str)
-        if caption is not None:
+        if self.save_caption:
+            caption = str(caption) if caption is not None else ""
             caption_filename = f"{self.subfolder}/{key}.txt"
             with open(caption_filename, "w") as f:
                 f.write(str(caption))
-        if meta is not None:
+        if self.save_metadata:
             j = json.dumps(meta, indent=4)
             meta_filename = f"{self.subfolder}/{key}.json"
             with open(meta_filename, "w") as f:
@@ -147,7 +152,7 @@ class FilesSampleWriter:
 
 
 def one_process_downloader(
-    row, sample_writer_class, resizer, thread_count, save_metadata, output_folder, column_list, timeout,
+    row, sample_writer_class, resizer, thread_count, save_caption, save_metadata, output_folder, column_list, timeout,
 ):
     """Function to start an image downloading in one process"""
     shard_id, shard_to_dl = row
@@ -166,7 +171,7 @@ def one_process_downloader(
     caption_indice = column_list.index("caption") if "caption" in column_list else None
     key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
-    sample_writer = sample_writer_class(shard_id, output_folder)
+    sample_writer = sample_writer_class(shard_id, output_folder, save_caption, save_metadata)
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(
             lambda x: download_image(x, timeout=timeout), key_url_list
@@ -269,6 +274,7 @@ def download(
     status_table_logger = StatusTableLogger(processes_count=processes_count, enable_wandb=enable_wandb)
     start_time = time.perf_counter()
     total_status_dict = CappedCounter()
+    save_caption = caption_col is not None
 
     if os.path.isdir(url_list):
         input_files = glob.glob(url_list + "/*." + input_format)
@@ -331,6 +337,7 @@ def download(
             sample_writer_class=sample_writer_class,
             resizer=resizer,
             thread_count=thread_count,
+            save_caption=save_caption,
             save_metadata=save_metadata,
             output_folder=output_folder,
             column_list=column_list,

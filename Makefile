@@ -17,6 +17,7 @@ venv-lint-test: ## [Continuous integration]
 	python3 -m venv .env && . .env/bin/activate && make install install-dev lint test && rm -rf .env
 
 test: ## [Local development] Run unit tests
+	rm -rf tests/test_folder/
 	python -m pytest -v --cov=img2dataset --cov-report term-missing --cov-fail-under .45 tests
 
 .PHONY: help
