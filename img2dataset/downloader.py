@@ -66,7 +66,7 @@ class Resizer:
                 ]
             )
         elif resize_mode == "no":
-            self.resize_mode = None
+            pass
 
     def __call__(self, img_stream):
         try:
