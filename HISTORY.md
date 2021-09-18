@@ -1,3 +1,7 @@
+## 1.9.5
+
+* fix a bug affecting downloading multiple files
+
 ## 1.9.4
 
 * ensure sharded_images_to_dl is removed from memory at the end of downloading a file
