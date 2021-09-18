@@ -1,3 +1,7 @@
+## 1.9.9
+
+* fix an issue with resize_mode "no"
+
 ## 1.9.8
 
 * optimize listing files is back, sorted is eager so the iterator returned by iglob is ok
