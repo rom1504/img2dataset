@@ -298,7 +298,7 @@ def download(
     save_caption = caption_col is not None
 
     if os.path.isdir(url_list):
-        input_files = list(sorted(glob.glob(url_list + "/*." + input_format)))
+        input_files = list(sorted(glob.iglob(url_list + "/*." + input_format)))
     else:
         input_files = [url_list]
 
