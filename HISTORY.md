@@ -1,3 +1,7 @@
+## 1.9.8
+
+* optimize listing files is back, sorted is eager so the iterator returned by iglob is ok
+
 ## 1.9.7
 
 * revert last commit, it could cause double iteration on an iterator which can cause surprising behaviors
