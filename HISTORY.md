@@ -1,3 +1,7 @@
+## 1.9.4
+
+* ensure sharded_images_to_dl is removed from memory at the end of downloading a file
+
 ## 1.9.3
 
 * solve the stemming issue: make keys uniques
