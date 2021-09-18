@@ -1,3 +1,7 @@
+## 1.9.6
+
+* optimize listing files (thanks @Skylion)
+
 ## 1.9.5
 
 * fix a bug affecting downloading multiple files
