@@ -298,12 +298,13 @@ def download(
     save_caption = caption_col is not None
 
     if os.path.isdir(url_list):
-        input_files = glob.glob(url_list + "/*." + input_format)
+        input_files = list(sorted(glob.glob(url_list + "/*." + input_format)))
     else:
         input_files = [url_list]
 
     for i, input_file in enumerate(input_files):
         print("Downloading file number " + str(i + 1) + " of " + str(len(input_files)) + " called " + input_file)
+        print("Loading the input file")
         if not os.path.exists(output_folder):
             os.mkdir(output_folder)
             start_shard_id = 0
@@ -316,16 +317,21 @@ def download(
 
         if input_format == "txt":
             images_to_dl = []
-            with open(url_list, encoding="utf-8") as file:
+            with open(input_file, encoding="utf-8") as file:
                 images_to_dl = [(url,) for url in file.readlines()]
             column_list = ["url"]
         elif input_format in ["csv", "tsv", "parquet"]:
             if input_format == "csv":
-                df = pd.read_csv(url_list)
+                df = pd.read_csv(input_file)
             elif input_format == "tsv":
-                df = pd.read_table(url_list)
+                df = pd.read_table(input_file)
             elif input_format == "parquet":
-                df = pd.read_parquet(url_list)
+                columns_to_read = [url_col]
+                if caption_col is not None:
+                    columns_to_read += [caption_col]
+                if save_additional_columns is not None:
+                    columns_to_read += save_additional_columns
+                df = pd.read_parquet(input_file, columns=columns_to_read)
             column_list = save_additional_columns if save_additional_columns is not None else []
             df = df.rename(columns={caption_col: "caption", url_col: "url"})
             if caption_col is not None:
@@ -338,6 +344,7 @@ def download(
         sharded_images_to_dl = []
         number_samples = len(images_to_dl)
         number_shards = math.ceil(number_samples / number_sample_per_shard)
+        print(f"Splitting the {number_samples} samples in {number_shards} shards of size {number_sample_per_shard}")
         for shard_id in range(number_shards):
             begin_shard = shard_id * number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * number_sample_per_shard)
@@ -345,6 +352,7 @@ def download(
                 (shard_id + start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard])),)
             )
         del images_to_dl
+        print("Done sharding the input file")
 
         if output_format == "webdataset":
             sample_writer_class = WebDatasetSampleWriter
@@ -367,6 +375,7 @@ def download(
             oom_shard_count=oom_shard_count,
         )
 
+        print("Starting the downloading of this file")
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
             for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
                 process_pool.imap_unordered(downloader, sharded_images_to_dl), total=len(sharded_images_to_dl),

@@ -159,16 +159,20 @@ def test_download_resize(resize_mode, resize_only_if_bigger):
 )
 def test_download_input_format(input_format, output_format):
     prefix = input_format + "_" + output_format + "_"
-    url_list_name = os.path.join(test_folder, prefix + "url_list.txt")
+    url_list_name = os.path.join(test_folder, prefix + "url_list")
     image_folder_name = os.path.join(test_folder, prefix + "images")
 
     if input_format == "txt":
+        url_list_name += ".txt"
         generate_url_list_txt(url_list_name)
     elif input_format == "csv":
+        url_list_name += ".csv"
         generate_csv(url_list_name)
     elif input_format == "tsv":
+        url_list_name += ".tsv"
         generate_tsv(url_list_name)
     elif input_format == "parquet":
+        url_list_name += ".parquet"
         generate_parquet(url_list_name)
 
     download(
@@ -198,6 +202,78 @@ def test_download_input_format(input_format, output_format):
         )
 
     os.remove(url_list_name)
+    shutil.rmtree(image_folder_name)
+
+
+@pytest.mark.parametrize(
+    "input_format, output_format",
+    [
+        ["txt", "files"],
+        ["txt", "webdataset"],
+        ["csv", "files"],
+        ["csv", "webdataset"],
+        ["tsv", "files"],
+        ["tsv", "webdataset"],
+        ["parquet", "files"],
+        ["parquet", "webdataset"],
+    ],
+)
+def test_download_multiple_input_files(input_format, output_format):
+    prefix = input_format + "_" + output_format + "_"
+
+    subfolder = test_folder + "/" + prefix + "input_folder"
+    if not os.path.exists(subfolder):
+        os.mkdir(subfolder)
+    url_list_names = [os.path.join(subfolder, prefix + "url_list1"), os.path.join(subfolder, prefix + "url_list2")]
+    image_folder_name = os.path.join(test_folder, prefix + "images")
+
+    for url_list_name in url_list_names:
+        if input_format == "txt":
+            url_list_name += ".txt"
+            generate_url_list_txt(url_list_name)
+        elif input_format == "csv":
+            url_list_name += ".csv"
+            generate_csv(url_list_name)
+        elif input_format == "tsv":
+            url_list_name += ".tsv"
+            generate_tsv(url_list_name)
+        elif input_format == "parquet":
+            url_list_name += ".parquet"
+            generate_parquet(url_list_name)
+
+    download(
+        subfolder,
+        image_size=256,
+        output_folder=image_folder_name,
+        thread_count=32,
+        input_format=input_format,
+        output_format=output_format,
+        url_col="url",
+        caption_col="caption",
+    )
+
+    expected_file_count = len(test_list)
+    if output_format == "files":
+        l = get_all_files(image_folder_name, "jpg")
+        assert len(l) == expected_file_count * 2
+    elif output_format == "webdataset":
+        l = glob.glob(image_folder_name + "/*.tar")
+        assert len(l) == 2
+        if l[0] != image_folder_name + "/00000.tar":
+            raise Exception(l[0] + " is not 00000.tar")
+        if l[1] != image_folder_name + "/00001.tar":
+            raise Exception(l[1] + " is not 00001.tar")
+
+        assert (
+            len([x for x in tarfile.open(image_folder_name + "/00000.tar").getnames() if x.endswith(".jpg")])
+            == expected_file_count
+        )
+        assert (
+            len([x for x in tarfile.open(image_folder_name + "/00001.tar").getnames() if x.endswith(".jpg")])
+            == expected_file_count
+        )
+
+    shutil.rmtree(subfolder)
     shutil.rmtree(image_folder_name)
 
 
