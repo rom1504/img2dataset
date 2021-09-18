@@ -395,6 +395,7 @@ def download(
             process_pool.terminate()
             process_pool.join()
             del process_pool
+            del sharded_images_to_dl
 
 
 def main():
