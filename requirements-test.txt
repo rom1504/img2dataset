@@ -1,5 +1,5 @@
 black==19.10b0
-mypy==0.790
+mypy==0.910
 pylint==2.6.0
 pytest-cov==2.10.1
 pytest-xdist==2.1.0
