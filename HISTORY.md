@@ -1,3 +1,7 @@
+## 1.9.7
+
+* revert last commit, it could cause double iteration on an iterator which can cause surprising behaviors
+
 ## 1.9.6
 
 * optimize listing files (thanks @Skylion)
