@@ -353,7 +353,7 @@ def test_webdataset():
     shutil.rmtree(image_folder_name)
 
 
-@pytest.mark.skip(reason="slow")
+#@pytest.mark.skip(reason="slow")
 @pytest.mark.parametrize("output_format", ["webdataset", "files"])
 def test_benchmark(output_format):
     prefix = output_format + "_"
