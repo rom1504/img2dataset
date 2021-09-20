@@ -2,6 +2,7 @@
 
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
+from threading import Semaphore
 from tqdm import tqdm
 import albumentations as A
 import cv2
@@ -28,6 +29,7 @@ logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 def download_image(row, timeout):
     """Download an image with urllib"""
     key, url = row
+    img_stream = None
     try:
         request = urllib.request.Request(
             url,
@@ -38,6 +40,8 @@ def download_image(row, timeout):
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
+        if img_stream is not None:
+            img_stream.close()
         return key, None, str(err)
 
 
@@ -191,11 +195,22 @@ def one_process_downloader(
     caption_indice = column_list.index("caption") if "caption" in column_list else None
     key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
+    # this prevents an accumulation of more than twice the number of threads in sample ready to resize
+    # limit the memory usage
+    semaphore = Semaphore(thread_count * 2)
+
+    def data_generator():
+        for e in key_url_list:
+            semaphore.acquire()
+            yield e
+
+    loader = data_generator()
+
     sample_writer = sample_writer_class(shard_id, output_folder, save_caption, save_metadata, oom_shard_count)
     oom_sample_per_shard = math.ceil(math.log10(number_sample_per_shard))
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(
-            lambda x: download_image(x, timeout=timeout), key_url_list
+            lambda x: download_image(x, timeout=timeout), loader
         ):
             _, sample_data = shard_to_dl[key]
             str_key = compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count)
@@ -215,6 +230,7 @@ def one_process_downloader(
                 if save_metadata:
                     meta["status"] = status
                     metadatas.append(meta)
+                semaphore.release()
                 continue
             (img, width, height, original_width, original_height, error_message,) = resizer(img_stream)
             if error_message is not None:
@@ -224,6 +240,9 @@ def one_process_downloader(
                 if save_metadata:
                     meta["status"] = status
                     metadatas.append(meta)
+                img_stream.close()
+                del img_stream
+                semaphore.release()
                 continue
             successes += 1
             status = "success"
@@ -255,6 +274,7 @@ def one_process_downloader(
             sample_writer.write(
                 img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
             )
+            semaphore.release()
 
         sample_writer.close()
         thread_pool.terminate()
