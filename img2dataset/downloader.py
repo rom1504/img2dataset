@@ -75,6 +75,8 @@ class Resizer:
     def __call__(self, img_stream):
         try:
             img = cv2.imdecode(np.frombuffer(img_stream.read(), np.uint8), 1)
+            if img is None:
+                raise Exception("Image decoding error")
             original_height, original_width = img.shape[:2]
 
             # resizing in following conditions
