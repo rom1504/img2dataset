@@ -1,3 +1,7 @@
+## 1.10.0
+
+* use semaphores to decrease memory usage
+
 ## 1.9.9
 
 * fix an issue with resize_mode "no"
