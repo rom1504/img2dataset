@@ -100,7 +100,7 @@ testdata = [
     ("keep_ratio", False),
     ("center_crop", True),
     ("center_crop", False),
-    ("no", False)
+    ("no", False),
 ]
 
 

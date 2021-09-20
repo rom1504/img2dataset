@@ -91,6 +91,7 @@ class Resizer:
 
             height, width = img.shape[:2]
             img_str = cv2.imencode(".jpg", img)[1].tobytes()
+            del img
             return img_str, width, height, original_width, original_height, None
 
         except Exception as err:  # pylint: disable=broad-except
@@ -248,6 +249,8 @@ def one_process_downloader(
                 metadatas.append(meta)
             else:
                 meta = None
+            img_stream.close()
+            del img_stream
 
             sample_writer.write(
                 img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
