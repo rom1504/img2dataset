@@ -343,7 +343,7 @@ def download(
         if input_format == "txt":
             images_to_dl = []
             with open(input_file, encoding="utf-8") as file:
-                images_to_dl = [(url,) for url in file.readlines()]
+                images_to_dl = [(url.rstrip(),) for url in file.readlines()]
             column_list = ["url"]
         elif input_format in ["csv", "tsv", "parquet"]:
             if input_format == "csv":
