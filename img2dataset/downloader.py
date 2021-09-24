@@ -241,6 +241,7 @@ def one_process_downloader(
                 status_dict.increment(error_message)
                 if save_metadata:
                     meta["status"] = status
+                    meta["error_message"] = error_message
                     metadatas.append(meta)
                 img_stream.close()
                 del img_stream
