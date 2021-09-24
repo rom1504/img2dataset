@@ -1,3 +1,10 @@
+## 1.10.1
+
+* raise clean exception on image decoding error
+* remove the \n in urls for txt inputs
+* save the error message when resizing fails in metadata
+* add type hints to download function
+
 ## 1.10.0
 
 * use semaphores to decrease memory usage
