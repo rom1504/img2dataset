@@ -3,6 +3,7 @@
 from multiprocessing import Pool
 from multiprocessing.pool import ThreadPool
 from threading import Semaphore
+from typing import List, Optional
 from tqdm import tqdm
 import albumentations as A
 import cv2
@@ -294,24 +295,24 @@ def one_process_downloader(
 
 
 def download(
-    url_list,
-    image_size=256,
-    output_folder="images",
-    processes_count=1,
-    resize_mode="border",
-    resize_only_if_bigger=False,
-    output_format="files",
-    input_format="txt",
-    url_col="url",
-    caption_col=None,
-    thread_count=256,
-    number_sample_per_shard=10000,
-    save_metadata=True,
-    save_additional_columns=None,
-    timeout=10,
-    enable_wandb=False,
-    wandb_project="img2dataset",
-    oom_shard_count=5,
+    url_list: str,
+    image_size: int = 256,
+    output_folder: str = "images",
+    processes_count: int = 1,
+    resize_mode: str = "border",
+    resize_only_if_bigger: bool = False,
+    output_format: str = "files",
+    input_format: str = "txt",
+    url_col: str = "url",
+    caption_col: Optional[str] = None,
+    thread_count: int = 256,
+    number_sample_per_shard: int = 10000,
+    save_metadata: bool = True,
+    save_additional_columns: Optional[List[str]] = None,
+    timeout: int = 10,
+    enable_wandb: bool = False,
+    wandb_project: str = "img2dataset",
+    oom_shard_count: int = 5,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -383,7 +384,7 @@ def download(
         if output_format == "webdataset":
             sample_writer_class = WebDatasetSampleWriter
         elif output_format == "files":
-            sample_writer_class = FilesSampleWriter
+            sample_writer_class = FilesSampleWriter  # type: ignore
 
         resizer = Resizer(image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger,)
 
