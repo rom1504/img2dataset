@@ -347,10 +347,10 @@ def download(
             with open(input_file, encoding="utf-8") as file:
                 images_to_dl = [(url.rstrip(),) for url in file.readlines()]
             column_list = ["url"]
-        elif input_format in ["csv", "tsv", "parquet"]:
+        elif input_format in ["csv", "tsv", "tsv.gz", "parquet"]:
             if input_format == "csv":
                 df = pd.read_csv(input_file)
-            elif input_format == "tsv":
+            elif input_format in ("tsv", "tsv.gz"):
                 df = pd.read_table(input_file)
             elif input_format == "parquet":
                 columns_to_read = [url_col]
