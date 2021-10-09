@@ -350,7 +350,7 @@ def download(
         elif input_format in ["csv", "tsv", "tsv.gz", "parquet"]:
             if input_format == "csv":
                 df = pd.read_csv(input_file)
-            elif input_format == "tsv" or input_format == "tsv.gz":
+            elif input_format in ("tsv", "tsv.gz"):
                 df = pd.read_table(input_file)
             elif input_format == "parquet":
                 columns_to_read = [url_col]
