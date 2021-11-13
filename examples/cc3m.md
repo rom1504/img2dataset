@@ -2,14 +2,14 @@
 
 CC3M is a dataset of 3 million image and caption.
 
-### Download the tsv file
+### Download the metadata
 
 Go to https://ai.google.com/research/ConceptualCaptions/download and press download
 That's a 500MB tsv file
 
 Add the column names at the top of the file with `sed -i '1s/^/caption\turl\n/' cc3m.tsv`
 
-### Download with img2dataset
+### Download the images with img2dataset
 
 Run this command. It will download the cc3m dataset as resized images in the webdataset format.
 
