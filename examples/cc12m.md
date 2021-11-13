@@ -6,6 +6,9 @@
 ### Download the metadata
 
 `wget https://storage.googleapis.com/conceptual_12m/cc12m.tsv`
+That's a 2.6GB file
+
+Add the column names at the top of the file with `sed -i '1s/^/url\tcaption\n/' cc12m.tsv`
 
 ### Download the images with img2dataset
 
@@ -20,4 +23,8 @@ img2dataset --url_list cc12m.tsv --input_format "tsv"\
 
 ### Benchmark
 
+https://wandb.ai/rom1504/img2dataset/reports/Download-cc12m-with-img2dataset--VmlldzoxMjIxMTY0
+* 630 sample/s : cc12m has a lot of large images so resizing makes cpu the bottleneck
+* total: 5h
+* output: 331GB
 
