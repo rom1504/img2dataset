@@ -1,3 +1,7 @@
+## 1.11.0
+
+* Add support for .tsv.gz files (thanks @robvanvolt)
+
 ## 1.10.1
 
 * raise clean exception on image decoding error
