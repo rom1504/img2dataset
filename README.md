@@ -12,6 +12,11 @@ Also supports saving captions for url+caption datasets.
 
 pip install img2dataset
 
+## Examples
+
+Example of datasets to download with example commands are available in the [examples](examples folder). In particular:
+* [cc3m](examples/cc3m.md) 3M image/text pairs that can be downloaded in one hour
+
 ## Usage
 
 First get some image url list. For example:
