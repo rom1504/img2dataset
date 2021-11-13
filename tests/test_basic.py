@@ -271,7 +271,7 @@ def test_download_multiple_input_files(input_format, output_format):
         l = get_all_files(image_folder_name, "jpg")
         assert len(l) == expected_file_count * 2
     elif output_format == "webdataset":
-        l = glob.glob(image_folder_name + "/*.tar")
+        l = sorted(glob.glob(image_folder_name + "/*.tar"))
         assert len(l) == 2
         if l[0] != image_folder_name + "/00000.tar":
             raise Exception(l[0] + " is not 00000.tar")
