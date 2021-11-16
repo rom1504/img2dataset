@@ -61,21 +61,13 @@ class Resizer:
             self.resize_tfm = A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4)
         elif resize_mode == "center_crop":
             self.resize_tfm = A.Compose(
-                [
-                    A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4),
-                    A.CenterCrop(image_size, image_size),
-                ]
+                [A.SmallestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4), A.CenterCrop(image_size, image_size),]
             )
         elif resize_mode == "border":
             self.resize_tfm = A.Compose(
                 [
                     A.LongestMaxSize(image_size, interpolation=cv2.INTER_LANCZOS4),
-                    A.PadIfNeeded(
-                        image_size,
-                        image_size,
-                        border_mode=cv2.BORDER_CONSTANT,
-                        value=[255, 255, 255],
-                    ),
+                    A.PadIfNeeded(image_size, image_size, border_mode=cv2.BORDER_CONSTANT, value=[255, 255, 255],),
                 ]
             )
         elif resize_mode == "no":
@@ -248,14 +240,7 @@ def one_process_downloader(
                     metadatas.append(meta)
                 semaphore.release()
                 continue
-            (
-                img,
-                width,
-                height,
-                original_width,
-                original_height,
-                error_message,
-            ) = resizer(img_stream)
+            (img, width, height, original_width, original_height, error_message,) = resizer(img_stream)
             if error_message is not None:
                 failed_to_resize += 1
                 status = "failed_to_resize"
@@ -296,10 +281,7 @@ def one_process_downloader(
             del img_stream
 
             sample_writer.write(
-                img,
-                str_key,
-                sample_data[caption_indice] if caption_indice is not None else None,
-                meta,
+                img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
             )
             semaphore.release()
 
@@ -399,10 +381,7 @@ def download(
             begin_shard = shard_id * number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * number_sample_per_shard)
             sharded_images_to_dl.append(
-                (
-                    shard_id + start_shard_id,
-                    list(enumerate(images_to_dl[begin_shard:end_shard])),
-                )
+                (shard_id + start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard])),)
             )
         del images_to_dl
         print("Done sharding the input file")
@@ -412,11 +391,7 @@ def download(
         elif output_format == "files":
             sample_writer_class = FilesSampleWriter  # type: ignore
 
-        resizer = Resizer(
-            image_size=image_size,
-            resize_mode=resize_mode,
-            resize_only_if_bigger=resize_only_if_bigger,
-        )
+        resizer = Resizer(image_size=image_size, resize_mode=resize_mode, resize_only_if_bigger=resize_only_if_bigger,)
 
         downloader = functools.partial(
             one_process_downloader,
@@ -435,8 +410,7 @@ def download(
         print("Starting the downloading of this file")
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
             for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
-                process_pool.imap_unordered(downloader, sharded_images_to_dl),
-                total=len(sharded_images_to_dl),
+                process_pool.imap_unordered(downloader, sharded_images_to_dl), total=len(sharded_images_to_dl),
             ):
                 SpeedLogger("worker", enable_wandb=enable_wandb)(
                     duration=duration,
