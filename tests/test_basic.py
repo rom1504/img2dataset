@@ -43,9 +43,11 @@ def generate_tsv(output_file):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
     df.to_csv(output_file, sep="\t")
 
+
 def generate_tsv_gz(output_file):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
     df.to_csv(output_file, sep="\t", compression="gzip")
+
 
 def generate_parquet(output_file):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
@@ -292,7 +294,13 @@ def test_download_multiple_input_files(input_format, output_format):
 
 
 @pytest.mark.parametrize(
-    "save_caption, output_format", [[True, "files"], [False, "files"], [True, "webdataset"], [False, "webdataset"],],
+    "save_caption, output_format",
+    [
+        [True, "files"],
+        [False, "files"],
+        [True, "webdataset"],
+        [False, "webdataset"],
+    ],
 )
 def test_captions_saving(save_caption, output_format):
     input_format = "parquet"
