@@ -79,10 +79,10 @@ class Resizer:
             if img is None:
                 raise Exception("Image decoding error")
             if len(img.shape) == 3 and img.shape[-1] == 4:
-                # replace transparent pixels to white - Source: https://stackoverflow.com/a/53737420/3474490
-                trans_mask = img[:, :, 3] == 0
-                img[trans_mask] = [255, 255, 255, 255]
-                img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+                # alpha matting with white background
+                alpha = img[:, :, 3, np.newaxis]
+                img = alpha / 255 * img[..., :3] + 255 - alpha
+                img = img.clip(min=0, max=255).astype(np.uint8)
             original_height, original_width = img.shape[:2]
 
             # resizing in following conditions
