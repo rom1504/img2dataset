@@ -82,7 +82,7 @@ class Resizer:
                 # alpha matting with white background
                 alpha = img[:, :, 3, np.newaxis]
                 img = alpha / 255 * img[..., :3] + 255 - alpha
-                img = img.clip(min=0, max=255).astype(np.uint8)
+                img = np.rint(img.clip(min=0, max=255)).astype(np.uint8)
             original_height, original_width = img.shape[:2]
 
             # resizing in following conditions
