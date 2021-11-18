@@ -43,9 +43,11 @@ def generate_tsv(output_file):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
     df.to_csv(output_file, sep="\t")
 
+
 def generate_tsv_gz(output_file):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
     df.to_csv(output_file, sep="\t", compression="gzip")
+
 
 def generate_parquet(output_file):
     df = pd.DataFrame(test_list, columns=["caption", "url"])

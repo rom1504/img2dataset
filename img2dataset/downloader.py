@@ -75,9 +75,14 @@ class Resizer:
 
     def __call__(self, img_stream):
         try:
-            img = cv2.imdecode(np.frombuffer(img_stream.read(), np.uint8), 1)
+            img = cv2.imdecode(np.frombuffer(img_stream.read(), np.uint8), cv2.IMREAD_UNCHANGED)
             if img is None:
                 raise Exception("Image decoding error")
+            if len(img.shape) == 3 and img.shape[-1] == 4:
+                # alpha matting with white background
+                alpha = img[:, :, 3, np.newaxis]
+                img = alpha / 255 * img[..., :3] + 255 - alpha
+                img = np.rint(img.clip(min=0, max=255)).astype(np.uint8)
             original_height, original_width = img.shape[:2]
 
             # resizing in following conditions
