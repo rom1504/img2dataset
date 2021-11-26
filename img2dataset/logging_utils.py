@@ -2,6 +2,7 @@
 
 import wandb
 import time
+from tqdm import tqdm
 from collections import Counter
 
 
@@ -97,7 +98,7 @@ class SpeedLogger(Logger):
         failed_to_download_ratio = 1.0 * failed_to_download / count
         failed_to_resize_ratio = 1.0 * failed_to_resize / count
 
-        print(
+        tqdm.write(
             " - ".join(
                 [
                     f"{self.prefix:<7}",
