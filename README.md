@@ -95,6 +95,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **csv** loads the urls and optional caption as a csv
   * **tsv** loads the urls and optional caption as a tsv
   * **tsv.gz** loads the urls and optional caption as a compressed (gzip) tsv.gz
+  * **json** loads the urls and optional caption as a json
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
