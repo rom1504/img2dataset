@@ -15,6 +15,7 @@ pip install img2dataset
 ## Examples
 
 Example of datasets to download with example commands are available in the [examples](examples) folder. In particular:
+* [mscoco](examples/mscoco.md) 600k image/text pairs that can be downloaded in 10min
 * [cc3m](examples/cc3m.md) 3M image/text pairs that can be downloaded in one hour
 * [cc12m](examples/cc12m.md) 12M image/text pairs that can be downloaded in five hour
 * [laion400m](examples/laion400m.md) 400M image/text pairs that can be downloaded in 3.5 days
