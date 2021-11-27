@@ -1,3 +1,9 @@
+## 1.12.0
+
+* handle transparency (thanks @borisdayma)
+* add json input file support
+
+
 ## 1.11.0
 
 * Add support for .tsv.gz files (thanks @robvanvolt)
