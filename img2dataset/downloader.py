@@ -9,7 +9,7 @@ import math
 import exifread
 import json
 import time
-from .logging_utils import CappedCounter
+from .logger import CappedCounter
 
 
 def download_image(row, timeout):

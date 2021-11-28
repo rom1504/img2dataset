@@ -9,7 +9,7 @@ import glob
 import logging
 import time
 import wandb
-from .logging_utils import CappedCounter, SpeedLogger, StatusTableLogger
+from .logger import CappedCounter, SpeedLogger, StatusTableLogger
 from .resizer import Resizer
 from .writer import WebDatasetSampleWriter, FilesSampleWriter
 from .reader import Reader
