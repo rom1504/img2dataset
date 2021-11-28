@@ -21,6 +21,7 @@ import wandb
 from .logging_utils import CappedCounter, SpeedLogger, StatusTableLogger
 from .resizer import Resizer
 from .writer import WebDatasetSampleWriter, FilesSampleWriter
+from .reader import Reader
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
@@ -211,126 +212,78 @@ def download(
     total_status_dict = CappedCounter()
     save_caption = caption_col is not None
 
-    if os.path.isdir(url_list):
-        input_files = sorted(glob.iglob(url_list + "/*." + input_format))
+    if not os.path.exists(output_folder):
+        os.mkdir(output_folder)
+        start_shard_id = 0
     else:
-        input_files = [url_list]
-
-    for i, input_file in enumerate(input_files):
-        print("Downloading file number " + str(i + 1) + " of " + str(len(input_files)) + " called " + input_file)
-        print("Loading the input file")
-        if not os.path.exists(output_folder):
-            os.mkdir(output_folder)
+        existing_top_level_files = glob.glob(output_folder + "/*")
+        if len(existing_top_level_files) == 0:
             start_shard_id = 0
         else:
-            existing_top_level_files = glob.glob(output_folder + "/*")
-            if len(existing_top_level_files) == 0:
-                start_shard_id = 0
-            else:
-                start_shard_id = max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files]) + 1
+            start_shard_id = max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files]) + 1
 
-        if input_format == "txt":
-            images_to_dl = []
-            with open(input_file, encoding="utf-8") as file:
-                images_to_dl = [(url.rstrip(),) for url in file.readlines()]
-            column_list = ["url"]
-        elif input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
-            if input_format == "json":
-                df = pd.read_json(input_file)
-            elif input_format == "csv":
-                df = pd.read_csv(input_file)
-            elif input_format in ("tsv", "tsv.gz"):
-                df = pd.read_table(input_file)
-            elif input_format == "parquet":
-                columns_to_read = [url_col]
-                if caption_col is not None:
-                    columns_to_read += [caption_col]
-                if save_additional_columns is not None:
-                    columns_to_read += save_additional_columns
-                df = pd.read_parquet(input_file, columns=columns_to_read)
-            column_list = save_additional_columns if save_additional_columns is not None else []
-            df = df.rename(columns={caption_col: "caption", url_col: "url"})
-            if caption_col is not None:
-                column_list = column_list + ["caption", "url"]
-            else:
-                column_list = column_list + ["url"]
-            images_to_dl = df[column_list].to_records(index=False).tolist()
-            del df
-        else:
-            assert False, f"Unexpected input format ({input_format})."
+    reader = Reader(
+        url_list, input_format, url_col, caption_col, save_additional_columns, number_sample_per_shard, start_shard_id
+    )
 
-        sharded_images_to_dl = []
-        number_samples = len(images_to_dl)
-        number_shards = math.ceil(number_samples / number_sample_per_shard)
-        print(f"Splitting the {number_samples} samples in {number_shards} shards of size {number_sample_per_shard}")
-        for shard_id in range(number_shards):
-            begin_shard = shard_id * number_sample_per_shard
-            end_shard = min(number_samples, (1 + shard_id) * number_sample_per_shard)
-            sharded_images_to_dl.append(
-                (shard_id + start_shard_id, list(enumerate(images_to_dl[begin_shard:end_shard])),)
+    if output_format == "webdataset":
+        sample_writer_class = WebDatasetSampleWriter
+    elif output_format == "files":
+        sample_writer_class = FilesSampleWriter  # type: ignore
+
+    resizer = Resizer(
+        image_size=image_size,
+        resize_mode=resize_mode,
+        resize_only_if_bigger=resize_only_if_bigger,
+        upscale_interpolation=upscale_interpolation,
+        downscale_interpolation=downscale_interpolation,
+        encode_quality=encode_quality,
+        skip_reencode=skip_reencode,
+    )
+
+    downloader = functools.partial(
+        one_process_downloader,
+        sample_writer_class=sample_writer_class,
+        resizer=resizer,
+        thread_count=thread_count,
+        save_caption=save_caption,
+        save_metadata=save_metadata,
+        output_folder=output_folder,
+        column_list=reader.column_list,
+        timeout=timeout,
+        number_sample_per_shard=number_sample_per_shard,
+        oom_shard_count=oom_shard_count,
+    )
+
+    print("Starting the downloading of this file")
+    with Pool(processes_count, maxtasksperchild=5) as process_pool:
+        for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
+            process_pool.imap_unordered(downloader, reader),
+        ):
+            SpeedLogger("worker", enable_wandb=enable_wandb)(
+                duration=duration,
+                count=count,
+                success=successes,
+                failed_to_download=failed_to_download,
+                failed_to_resize=failed_to_resize,
             )
-        del images_to_dl
-        print("Done sharding the input file")
+            total_speed_logger(
+                duration=time.perf_counter() - start_time,
+                count=count,
+                success=successes,
+                failed_to_download=failed_to_download,
+                failed_to_resize=failed_to_resize,
+            )
+            total_status_dict.update(status_dict)
+            status_table_logger(total_status_dict, total_speed_logger.count)
+            pass
 
-        if output_format == "webdataset":
-            sample_writer_class = WebDatasetSampleWriter
-        elif output_format == "files":
-            sample_writer_class = FilesSampleWriter  # type: ignore
-
-        resizer = Resizer(
-            image_size=image_size,
-            resize_mode=resize_mode,
-            resize_only_if_bigger=resize_only_if_bigger,
-            upscale_interpolation=upscale_interpolation,
-            downscale_interpolation=downscale_interpolation,
-            encode_quality=encode_quality,
-            skip_reencode=skip_reencode,
-        )
-
-        downloader = functools.partial(
-            one_process_downloader,
-            sample_writer_class=sample_writer_class,
-            resizer=resizer,
-            thread_count=thread_count,
-            save_caption=save_caption,
-            save_metadata=save_metadata,
-            output_folder=output_folder,
-            column_list=column_list,
-            timeout=timeout,
-            number_sample_per_shard=number_sample_per_shard,
-            oom_shard_count=oom_shard_count,
-        )
-
-        print("Starting the downloading of this file")
-        with Pool(processes_count, maxtasksperchild=5) as process_pool:
-            for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
-                process_pool.imap_unordered(downloader, sharded_images_to_dl), total=len(sharded_images_to_dl),
-            ):
-                SpeedLogger("worker", enable_wandb=enable_wandb)(
-                    duration=duration,
-                    count=count,
-                    success=successes,
-                    failed_to_download=failed_to_download,
-                    failed_to_resize=failed_to_resize,
-                )
-                total_speed_logger(
-                    duration=time.perf_counter() - start_time,
-                    count=count,
-                    success=successes,
-                    failed_to_download=failed_to_download,
-                    failed_to_resize=failed_to_resize,
-                )
-                total_status_dict.update(status_dict)
-                status_table_logger(total_status_dict, total_speed_logger.count)
-                pass
-
-            # ensure final sync
-            total_speed_logger.sync()
-            status_table_logger.sync()
-            process_pool.terminate()
-            process_pool.join()
-            del process_pool
-            del sharded_images_to_dl
+        # ensure final sync
+        total_speed_logger.sync()
+        status_table_logger.sync()
+        process_pool.terminate()
+        process_pool.join()
+        del process_pool
 
 
 def main():
