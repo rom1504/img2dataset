@@ -23,11 +23,26 @@ import logging
 import time
 import wandb
 from .logging_utils import CappedCounter, SpeedLogger, StatusTableLogger
+from .dupcheck import hash_image, is_duplicate, add_to_db
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
+def check_dup(data, thread_count):
+    """
+    Remove an image if it was already downloaded
+    Returns:
+        True if the image was removed, False otherwise
+    """
 
-def download_image(row, timeout):
+    if data:
+        img_hash = hash_image(data)
+        if is_duplicate(img_hash):
+            return True
+        else:
+            add_to_db(img_hash, thread_count)
+            return False
+
+def download_image(row, thread_count, timeout):
     """Download an image with urllib"""
     key, url = row
     img_stream = None
@@ -39,6 +54,11 @@ def download_image(row, timeout):
         )
         with urllib.request.urlopen(request, timeout=timeout) as r:
             img_stream = io.BytesIO(r.read())
+            dup = check_dup(r.read(8192), thread_count)
+            if dup is True:
+                img_stream.close()
+                return key, None, "Similar Image Already Downloaded!"
+            
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
@@ -218,7 +238,7 @@ def one_process_downloader(
     oom_sample_per_shard = math.ceil(math.log10(number_sample_per_shard))
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(
-            lambda x: download_image(x, timeout=timeout), loader
+            lambda x: download_image(x, thread_count, timeout=timeout), loader
         ):
             _, sample_data = shard_to_dl[key]
             str_key = compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count)
