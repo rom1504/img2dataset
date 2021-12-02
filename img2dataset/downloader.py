@@ -39,7 +39,6 @@ def backup_history(*args):
         image_md5s)  # We are working with the copy, because length of input variable for pickle must not be changed during dumping
     pickle.dump(copied_image_md5s, download_history)
     download_history.close()
-    print('history_dumped')
     if args:
         exit(0)
 
@@ -56,13 +55,14 @@ def download_image(row, thread_count, timeout):
             headers={"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"},
         )
         with urllib.request.urlopen(request, timeout=timeout) as r:
-            img_stream = io.BytesIO(r.read())
-            img = r.read(8192)
+            img = r.read()
+            img_stream = io.BytesIO(img)
             md5_key = hashlib.md5(img).hexdigest()
             if md5_key in image_md5s:
                 return key, None, 'FAIL: Image is a duplicate of ' + image_md5s[md5_key] 
             image_md5s[md5_key] = key
             tried_urls.append(url)
+            backup_history()
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
@@ -311,7 +311,6 @@ def one_process_downloader(
                 meta = None
             img_stream.close()
             del img_stream
-            backup_history()
             sample_writer.write(
                 img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
             )

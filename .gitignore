@@ -16,3 +16,6 @@ build/lib/img2dataset/config.py
 build/lib/img2dataset/dupcheck.py
 build/lib/img2dataset/downloader.py
 build/lib/img2dataset/logging_utils.py
+output/00000.parquet
+dist/img2dataset-1.12.0-py3.8.egg
+output/
