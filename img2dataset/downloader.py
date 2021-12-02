@@ -42,21 +42,6 @@ def backup_history(*args):
     print('history_dumped')
     if args:
         exit(0)
-        
-def check_dup(data, thread_count):
-    """
-    Remove an image if it was already downloaded
-    Returns:
-        True if the image was removed, False otherwise
-    """
-
-    if data:
-        img_hash = hash_image(data)
-        if is_duplicate(img_hash):
-            return True
-        else:
-            add_to_db(img_hash, thread_count)
-            return False
 
 def download_image(row, thread_count, timeout):
     """Download an image with urllib"""
@@ -73,14 +58,9 @@ def download_image(row, thread_count, timeout):
         with urllib.request.urlopen(request, timeout=timeout) as r:
             img_stream = io.BytesIO(r.read())
             img = r.read(8192)
-            dup = check_dup(img, thread_count)
-            if dup is True:
-                img_stream.close()
-                return key, None, "Similar Image Already Downloaded!"
             md5_key = hashlib.md5(img).hexdigest()
             if md5_key in image_md5s:
-                print('FAIL: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + key)
-                return
+                return key, None, 'FAIL: Image is a duplicate of ' + image_md5s[md5_key] 
             image_md5s[md5_key] = key
             tried_urls.append(url)
         return key, img_stream, None
