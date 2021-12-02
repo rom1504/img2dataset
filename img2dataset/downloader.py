@@ -24,7 +24,6 @@ import time
 import wandb
 import hashlib
 from .logging_utils import CappedCounter, SpeedLogger, StatusTableLogger
-from .dupcheck import hash_image, is_duplicate, add_to_db
 import pickle
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
