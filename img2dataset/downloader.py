@@ -22,11 +22,27 @@ import glob
 import logging
 import time
 import wandb
+import hashlib
 from .logging_utils import CappedCounter, SpeedLogger, StatusTableLogger
 from .dupcheck import hash_image, is_duplicate, add_to_db
+import pickle
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
+backup_dir = "backup_dir"
+image_md5s = {}
+tried_urls = []
 
+def backup_history(*args):
+    download_history = open(os.path.join(backup_dir, 'download_history.pickle'), 'wb')
+    pickle.dump(tried_urls, download_history)
+    copied_image_md5s = dict(
+        image_md5s)  # We are working with the copy, because length of input variable for pickle must not be changed during dumping
+    pickle.dump(copied_image_md5s, download_history)
+    download_history.close()
+    print('history_dumped')
+    if args:
+        exit(0)
+        
 def check_dup(data, thread_count):
     """
     Remove an image if it was already downloaded
@@ -45,6 +61,8 @@ def check_dup(data, thread_count):
 def download_image(row, thread_count, timeout):
     """Download an image with urllib"""
     key, url = row
+    if url in tried_urls:
+        return key, None, "This url already tried!"
     img_stream = None
     try:
         request = urllib.request.Request(
@@ -54,11 +72,17 @@ def download_image(row, thread_count, timeout):
         )
         with urllib.request.urlopen(request, timeout=timeout) as r:
             img_stream = io.BytesIO(r.read())
-            dup = check_dup(r.read(8192), thread_count)
+            img = r.read(8192)
+            dup = check_dup(img, thread_count)
             if dup is True:
                 img_stream.close()
                 return key, None, "Similar Image Already Downloaded!"
-            
+            md5_key = hashlib.md5(img).hexdigest()
+            if md5_key in image_md5s:
+                print('FAIL: Image is a duplicate of ' + image_md5s[md5_key] + ', not saving ' + key)
+                return
+            image_md5s[md5_key] = key
+            tried_urls.append(url)
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
@@ -233,8 +257,17 @@ def one_process_downloader(
             yield e
 
     loader = data_generator()
-
+    if not os.path.exists(backup_dir):
+        os.makedirs(backup_dir)
+    try:
+        download_history = open(os.path.join(backup_dir, 'download_history.pickle'), 'rb')
+        tried_urls = pickle.load(download_history)
+        image_md5s = pickle.load(download_history)
+        download_history.close()
+    except (OSError, IOError):
+        tried_urls = []
     sample_writer = sample_writer_class(shard_id, output_folder, save_caption, save_metadata, oom_shard_count)
+    
     oom_sample_per_shard = math.ceil(math.log10(number_sample_per_shard))
     with ThreadPool(thread_count) as thread_pool:
         for key, img_stream, error_message in thread_pool.imap_unordered(
@@ -276,7 +309,6 @@ def one_process_downloader(
             successes += 1
             status = "success"
             status_dict.increment(status)
-
             if save_metadata:
                 try:
                     exif = json.dumps(
@@ -299,7 +331,7 @@ def one_process_downloader(
                 meta = None
             img_stream.close()
             del img_stream
-
+            backup_history()
             sample_writer.write(
                 img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
             )
@@ -407,7 +439,7 @@ def download(
             )
         del images_to_dl
         print("Done sharding the input file")
-
+        
         if output_format == "webdataset":
             sample_writer_class = WebDatasetSampleWriter
         elif output_format == "files":
@@ -428,7 +460,7 @@ def download(
             number_sample_per_shard=number_sample_per_shard,
             oom_shard_count=oom_shard_count,
         )
-
+        
         print("Starting the downloading of this file")
         with Pool(processes_count, maxtasksperchild=5) as process_pool:
             for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(

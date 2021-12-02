@@ -10,3 +10,9 @@ test_folder
 .coverage*
 .env*
 wandb
+build/lib/img2dataset/__init__.py
+backup_dir/download_history.pickle
+build/lib/img2dataset/config.py
+build/lib/img2dataset/dupcheck.py
+build/lib/img2dataset/downloader.py
+build/lib/img2dataset/logging_utils.py
