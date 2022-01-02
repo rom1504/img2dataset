@@ -1,4 +1,4 @@
 """Img2dataset"""
 
-from img2dataset.downloader import main
-from img2dataset.downloader import download
+from img2dataset.main import main
+from img2dataset.main import download
