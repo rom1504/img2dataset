@@ -1,3 +1,8 @@
+## 1.13.0
+
+* large refactoring of the whole code in submodules
+* Enhance image resize processing (esp re downscale) (@rwightman)
+
 ## 1.12.0
 
 * handle transparency (thanks @borisdayma)
