@@ -104,18 +104,22 @@ def check_image_size(file_list, l_unresized, image_size, resize_mode, resize_onl
 
 
 testdata = [
-    ("border", False),
-    ("border", True),
-    ("keep_ratio", True),
-    ("keep_ratio", False),
-    ("center_crop", True),
-    ("center_crop", False),
-    ("no", False),
+    ("border", False, False),
+    ("border", False, True),
+    ("border", True, False),
+    ("keep_ratio", False, False),
+    ("keep_ratio", True, False),
+    ("keep_ratio", True, True),
+    ("center_crop", False, False),
+    ("center_crop", True, False),
+    ("no", False, False),
+    ("no", False, True),
 ]
 
 
-@pytest.mark.parametrize("resize_mode, resize_only_if_bigger", testdata)
-def test_download_resize(resize_mode, resize_only_if_bigger):
+@pytest.mark.parametrize("image_size", [256, 512])
+@pytest.mark.parametrize("resize_mode, resize_only_if_bigger, skip_reencode", testdata)
+def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_reencode):
     prefix = resize_mode + "_" + str(resize_only_if_bigger) + "_"
     url_list_name = os.path.join(test_folder, prefix + "url_list.txt")
     image_folder_name = os.path.join(test_folder, prefix + "images")
@@ -125,7 +129,7 @@ def test_download_resize(resize_mode, resize_only_if_bigger):
 
     download(
         url_list_name,
-        image_size=256,
+        image_size=image_size,
         output_folder=unresized_folder,
         thread_count=32,
         resize_mode="no",
@@ -134,11 +138,12 @@ def test_download_resize(resize_mode, resize_only_if_bigger):
 
     download(
         url_list_name,
-        image_size=256,
+        image_size=image_size,
         output_folder=image_folder_name,
         thread_count=32,
         resize_mode=resize_mode,
         resize_only_if_bigger=resize_only_if_bigger,
+        skip_reencode=skip_reencode,
     )
 
     l = get_all_files(image_folder_name, "jpg")
@@ -148,7 +153,7 @@ def test_download_resize(resize_mode, resize_only_if_bigger):
     assert len(p) == 1
     l_unresized = get_all_files(unresized_folder, "jpg")
     assert len(l) == len(test_list)
-    check_image_size(l, l_unresized, 256, resize_mode, resize_only_if_bigger)
+    check_image_size(l, l_unresized, image_size, resize_mode, resize_only_if_bigger)
 
     os.remove(url_list_name)
     shutil.rmtree(image_folder_name)
