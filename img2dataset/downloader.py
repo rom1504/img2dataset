@@ -78,18 +78,18 @@ class Resizer:
     """Resize images"""
 
     def __init__(
-            self,
-            image_size,
-            resize_mode,
-            resize_only_if_bigger,
-            upscale_interpolation="lanczos",
-            downscale_interpolation="area",
-            encode_quality=95,
-            skip_reencode=False
+        self,
+        image_size,
+        resize_mode,
+        resize_only_if_bigger,
+        upscale_interpolation="lanczos",
+        downscale_interpolation="area",
+        encode_quality=95,
+        skip_reencode=False,
     ):
         self.image_size = image_size
         if isinstance(resize_mode, str):
-            if resize_mode not in ResizeMode.__members__: #pylint: disable=unsupported-membership-test
+            if resize_mode not in ResizeMode.__members__:  # pylint: disable=unsupported-membership-test
                 raise Exception(f"Invalid option for resize_mode: {resize_mode}")
             resize_mode = ResizeMode[resize_mode]
         self.resize_mode = resize_mode
@@ -101,7 +101,7 @@ class Resizer:
 
     def __call__(self, img_stream):
         try:
-            encode_needed = imghdr.what(img_stream) != 'jpeg' if self.skip_reencode else True
+            encode_needed = imghdr.what(img_stream) != "jpeg" if self.skip_reencode else True
             img_buf = np.frombuffer(img_stream.read(), np.uint8)
             img = cv2.imdecode(img_buf, cv2.IMREAD_UNCHANGED)
             if img is None:
@@ -129,7 +129,8 @@ class Resizer:
                     interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
                     img = A.longest_max_size(img, self.image_size, interpolation=interpolation)
                     img = A.pad(
-                        img, self.image_size, self.image_size, border_mode=cv2.BORDER_CONSTANT, value=[255, 255, 255])
+                        img, self.image_size, self.image_size, border_mode=cv2.BORDER_CONSTANT, value=[255, 255, 255]
+                    )
                     encode_needed = True
             height, width = img.shape[:2]
             if encode_needed:
