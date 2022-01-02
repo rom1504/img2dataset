@@ -17,7 +17,7 @@ def setup_fixtures(count=5):
             test_list.append(
                 (
                     f"caption {i}" if i != 0 else None,
-                    "https://placekitten.com/{}/{}".format(random.randint(200, 600), random.randint(200, 600)),
+                    "https://picsum.photos/{}/{}".format(random.randint(200, 600), random.randint(200, 600)),
                 )
             )
         test_list = list(set(test_list))

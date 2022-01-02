@@ -27,7 +27,7 @@ def test_resizer(image_size, resize_mode, resize_only_if_bigger, skip_reencode):
     current_folder = os.path.dirname(__file__)
     test_folder = current_folder + "/" + "resize_test_image"
     image_paths = glob.glob(test_folder + "/*")
-    resizer = Resizer(image_size, resize_mode, resize_only_if_bigger)
+    resizer = Resizer(image_size, resize_mode, resize_only_if_bigger, skip_reencode=skip_reencode)
     for image_path in image_paths:
         with open(image_path, "rb") as f:
             img = f.read()
