@@ -172,6 +172,8 @@ With these information in mind, the design choice was done in this way:
 
 This design make it possible to use the CPU resource efficiently by doing only 1 resize per core, reduce disk overhead by opening 1 file per core, while using the bandwidth resource as much as possible by using M thread per process.
 
+Also see [architecture.md](img2dataset/architecture.md) for the precise split in python modules.
+
 ## Setting up a bind9 resolver
 
 In order to keep the success rate high, it is necessary to use an efficient DNS resolver.

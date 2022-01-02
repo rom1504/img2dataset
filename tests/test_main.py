@@ -1,107 +1,16 @@
 from img2dataset import download
 import os
 import shutil
-import cv2
 import pytest
 import glob
 import time
-import pandas as pd
 import tarfile
-
-
-def test_basic():
-    print("it works !")
-
-
-current_folder = os.path.dirname(__file__)
-test_folder = current_folder + "/" + "test_folder"
-if not os.path.exists(test_folder):
-    os.mkdir(test_folder)
-
-test_list = [
-    ["first", "https://placekitten.com/400/600"],
-    ["second", "https://placekitten.com/200/300"],
-    ["third", "https://placekitten.com/300/200"],
-    ["fourth", "https://placekitten.com/400/400"],
-    ["fifth", "https://placekitten.com/200/200"],
-    [None, "https://placekitten.com/200/200"],
-]
-
-
-def generate_url_list_txt(output_file):
-    with open(output_file, "w") as f:
-        for _, url in test_list:
-            f.write(url + "\n")
-
-
-def generate_csv(output_file):
-    df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_csv(output_file)
-
-
-def generate_tsv(output_file):
-    df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_csv(output_file, sep="\t")
-
-
-def generate_tsv_gz(output_file):
-    df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_csv(output_file, sep="\t", compression="gzip")
-
-
-def generate_json(output_file):
-    df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_json(output_file)
-
-
-def generate_parquet(output_file):
-    df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_parquet(output_file)
-
-
-def get_all_files(folder, ext):
-    return sorted(list(glob.glob(folder + "/**/*." + ext, recursive=True)))
-
-
-def check_image_size(file_list, l_unresized, image_size, resize_mode, resize_only_if_bigger):
-    for file, file_unresized in zip(file_list, l_unresized):
-        img = cv2.imread(file)
-        img_unresized = cv2.imread(file_unresized)
-        width = img.shape[1]
-        height = img.shape[0]
-        width_unresized = img_unresized.shape[1]
-        height_unresized = img_unresized.shape[0]
-        resized = True
-        if resize_only_if_bigger:
-            if (
-                max(width_unresized, height_unresized) <= image_size
-                and resize_mode == "border"
-                or min(width_unresized, height_unresized) <= image_size
-                and resize_mode in ["keep_ratio", "center_crop"]
-            ):
-                if width_unresized != width or height_unresized != height:
-                    raise Exception(
-                        f"Image size is not the same as the original one in resize only if bigger mode,"
-                        f"expected={width_unresized}, {height_unresized} found={width}, {height}"
-                    )
-                else:
-                    resized = False
-
-        if not resized:
-            continue
-
-        if resize_mode == "border":
-            if width != image_size or height != image_size:
-                raise Exception(f"Image size is not 256x256 in border mode found={width}x{height}")
-        elif resize_mode == "keep_ratio":
-            ratio = float(image_size) / min(width_unresized, height_unresized)
-            new_size = tuple([int(x * ratio) for x in [width_unresized, height_unresized]])
-            if new_size != (width, height):
-                raise Exception(
-                    f"Image size is not of the right size in keep ratio mode"
-                    f"expected = {new_size[0]},  {new_size[0]} found = {width},  {height} "
-                )
-
+from fixtures import (
+    get_all_files,
+    check_image_size,
+    generate_input_file,
+    setup_fixtures,
+)
 
 testdata = [
     ("border", False, False),
@@ -120,12 +29,13 @@ testdata = [
 @pytest.mark.parametrize("image_size", [256, 512])
 @pytest.mark.parametrize("resize_mode, resize_only_if_bigger, skip_reencode", testdata)
 def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_reencode):
+    test_folder, test_list, _ = setup_fixtures()
     prefix = resize_mode + "_" + str(resize_only_if_bigger) + "_"
-    url_list_name = os.path.join(test_folder, prefix + "url_list.txt")
+    url_list_name = os.path.join(test_folder, prefix + "url_list")
     image_folder_name = os.path.join(test_folder, prefix + "images")
     unresized_folder = os.path.join(test_folder, prefix + "unresized_images")
 
-    generate_url_list_txt(url_list_name)
+    url_list_name = generate_input_file("txt", url_list_name, test_list)
 
     download(
         url_list_name,
@@ -178,28 +88,13 @@ def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_re
     ],
 )
 def test_download_input_format(input_format, output_format):
+    test_folder, test_list, _ = setup_fixtures()
+
     prefix = input_format + "_" + output_format + "_"
     url_list_name = os.path.join(test_folder, prefix + "url_list")
     image_folder_name = os.path.join(test_folder, prefix + "images")
 
-    if input_format == "txt":
-        url_list_name += ".txt"
-        generate_url_list_txt(url_list_name)
-    elif input_format == "csv":
-        url_list_name += ".csv"
-        generate_csv(url_list_name)
-    elif input_format == "tsv":
-        url_list_name += ".tsv"
-        generate_tsv(url_list_name)
-    elif input_format == "tsv.gz":
-        url_list_name += ".tsv.gz"
-        generate_tsv_gz(url_list_name)
-    elif input_format == "json":
-        url_list_name += ".json"
-        generate_json(url_list_name)
-    elif input_format == "parquet":
-        url_list_name += ".parquet"
-        generate_parquet(url_list_name)
+    url_list_name = generate_input_file(input_format, url_list_name, test_list)
 
     download(
         url_list_name,
@@ -249,6 +144,7 @@ def test_download_input_format(input_format, output_format):
     ],
 )
 def test_download_multiple_input_files(input_format, output_format):
+    test_folder, test_list, _ = setup_fixtures()
     prefix = input_format + "_" + output_format + "_"
 
     subfolder = test_folder + "/" + prefix + "input_folder"
@@ -258,24 +154,7 @@ def test_download_multiple_input_files(input_format, output_format):
     image_folder_name = os.path.join(test_folder, prefix + "images")
 
     for url_list_name in url_list_names:
-        if input_format == "txt":
-            url_list_name += ".txt"
-            generate_url_list_txt(url_list_name)
-        elif input_format == "csv":
-            url_list_name += ".csv"
-            generate_csv(url_list_name)
-        elif input_format == "tsv":
-            url_list_name += ".tsv"
-            generate_tsv(url_list_name)
-        elif input_format == "tsv.gz":
-            url_list_name += ".tsv.gz"
-            generate_tsv_gz(url_list_name)
-        elif input_format == "json":
-            url_list_name += ".json"
-            generate_json(url_list_name)
-        elif input_format == "parquet":
-            url_list_name += ".parquet"
-            generate_parquet(url_list_name)
+        url_list_name = generate_input_file(input_format, url_list_name, test_list)
 
     download(
         subfolder,
@@ -317,11 +196,12 @@ def test_download_multiple_input_files(input_format, output_format):
     "save_caption, output_format", [[True, "files"], [False, "files"], [True, "webdataset"], [False, "webdataset"],],
 )
 def test_captions_saving(save_caption, output_format):
+    test_folder, test_list, _ = setup_fixtures()
     input_format = "parquet"
     prefix = str(save_caption) + "_" + input_format + "_" + output_format + "_"
-    url_list_name = os.path.join(test_folder, prefix + "url_list.txt")
+    url_list_name = os.path.join(test_folder, prefix + "url_list")
     image_folder_name = os.path.join(test_folder, prefix + "images")
-    generate_parquet(url_list_name)
+    url_list_name = generate_input_file("parquet", url_list_name, test_list)
     download(
         url_list_name,
         image_size=256,
@@ -369,10 +249,11 @@ def test_captions_saving(save_caption, output_format):
 
 
 def test_webdataset():
-    url_list_name = os.path.join(test_folder, "url_list.txt")
+    test_folder, test_list, _ = setup_fixtures()
+    url_list_name = os.path.join(test_folder, "url_list")
     image_folder_name = os.path.join(test_folder, "images")
 
-    generate_url_list_txt(url_list_name)
+    url_list_name = generate_input_file("txt", url_list_name, test_list)
 
     download(
         url_list_name, image_size=256, output_folder=image_folder_name, thread_count=32, output_format="webdataset"
@@ -389,11 +270,12 @@ def test_webdataset():
     shutil.rmtree(image_folder_name)
 
 
-# @pytest.mark.skip(reason="slow")
+# pytest.mark.skip(reason="slow")
 @pytest.mark.parametrize("output_format", ["webdataset", "files"])
 def test_benchmark(output_format):
+    test_folder, _, current_folder = setup_fixtures()
     prefix = output_format + "_"
-    url_list_name = os.path.join(current_folder, "test_1000.parquet")
+    url_list_name = os.path.join(current_folder, "test_files/test_1000.parquet")
     image_folder_name = os.path.join(test_folder, prefix + "images")
 
     t = time.time()

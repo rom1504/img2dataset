@@ -7,7 +7,18 @@ import math
 
 
 class Reader:
-    """The reader class reads an url list and returns shards"""
+    """
+    The reader class reads an url list and returns shards
+    It provides an iter method
+    It provides attributes:
+    - column_list: the list of columns to read
+    - input_format: the format of the input file
+    - url_col: the column name of the url
+    - caption_col: the column name of the caption
+    - save_additional_columns: the list of additional columns to save
+    - number_sample_per_shard: the number of samples per shard
+    - start_shard_id: the id of the first shard
+    """
 
     def __init__(
         self,
@@ -41,6 +52,12 @@ class Reader:
                 self.column_list = self.column_list + ["url"]
 
     def __iter__(self):
+        """
+        Iterate over shards, yield shards of size number_sample_per_shard or less for the last one
+        Each shard is a tuple (shard_id, shard)
+        shard is a tuple (sample id, sample)
+        sample is a tuple of the columns
+        """
         for i, input_file in enumerate(self.input_files):
             print(
                 "Downloading file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file
@@ -66,6 +83,7 @@ class Reader:
                         columns_to_read += self.save_additional_columns
                     df = pd.read_parquet(input_file, columns=columns_to_read)
                 df = df.rename(columns={self.caption_col: "caption", self.url_col: "url"})
+                df = df.where(pd.notnull(df), None)
                 images_to_dl = df[self.column_list].to_records(index=False).tolist()
                 del df
             else:

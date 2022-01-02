@@ -33,7 +33,17 @@ def inter_str_to_cv2(inter_str):
 
 
 class Resizer:
-    """Resize images"""
+    """
+    Resize images
+    Expose a __call__ method to be used as a callable object
+
+    Should be used to resize one image at a time
+
+    Options:
+        resize_mode: "no", "keep_ratio", "center_crop", "border"
+        resize_only_if_bigger: if True, resize only if image is bigger than image_size
+        image_size: size of the output image to resize
+    """
 
     def __init__(
         self,
@@ -58,6 +68,10 @@ class Resizer:
         self.skip_reencode = skip_reencode
 
     def __call__(self, img_stream):
+        """
+        input: an image stream
+        output: img_str, width, height, original_width, original_height, err
+        """
         try:
             encode_needed = imghdr.what(img_stream) != "jpeg" if self.skip_reencode else True
             img_buf = np.frombuffer(img_stream.read(), np.uint8)
