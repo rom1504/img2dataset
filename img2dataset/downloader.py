@@ -89,7 +89,7 @@ class Resizer:
     ):
         self.image_size = image_size
         if isinstance(resize_mode, str):
-            if resize_mode not in ResizeMode.__members__:
+            if resize_mode not in ResizeMode.__members__: #pylint: disable=unsupported-membership-test
                 raise Exception(f"Invalid option for resize_mode: {resize_mode}")
             resize_mode = ResizeMode[resize_mode]
         self.resize_mode = resize_mode
