@@ -1,3 +1,7 @@
+## 1.14.0
+
+* make reader memory efficient by using feather files
+
 ## 1.13.0
 
 * large refactoring of the whole code in submodules
