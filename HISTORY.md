@@ -1,3 +1,7 @@
+## 1.16.0
+
+* implement md5 of images feature
+
 ## 1.15.1
 
 * fix null convert in writer
