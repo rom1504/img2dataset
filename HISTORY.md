@@ -1,3 +1,7 @@
+## 1.15.1
+
+* fix null convert in writer
+
 ## 1.15.0
 
 * add parquet writer
