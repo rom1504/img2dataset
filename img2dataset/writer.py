@@ -23,18 +23,25 @@ class BufferedParquetWriter:
             self.flush()
         self.buffer.append(sample)
 
-    def flush(self):
+    def flush(self, force=False):
+        """Write the buffer to disk"""
         if len(self.buffer) == 0:
             return
-        df = pa.Table.from_pandas(pd.DataFrame(self.buffer), self.schema)
+        if self.schema is None:
+            df = pa.Table.from_pandas(pd.DataFrame(self.buffer))
+            # if a column is None, keep accumulating in the hope to get at least one non None value
+            if not force and len([True for t in df.schema if t.type == pa.null()]) > 0:
+                return
+            self.schema = df.schema
+        else:
+            df = pa.Table.from_pandas(pd.DataFrame(self.buffer), self.schema)
         if self.parquet_writer is None:
             self.parquet_writer = pq.ParquetWriter(self.output_file, df.schema)
-            self.schema = df.schema
         self.parquet_writer.write_table(df)
         self.buffer = []
 
     def close(self):
-        self.flush()
+        self.flush(True)
         if self.parquet_writer is not None:
             self.parquet_writer.close()
             self.parquet_writer = None
