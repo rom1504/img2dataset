@@ -3,9 +3,7 @@
 from multiprocessing import Pool
 from typing import List, Optional
 from tqdm import tqdm
-import os
 import fire
-import glob
 import logging
 import time
 import wandb
@@ -14,6 +12,7 @@ from .resizer import Resizer
 from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter
 from .reader import Reader
 from .downloader import Downloader
+import fsspec
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
@@ -53,11 +52,13 @@ def download(
     total_status_dict = CappedCounter()
     save_caption = caption_col is not None
 
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
+    fs, output_path = fsspec.core.url_to_fs(output_folder)
+
+    if not fs.exists(output_path):
+        fs.mkdir(output_path)
         start_shard_id = 0
     else:
-        existing_top_level_files = glob.glob(output_folder + "/*")
+        existing_top_level_files = fs.glob(output_path + "/*")
         if len(existing_top_level_files) == 0:
             start_shard_id = 0
         else:
