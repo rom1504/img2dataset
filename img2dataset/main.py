@@ -41,6 +41,7 @@ def download(
     enable_wandb: bool = False,
     wandb_project: str = "img2dataset",
     oom_shard_count: int = 5,
+    compute_md5: bool = True,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -94,13 +95,16 @@ def download(
         timeout=timeout,
         number_sample_per_shard=number_sample_per_shard,
         oom_shard_count=oom_shard_count,
+        compute_md5=compute_md5,
     )
 
     print("Starting the downloading of this file")
     with Pool(processes_count, maxtasksperchild=5) as process_pool:
-        for count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
+        for success, count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
             process_pool.imap_unordered(downloader, reader),
         ):
+            if not success:
+                continue
             SpeedLogger("worker", enable_wandb=enable_wandb)(
                 duration=duration,
                 count=count,
@@ -117,7 +121,6 @@ def download(
             )
             total_status_dict.update(status_dict)
             status_table_logger(total_status_dict, total_speed_logger.count)
-            pass
 
         # ensure final sync
         total_speed_logger.sync()
