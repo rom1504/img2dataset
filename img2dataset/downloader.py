@@ -98,69 +98,72 @@ class Downloader:
             for key, img_stream, error_message in thread_pool.imap_unordered(
                 lambda x: download_image(x, timeout=self.timeout), loader
             ):
-                _, sample_data = shard_to_dl[key]
-                str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
-                meta = {
-                    **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list))},
-                    "key": str_key,
-                    "status": None,
-                    "error_message": error_message,
-                    "width": None,
-                    "height": None,
-                    "exif": None,
-                }
-                if error_message is not None:
-                    failed_to_download += 1
-                    status = "failed_to_download"
-                    status_dict.increment(error_message)
+                try:
+                    _, sample_data = shard_to_dl[key]
+                    str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
+                    meta = {
+                        **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list))},
+                        "key": str_key,
+                        "status": None,
+                        "error_message": error_message,
+                        "width": None,
+                        "height": None,
+                        "exif": None,
+                    }
+                    if error_message is not None:
+                        failed_to_download += 1
+                        status = "failed_to_download"
+                        status_dict.increment(error_message)
+                        meta["status"] = status
+                        sample_writer.write(
+                            None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
+                        )
+                        semaphore.release()
+                        continue
+                    (img, width, height, original_width, original_height, error_message,) = self.resizer(img_stream)
+                    if error_message is not None:
+                        failed_to_resize += 1
+                        status = "failed_to_resize"
+                        status_dict.increment(error_message)
+                        meta["status"] = status
+                        meta["error_message"] = error_message
+                        sample_writer.write(
+                            None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
+                        )
+                        img_stream.close()
+                        del img_stream
+                        semaphore.release()
+                        continue
+                    successes += 1
+                    status = "success"
+                    status_dict.increment(status)
+
+                    if self.extract_exif:
+                        try:
+                            exif = json.dumps(
+                                {
+                                    k: str(v).strip()
+                                    for k, v in exifread.process_file(img_stream, details=False).items()
+                                    if v is not None
+                                }
+                            )
+                        except Exception as _:  # pylint: disable=broad-except
+                            exif = None
+                        meta["exif"] = exif
+
                     meta["status"] = status
-                    sample_writer.write(
-                        None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
-                    )
-                    semaphore.release()
-                    continue
-                (img, width, height, original_width, original_height, error_message,) = self.resizer(img_stream)
-                if error_message is not None:
-                    failed_to_resize += 1
-                    status = "failed_to_resize"
-                    status_dict.increment(error_message)
-                    meta["status"] = status
-                    meta["error_message"] = error_message
-                    sample_writer.write(
-                        None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
-                    )
+                    meta["width"] = width
+                    meta["height"] = height
+                    meta["original_width"] = original_width
+                    meta["original_height"] = original_height
                     img_stream.close()
                     del img_stream
-                    semaphore.release()
-                    continue
-                successes += 1
-                status = "success"
-                status_dict.increment(status)
 
-                if self.extract_exif:
-                    try:
-                        exif = json.dumps(
-                            {
-                                k: str(v).strip()
-                                for k, v in exifread.process_file(img_stream, details=False).items()
-                                if v is not None
-                            }
-                        )
-                    except Exception as _:  # pylint: disable=broad-except
-                        exif = None
-                    meta["exif"] = exif
-
-                meta["status"] = status
-                meta["width"] = width
-                meta["height"] = height
-                meta["original_width"] = original_width
-                meta["original_height"] = original_height
-                img_stream.close()
-                del img_stream
-
-                sample_writer.write(
-                    img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
-                )
+                    sample_writer.write(
+                        img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
+                    )
+                except Exception as err:  # pylint: disable=broad-except
+                    print(err)
                 semaphore.release()
 
             sample_writer.close()
