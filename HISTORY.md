@@ -1,3 +1,7 @@
+## 1.15.0
+
+* add parquet writer
+
 ## 1.14.0
 
 * make reader memory efficient by using feather files
