@@ -8,6 +8,7 @@ import math
 import exifread
 import json
 import time
+import hashlib
 from .logger import CappedCounter
 
 
@@ -52,6 +53,7 @@ class Downloader:
         timeout,
         number_sample_per_shard,
         oom_shard_count,
+        compute_md5,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -63,8 +65,18 @@ class Downloader:
         self.timeout = timeout
         self.number_sample_per_shard = number_sample_per_shard
         self.oom_shard_count = oom_shard_count
+        self.compute_md5 = compute_md5
 
     def __call__(
+        self, row,
+    ):
+        try:
+            return self.download_shard(row)
+        except Exception as err:  # pylint: disable=broad-except
+            print(err)
+            return (False, 0, 0, 0, 0, 0, None)
+
+    def download_shard(
         self, row,
     ):
         """Function to start an image downloading in one process"""
@@ -108,8 +120,11 @@ class Downloader:
                         "error_message": error_message,
                         "width": None,
                         "height": None,
-                        "exif": None,
                     }
+                    if self.extract_exif:
+                        meta["exif"] = None
+                    if self.compute_md5:
+                        meta["md5"] = None
                     if error_message is not None:
                         failed_to_download += 1
                         status = "failed_to_download"
@@ -151,6 +166,9 @@ class Downloader:
                             exif = None
                         meta["exif"] = exif
 
+                    if self.compute_md5:
+                        meta["md5"] = hashlib.md5(img_stream.read()).hexdigest()
+
                     meta["status"] = status
                     meta["width"] = width
                     meta["height"] = height
@@ -172,4 +190,4 @@ class Downloader:
             del thread_pool
 
         end_time = time.perf_counter()
-        return (count, successes, failed_to_download, failed_to_resize, end_time - start_time, status_dict)
+        return (True, count, successes, failed_to_download, failed_to_resize, end_time - start_time, status_dict)

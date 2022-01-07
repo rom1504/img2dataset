@@ -27,6 +27,7 @@ def test_downloader():
         timeout=10,
         number_sample_per_shard=10,
         oom_shard_count=5,
+        compute_md5=True,
     )
 
     downloader((0, list(enumerate(test_list))))

@@ -112,6 +112,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **enable_wandb** whether to enable wandb logging (default *False*)
 * **wandb_project** name of W&B project used (default *img2dataset*)
 * **oom_shard_count** the order of magnitude of the number of shards, used only to decide what zero padding to use to name the shard files (default *5*)
+* **compute_md5** compute md5 of raw images and store it in metadata (default *True*)
 
 ## How to tweak the options
 
