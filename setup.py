@@ -32,6 +32,7 @@ if __name__ == "__main__":
             "pyyaml",
             "dataclasses",
             "wandb",
+            "fsspec",
         ],
         classifiers=[
             "Development Status :: 4 - Beta",

@@ -1,10 +1,9 @@
 """Reader is module to read the url list and return shards"""
 
-import glob
-import os
 import pandas as pd
 import tempfile
 import math
+import fsspec
 
 
 class Reader:
@@ -38,10 +37,13 @@ class Reader:
         self.number_sample_per_shard = number_sample_per_shard
         self.start_shard_id = start_shard_id
 
-        if os.path.isdir(url_list):
-            self.input_files = sorted(glob.iglob(url_list + "/*." + input_format))
+        fs, url_path = fsspec.core.url_to_fs(url_list)
+        self.fs = fs
+
+        if fs.isdir(url_path):
+            self.input_files = sorted(fs.glob(url_path + "/*." + input_format))
         else:
-            self.input_files = [url_list]
+            self.input_files = [url_path]
 
         if self.input_format == "txt":
             self.column_list = ["url"]
@@ -54,23 +56,27 @@ class Reader:
 
     def _save_to_arrow(self, input_file, tmp_dir):
         """Read the input file and save to arrow files in a temporary directory"""
-        if self.input_format == "txt":
-            with open(input_file, encoding="utf-8") as file:
-                df = pd.DataFrame([(url.rstrip(),) for url in file.readlines()], columns=self.column_list)
-        elif self.input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
-            if self.input_format == "json":
-                df = pd.read_json(input_file)
-            elif self.input_format == "csv":
-                df = pd.read_csv(input_file)
-            elif self.input_format in ("tsv", "tsv.gz"):
-                df = pd.read_table(input_file)
-            elif self.input_format == "parquet":
-                columns_to_read = [self.url_col]
-                if self.caption_col is not None:
-                    columns_to_read += [self.caption_col]
-                if self.save_additional_columns is not None:
-                    columns_to_read += self.save_additional_columns
-                df = pd.read_parquet(input_file, columns=columns_to_read)
+        if self.input_format in ["txt", "json", "csv", "tsv"]:
+            with self.fs.open(input_file, encoding="utf-8", mode="r") as file:
+                if self.input_format == "txt":
+                    df = pd.DataFrame([(url.rstrip(),) for url in file.readlines()], columns=self.column_list)
+                elif self.input_format == "json":
+                    df = pd.read_json(file)
+                elif self.input_format == "csv":
+                    df = pd.read_csv(file)
+                elif self.input_format == "tsv":
+                    df = pd.read_table(file)
+        elif self.input_format in ["tsv", "tsv.gz", "parquet"]:
+            with self.fs.open(input_file, mode="rb") as file:
+                if self.input_format == "tsv.gz":
+                    df = pd.read_table(file, compression="gzip")
+                elif self.input_format == "parquet":
+                    columns_to_read = [self.url_col]
+                    if self.caption_col is not None:
+                        columns_to_read += [self.caption_col]
+                    if self.save_additional_columns is not None:
+                        columns_to_read += self.save_additional_columns
+                    df = pd.read_parquet(file, columns=columns_to_read)
         else:
             assert False, f"Unexpected input format ({self.input_format})."
 
