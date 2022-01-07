@@ -21,7 +21,7 @@ def test_downloader():
         resizer,
         thread_count=32,
         save_caption=True,
-        save_metadata=True,
+        extract_exif=True,
         output_folder=image_folder_name,
         column_list=["caption", "url"],
         timeout=10,

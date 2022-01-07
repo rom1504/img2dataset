@@ -4,7 +4,6 @@ from multiprocessing.pool import ThreadPool
 from threading import Semaphore
 import urllib.request
 import io
-import pandas as pd
 import math
 import exifread
 import json
@@ -47,7 +46,7 @@ class Downloader:
         resizer,
         thread_count,
         save_caption,
-        save_metadata,
+        extract_exif,
         output_folder,
         column_list,
         timeout,
@@ -58,7 +57,7 @@ class Downloader:
         self.resizer = resizer
         self.thread_count = thread_count
         self.save_caption = save_caption
-        self.save_metadata = save_metadata
+        self.extract_exif = extract_exif
         self.output_folder = output_folder
         self.column_list = column_list
         self.timeout = timeout
@@ -73,9 +72,6 @@ class Downloader:
 
         start_time = time.perf_counter()
         status_dict = CappedCounter()
-
-        if self.save_metadata:
-            metadatas = []
 
         count = len(shard_to_dl)
         successes = 0
@@ -96,9 +92,7 @@ class Downloader:
 
         loader = data_generator()
 
-        sample_writer = self.sample_writer_class(
-            shard_id, self.output_folder, self.save_caption, self.save_metadata, self.oom_shard_count
-        )
+        sample_writer = self.sample_writer_class(shard_id, self.output_folder, self.save_caption, self.oom_shard_count)
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
@@ -119,9 +113,10 @@ class Downloader:
                     failed_to_download += 1
                     status = "failed_to_download"
                     status_dict.increment(error_message)
-                    if self.save_metadata:
-                        meta["status"] = status
-                        metadatas.append(meta)
+                    meta["status"] = status
+                    sample_writer.write(
+                        None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
+                    )
                     semaphore.release()
                     continue
                 (img, width, height, original_width, original_height, error_message,) = self.resizer(img_stream)
@@ -129,10 +124,11 @@ class Downloader:
                     failed_to_resize += 1
                     status = "failed_to_resize"
                     status_dict.increment(error_message)
-                    if self.save_metadata:
-                        meta["status"] = status
-                        meta["error_message"] = error_message
-                        metadatas.append(meta)
+                    meta["status"] = status
+                    meta["error_message"] = error_message
+                    sample_writer.write(
+                        None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
+                    )
                     img_stream.close()
                     del img_stream
                     semaphore.release()
@@ -141,7 +137,7 @@ class Downloader:
                 status = "success"
                 status_dict.increment(status)
 
-                if self.save_metadata:
+                if self.extract_exif:
                     try:
                         exif = json.dumps(
                             {
@@ -152,15 +148,13 @@ class Downloader:
                         )
                     except Exception as _:  # pylint: disable=broad-except
                         exif = None
-                    meta["status"] = status
-                    meta["width"] = width
-                    meta["height"] = height
-                    meta["original_width"] = original_width
-                    meta["original_height"] = original_height
                     meta["exif"] = exif
-                    metadatas.append(meta)
-                else:
-                    meta = None
+
+                meta["status"] = status
+                meta["width"] = width
+                meta["height"] = height
+                meta["original_width"] = original_width
+                meta["original_height"] = original_height
                 img_stream.close()
                 del img_stream
 
@@ -173,11 +167,6 @@ class Downloader:
             thread_pool.terminate()
             thread_pool.join()
             del thread_pool
-
-        if self.save_metadata:
-            df = pd.DataFrame(metadatas)
-            shard_name = "%05d" % shard_id
-            df.to_parquet(self.output_folder + "/" + shard_name + ".parquet")
 
         end_time = time.perf_counter()
         return (count, successes, failed_to_download, failed_to_resize, end_time - start_time, status_dict)

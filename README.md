@@ -58,7 +58,7 @@ If **captions** are provided, they will be saved as 0.txt, 1.txt, ...
 
 This can then easily be fed into machine learning training or any other use case.
 
-If **save_metadata** option is turned on (that's the default), then .json files named 0.json, 1.json,... are saved with these keys:
+Also .json files named 0.json, 1.json,... are saved with these keys:
 * url
 * caption
 * key of the form 000010005 : the first 5 digits are the shard id, the last 4 are the index in the shard
@@ -95,6 +95,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **output_format** decides how to save pictures (default *files*)
   * **files** saves as a set of subfolder containing pictures
   * **webdataset** saves as tars containing pictures
+  * **parquet** saves as parquet containing pictures as bytes
 * **input_format** decides how to load the urls (default *txt*)
   * **txt** loads the urls as a text file of url, one per line
   * **csv** loads the urls and optional caption as a csv
@@ -105,7 +106,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
-* **save_metadata** if true, saves one parquet file per folder/tar and json files with metadata (default *True*)
+* **extract_exif** if true, extract the exif information of the images and save it to the metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)
 * **timeout** maximum time (in seconds) to wait when trying to download an image (default *10*)
 * **enable_wandb** whether to enable wandb logging (default *False*)
