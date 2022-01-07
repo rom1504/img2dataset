@@ -11,7 +11,7 @@ import time
 import wandb
 from .logger import CappedCounter, SpeedLogger, StatusTableLogger
 from .resizer import Resizer
-from .writer import WebDatasetSampleWriter, FilesSampleWriter
+from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter
 from .reader import Reader
 from .downloader import Downloader
 
@@ -35,7 +35,7 @@ def download(
     caption_col: Optional[str] = None,
     thread_count: int = 256,
     number_sample_per_shard: int = 10000,
-    save_metadata: bool = True,
+    extract_exif: bool = True,
     save_additional_columns: Optional[List[str]] = None,
     timeout: int = 10,
     enable_wandb: bool = False,
@@ -68,6 +68,8 @@ def download(
 
     if output_format == "webdataset":
         sample_writer_class = WebDatasetSampleWriter
+    elif output_format == "parquet":
+        sample_writer_class = ParquetSampleWriter  # type: ignore
     elif output_format == "files":
         sample_writer_class = FilesSampleWriter  # type: ignore
 
@@ -86,7 +88,7 @@ def download(
         resizer=resizer,
         thread_count=thread_count,
         save_caption=save_caption,
-        save_metadata=save_metadata,
+        extract_exif=extract_exif,
         output_folder=output_folder,
         column_list=reader.column_list,
         timeout=timeout,
