@@ -1,3 +1,7 @@
+## 1.17.0
+
+* Use fsspec to support all filesystems
+
 ## 1.16.0
 
 * implement md5 of images feature
