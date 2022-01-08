@@ -123,6 +123,13 @@ The default values should be good enough for small sized dataset. For larger one
 * I advise to set output_format to webdataset if your dataset has more than 1M elements, it will be easier to manipulate few tars rather than million of files
 * keeping metadata to True can be useful to check what items were already saved and avoid redownloading them
 
+## File system support
+
+Thanks to [fsspec](https://filesystem-spec.readthedocs.io/en/latest/), img2dataset supports reading and writing files in [many file systems](https://github.com/fsspec/filesystem_spec/blob/6233f315548b512ec379323f762b70764efeb92c/fsspec/registry.py#L87).
+To use it, simply use the prefix of your filesystem before the path. For example `hdfs://`, `s3://`, `http://`, or `gcs://`.
+Some of these file systems require installing an additional package (for example s3fs for s3, gcsfs for gcs).
+See fsspec doc for all the details.
+
 ## Integration with Weights & Biases
 
 To enable wandb, use the `--enable_wandb=True` option.
