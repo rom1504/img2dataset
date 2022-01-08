@@ -2,21 +2,22 @@
 
 import webdataset as wds
 import json
-import os
 import pandas as pd
 import pyarrow.parquet as pq
 import pyarrow as pa
+import fsspec
 
 
 class BufferedParquetWriter:
     """Write samples to parquet files incrementally with a buffer"""
 
     def __init__(self, output_file, buffer_size=100):
-        self.output_file = output_file
         self.buffer_size = buffer_size
         self.buffer = []
         self.schema = None
         self.parquet_writer = None
+        fs, output_path = fsspec.core.url_to_fs(output_file)
+        self.output_fd = fs.open(output_path, "wb")
 
     def write(self, sample):
         if len(self.buffer) >= self.buffer_size:
@@ -36,7 +37,7 @@ class BufferedParquetWriter:
         else:
             df = pa.Table.from_pandas(pd.DataFrame(self.buffer), self.schema)
         if self.parquet_writer is None:
-            self.parquet_writer = pq.ParquetWriter(self.output_file, df.schema)
+            self.parquet_writer = pq.ParquetWriter(self.output_fd, df.schema)
         self.parquet_writer.write_table(df)
         self.buffer = []
 
@@ -45,6 +46,7 @@ class BufferedParquetWriter:
         if self.parquet_writer is not None:
             self.parquet_writer.close()
             self.parquet_writer = None
+            self.output_fd.close()
 
 
 class ParquetSampleWriter:
@@ -81,7 +83,9 @@ class WebDatasetSampleWriter:
         self.oom_shard_count = oom_shard_count
         shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
         self.shard_id = shard_id
-        self.tarwriter = wds.TarWriter(f"{output_folder}/{shard_name}.tar")
+        fs, output_path = fsspec.core.url_to_fs(output_folder)
+        self.tar_fd = fs.open(f"{output_path}/{shard_name}.tar", "wb")
+        self.tarwriter = wds.TarWriter(self.tar_fd)
         self.save_caption = save_caption
         self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", 100)
 
@@ -97,6 +101,7 @@ class WebDatasetSampleWriter:
     def close(self):
         self.buffered_parquet_writer.close()
         self.tarwriter.close()
+        self.tar_fd.close()
 
 
 class FilesSampleWriter:
@@ -106,10 +111,9 @@ class FilesSampleWriter:
         self.oom_shard_count = oom_shard_count
         shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
         self.shard_id = shard_id
-        self.output_folder = output_folder
-        self.subfolder = f"{output_folder}/{shard_name}"
-        if not os.path.exists(self.subfolder):
-            os.mkdir(self.subfolder)
+        self.fs, self.subfolder = fsspec.core.url_to_fs(f"{output_folder}/{shard_name}")
+        if not self.fs.exists(self.subfolder):
+            self.fs.mkdir(self.subfolder)
         self.save_caption = save_caption
         self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", 100)
 
@@ -117,17 +121,17 @@ class FilesSampleWriter:
         """Write sample to disk"""
         if img_str is not None:
             filename = f"{self.subfolder}/{key}.jpg"
-            with open(filename, "wb") as f:
+            with self.fs.open(filename, "wb") as f:
                 f.write(img_str)
             if self.save_caption:
                 caption = str(caption) if caption is not None else ""
                 caption_filename = f"{self.subfolder}/{key}.txt"
-                with open(caption_filename, "w") as f:
+                with self.fs.open(caption_filename, "w") as f:
                     f.write(str(caption))
 
             j = json.dumps(meta, indent=4)
             meta_filename = f"{self.subfolder}/{key}.json"
-            with open(meta_filename, "w") as f:
+            with self.fs.open(meta_filename, "w") as f:
                 f.write(j)
         self.buffered_parquet_writer.write(meta)
 
