@@ -5,6 +5,7 @@ from img2dataset.writer import FilesSampleWriter
 from img2dataset.downloader import Downloader
 
 import os
+import pandas as pd
 
 
 def test_downloader():
@@ -30,7 +31,11 @@ def test_downloader():
         compute_md5=True,
     )
 
-    downloader((0, list(enumerate(test_list))))
+    tmp_file = os.path.join(test_folder, "test_list.feather")
+    df = pd.DataFrame(test_list, columns=["caption", "url"])
+    df.to_feather(tmp_file)
+
+    downloader((0, tmp_file))
 
     assert len(os.listdir(image_folder_name + "/00000")) == 3 * len(test_list)
 

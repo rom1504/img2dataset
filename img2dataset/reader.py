@@ -1,7 +1,6 @@
 """Reader is module to read the url list and return shards"""
 
 import pandas as pd
-import tempfile
 import math
 import fsspec
 
@@ -29,6 +28,7 @@ class Reader:
         save_additional_columns,
         number_sample_per_shard,
         start_shard_id,
+        tmp_path,
     ) -> None:
         self.input_format = input_format
         self.url_col = url_col
@@ -39,6 +39,7 @@ class Reader:
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
         self.fs = fs
+        self.tmp_path = tmp_path
 
         if fs.isdir(url_path):
             self.input_files = sorted(fs.glob(url_path + "/*." + input_format))
@@ -54,7 +55,7 @@ class Reader:
             else:
                 self.column_list = self.column_list + ["url"]
 
-    def _save_to_arrow(self, input_file, tmp_dir):
+    def _save_to_arrow(self, input_file):
         """Read the input file and save to arrow files in a temporary directory"""
         if self.input_format in ["txt", "json", "csv", "tsv"]:
             with self.fs.open(input_file, encoding="utf-8", mode="r") as file:
@@ -93,9 +94,11 @@ class Reader:
             end_shard = min(number_samples, (1 + shard_id) * self.number_sample_per_shard)
             df_shard = df[begin_shard:end_shard][self.column_list]
             df_shard = df_shard.reset_index(drop=True)
-            file_name = tmp_dir + f"/{shard_id + self.start_shard_id}.feather"
-            df_shard.to_feather(file_name)
-            shards.append((shard_id, file_name))
+            tmp_file = self.tmp_path + f"/{shard_id + self.start_shard_id}.feather"
+            fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
+            with fs.open(tmp_path, "wb") as file:
+                df_shard.to_feather(file)
+            shards.append((shard_id, tmp_file))
         del df
 
         return shards
@@ -111,21 +114,14 @@ class Reader:
             print(
                 "Downloading file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file
             )
-            print("Loading the input file")
 
-            with tempfile.TemporaryDirectory("img2dataset") as tmp_dir:
-                shards = self._save_to_arrow(input_file, tmp_dir)
-                num_shard = 0
-                for num_shard, arrow_file in shards:
-                    df = pd.read_feather(arrow_file)
-                    images_to_dl = df[self.column_list].to_records(index=False).tolist()
-                    del df
+            shards = self._save_to_arrow(input_file)
+            num_shard = 0
+            for num_shard, arrow_file in shards:
+                yield (
+                    num_shard + self.start_shard_id,
+                    arrow_file,
+                )
 
-                    yield (
-                        num_shard + self.start_shard_id,
-                        list(enumerate(images_to_dl)),
-                    )
-
-                    num_shard += 1
-                self.start_shard_id += num_shard
-                del images_to_dl
+                num_shard += 1
+            self.start_shard_id += num_shard

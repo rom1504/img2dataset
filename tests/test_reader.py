@@ -6,6 +6,8 @@ import math
 import time
 import gc
 import psutil
+import shutil
+import pandas as pd
 
 
 def current_memory_usage():
@@ -23,6 +25,9 @@ def test_reader(input_format):
     url_list_name = os.path.join(test_folder, prefix + "url_list")
     url_list_name = generate_input_file(input_format, url_list_name, test_list)
 
+    tmp_path = os.path.join(test_folder, prefix + "tmp")
+    os.mkdir(tmp_path)
+
     start_shard_id = 37
     batch_size = 10000
     reader = Reader(
@@ -33,6 +38,7 @@ def test_reader(input_format):
         save_additional_columns=None,
         number_sample_per_shard=batch_size,
         start_shard_id=start_shard_id,
+        tmp_path=test_folder,
     )
 
     if input_format == "txt":
@@ -44,8 +50,10 @@ def test_reader(input_format):
     total_sample_count = 0
     start_time = time.time()
     initial_memory_usage = current_memory_usage()
-    for incremental_shard_id, (shard_id, shard) in enumerate(reader):
+    for incremental_shard_id, (shard_id, shard_path) in enumerate(reader):
         assert incremental_shard_id + start_shard_id == shard_id
+        shard_df = pd.read_feather(shard_path)
+        shard = list(enumerate(shard_df[reader.column_list].to_records(index=False).tolist()))
         total_sample_count += len(shard)
         if last_shard_num == incremental_shard_id:
             assert len(shard) <= batch_size
@@ -78,3 +86,4 @@ def test_reader(input_format):
     assert final_memory_usage - initial_memory_usage < 100
 
     os.remove(url_list_name)
+    shutil.rmtree(tmp_path)
