@@ -9,6 +9,9 @@ import exifread
 import json
 import time
 import hashlib
+import pandas as pd
+
+import fsspec
 from .logger import CappedCounter
 from .logger import write_stats
 
@@ -81,7 +84,14 @@ class Downloader:
         self, row,
     ):
         """Function to start an image downloading in one process"""
-        shard_id, shard_to_dl = row
+
+        shard_id, shard_file = row
+
+        fs, shard_path = fsspec.core.url_to_fs(shard_file)
+        with fs.open(shard_path, "rb") as f:
+            df = pd.read_feather(f)
+        shard_to_dl = list(enumerate(df[self.column_list].to_records(index=False).tolist()))
+        del df
 
         start_time = time.perf_counter()
         status_dict = CappedCounter()
@@ -203,3 +213,4 @@ class Downloader:
             status_dict,
             self.oom_shard_count,
         )
+        fs.rm(shard_path)

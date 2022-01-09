@@ -47,7 +47,16 @@ def download(
     logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters, processes_count)
     logger_process.start()
 
+    tmp_path = output_folder + "/_tmp"
+    fs, tmp_dir = fsspec.core.url_to_fs(tmp_path)
+    if not fs.exists(tmp_dir):
+        fs.mkdir(tmp_dir)
+
     def signal_handler(signal_arg, frame):  # pylint: disable=unused-argument
+        try:
+            fs.rm(tmp_dir, recursive=True)
+        except Exception as _:  # pylint: disable=broad-except
+            pass
         logger_process.terminate()
         sys.exit(0)
 
@@ -61,14 +70,23 @@ def download(
         fs.mkdir(output_path)
         start_shard_id = 0
     else:
-        existing_top_level_files = fs.glob(output_path + "/*")
+        existing_top_level_files = [x for x in fs.glob(output_path + "/*") if x != tmp_path]
         if len(existing_top_level_files) == 0:
             start_shard_id = 0
         else:
-            start_shard_id = max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files]) + 1
+            start_shard_id = (
+                max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files if x != tmp_path]) + 1
+            )
 
     reader = Reader(
-        url_list, input_format, url_col, caption_col, save_additional_columns, number_sample_per_shard, start_shard_id
+        url_list,
+        input_format,
+        url_col,
+        caption_col,
+        save_additional_columns,
+        number_sample_per_shard,
+        start_shard_id,
+        tmp_path,
     )
 
     if output_format == "webdataset":
@@ -111,6 +129,7 @@ def download(
         process_pool.join()
         del process_pool
     logger_process.join()
+    fs.rm(tmp_dir, recursive=True)
 
 
 def main():
