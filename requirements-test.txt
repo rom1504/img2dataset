@@ -5,3 +5,4 @@ pytest-cov==2.10.1
 pytest-xdist==2.1.0
 pytest==6.1.2
 psutil
+pyspark
