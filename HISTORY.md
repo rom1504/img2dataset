@@ -1,3 +1,7 @@
+## 1.18.0
+
+* use a logger process to make logging distribution friendly, also save json stat files next to folder/tar files
+
 ## 1.17.0
 
 * Use fsspec to support all filesystems
