@@ -3,6 +3,10 @@
 import wandb
 import time
 from collections import Counter
+import fsspec
+import json
+from multiprocessing import Process, Queue
+import queue
 
 
 class CappedCounter:
@@ -27,6 +31,15 @@ class CappedCounter:
         self.counter.update(counter.counter)
         if len(self.counter) >= self.max_size:
             self._keep_most_frequent()
+
+    def dump(self):
+        return self.counter
+
+    @classmethod
+    def load(cls, d, max_size=10 ** 5):
+        c = CappedCounter(max_size)
+        c.counter = Counter(d)
+        return c
 
 
 class Logger:
@@ -138,3 +151,131 @@ class StatusTableLogger(Logger):
                 data=[[k, 1.0 * v / count, v] for k, v in status_dict.most_common(self.max_status)],
             )
             wandb.run.log({"status": status_table})
+
+
+def write_stats(
+    output_folder,
+    shard_id,
+    count,
+    successes,
+    failed_to_download,
+    failed_to_resize,
+    start_time,
+    end_time,
+    status_dict,
+    oom_shard_count,
+):
+    """Write stats to disk"""
+    stats = {
+        "count": count,
+        "successes": successes,
+        "failed_to_download": failed_to_download,
+        "failed_to_resize": failed_to_resize,
+        "duration": end_time - start_time,
+        "status_dict": status_dict.dump(),
+    }
+    fs, output_path = fsspec.core.url_to_fs(output_folder)
+    shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+    json_file = f"{output_path}/{shard_name}_stats.json"
+    with fs.open(json_file, "w") as f:
+        json.dump(stats, f, indent=4)
+
+
+# https://docs.python.org/3/library/multiprocessing.html
+# logger process that reads stats files regularly, aggregates and send to wandb / print to terminal
+class LoggerProcess(Process):
+    """Logger process that reads stats files regularly, aggregates and send to wandb / print to terminal"""
+
+    def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, processes_count, log_interval=60):
+        super().__init__()
+        self.log_interval = log_interval
+        self.enable_wandb = enable_wandb
+        self.fs, self.output_path = fsspec.core.url_to_fs(output_folder)
+        self.stats_files = set()
+        self.wandb_project = wandb_project
+        self.config_parameters = config_parameters
+        self.processes_count = processes_count
+        self.q = Queue()
+
+    def run(self):
+        """Run logger process"""
+
+        if self.enable_wandb:
+            self.current_run = wandb.init(project=self.wandb_project, config=self.config_parameters, anonymous="allow")
+        else:
+            self.current_run = None
+        self.total_speed_logger = SpeedLogger(
+            "total", processes_count=self.processes_count, enable_wandb=self.enable_wandb
+        )
+        self.status_table_logger = StatusTableLogger(
+            processes_count=self.processes_count, enable_wandb=self.enable_wandb
+        )
+        start_time = time.perf_counter()
+        last_check = 0
+        total_status_dict = CappedCounter()
+        while True:
+            time.sleep(0.1)
+            try:
+                self.q.get(False)
+                last_one = True
+            except queue.Empty as _:
+                last_one = False
+            if not last_one and time.perf_counter() - last_check < self.log_interval:
+                continue
+
+            try:
+                # read stats files
+                stats_files = self.fs.glob(self.output_path + "/*.json")
+
+                # get new stats files
+                new_stats_files = set(stats_files) - self.stats_files
+                if len(new_stats_files) == 0:
+                    if last_one:
+                        self.finish()
+                        return
+
+                # read new stats files
+                for stats_file in new_stats_files:
+                    with self.fs.open(stats_file, "r") as f:
+                        stats = json.load(f)
+                        SpeedLogger("worker", enable_wandb=self.enable_wandb)(
+                            duration=stats["duration"],
+                            count=stats["count"],
+                            success=stats["successes"],
+                            failed_to_download=stats["failed_to_download"],
+                            failed_to_resize=stats["failed_to_resize"],
+                        )
+                        self.total_speed_logger(
+                            duration=time.perf_counter() - start_time,
+                            count=stats["count"],
+                            success=stats["successes"],
+                            failed_to_download=stats["failed_to_download"],
+                            failed_to_resize=stats["failed_to_resize"],
+                        )
+                        status_dict = CappedCounter.load(stats["status_dict"])
+                        total_status_dict.update(status_dict)
+                        self.status_table_logger(total_status_dict, self.total_speed_logger.count)
+
+                    self.stats_files.add(stats_file)
+                last_check = time.perf_counter()
+
+                if last_one:
+                    self.finish()
+                    return
+            except Exception as e:  # pylint: disable=broad-except
+                print(e)
+                self.finish()
+                return
+
+    def finish(self):
+        """Finish logger process"""
+        self.total_speed_logger.sync()
+        self.status_table_logger.sync()
+        if self.current_run is not None:
+            self.current_run.finish()
+
+    def join(self, timeout=None):
+        """Stop logger process"""
+        self.q.put("stop")
+        super().join()
+        self.q.close()

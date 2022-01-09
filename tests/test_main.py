@@ -57,7 +57,7 @@ def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_re
     )
 
     l = get_all_files(image_folder_name, "jpg")
-    j = get_all_files(image_folder_name, "json")
+    j = [a for a in get_all_files(image_folder_name, "json") if "stats" not in a]
     assert len(j) == len(test_list)
     p = get_all_files(image_folder_name, "parquet")
     assert len(p) == 1
