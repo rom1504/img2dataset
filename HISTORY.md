@@ -1,3 +1,7 @@
+## 1.19.0
+
+* make the reader emits file paths instead of samples
+
 ## 1.18.0
 
 * use a logger process to make logging distribution friendly, also save json stat files next to folder/tar files
