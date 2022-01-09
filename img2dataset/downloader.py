@@ -10,6 +10,7 @@ import json
 import time
 import hashlib
 from .logger import CappedCounter
+from .logger import write_stats
 
 
 def download_image(row, timeout):
@@ -190,4 +191,15 @@ class Downloader:
             del thread_pool
 
         end_time = time.perf_counter()
-        return (True, count, successes, failed_to_download, failed_to_resize, end_time - start_time, status_dict)
+        write_stats(
+            self.output_folder,
+            shard_id,
+            count,
+            successes,
+            failed_to_download,
+            failed_to_resize,
+            start_time,
+            end_time,
+            status_dict,
+            self.oom_shard_count,
+        )

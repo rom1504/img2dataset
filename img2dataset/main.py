@@ -5,14 +5,14 @@ from typing import List, Optional
 from tqdm import tqdm
 import fire
 import logging
-import time
-import wandb
-from .logger import CappedCounter, SpeedLogger, StatusTableLogger
+from .logger import LoggerProcess
 from .resizer import Resizer
 from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter
 from .reader import Reader
 from .downloader import Downloader
 import fsspec
+import sys
+import signal
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
@@ -44,12 +44,15 @@ def download(
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
-    if enable_wandb:
-        wandb.init(project=wandb_project, config=config_parameters, anonymous="allow")
-    total_speed_logger = SpeedLogger("total", processes_count=processes_count, enable_wandb=enable_wandb)
-    status_table_logger = StatusTableLogger(processes_count=processes_count, enable_wandb=enable_wandb)
-    start_time = time.perf_counter()
-    total_status_dict = CappedCounter()
+    logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters, processes_count)
+    logger_process.start()
+
+    def signal_handler(signal_arg, frame):  # pylint: disable=unused-argument
+        logger_process.terminate()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     save_caption = caption_col is not None
 
     fs, output_path = fsspec.core.url_to_fs(output_folder)
@@ -101,34 +104,13 @@ def download(
 
     print("Starting the downloading of this file")
     with Pool(processes_count, maxtasksperchild=5) as process_pool:
-        for success, count, successes, failed_to_download, failed_to_resize, duration, status_dict in tqdm(
-            process_pool.imap_unordered(downloader, reader),
-        ):
-            if not success:
-                continue
-            SpeedLogger("worker", enable_wandb=enable_wandb)(
-                duration=duration,
-                count=count,
-                success=successes,
-                failed_to_download=failed_to_download,
-                failed_to_resize=failed_to_resize,
-            )
-            total_speed_logger(
-                duration=time.perf_counter() - start_time,
-                count=count,
-                success=successes,
-                failed_to_download=failed_to_download,
-                failed_to_resize=failed_to_resize,
-            )
-            total_status_dict.update(status_dict)
-            status_table_logger(total_status_dict, total_speed_logger.count)
+        for _ in tqdm(process_pool.imap_unordered(downloader, reader),):
+            pass
 
-        # ensure final sync
-        total_speed_logger.sync()
-        status_table_logger.sync()
         process_pool.terminate()
         process_pool.join()
         del process_pool
+    logger_process.join()
 
 
 def main():
