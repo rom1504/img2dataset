@@ -12,6 +12,7 @@ from .distributor import multiprocessing_distributor, pyspark_distributor
 import fsspec
 import sys
 import signal
+import os
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
@@ -45,6 +46,16 @@ def download(
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
+
+    def make_path_absolute(path):
+        fs, p = fsspec.core.url_to_fs(path)
+        if fs.protocol == "file":
+            return os.path.abspath(p)
+        return path
+
+    output_folder = make_path_absolute(output_folder)
+    url_list = make_path_absolute(url_list)
+
     logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters, processes_count)
     logger_process.start()
 

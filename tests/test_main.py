@@ -270,6 +270,31 @@ def test_webdataset():
     shutil.rmtree(image_folder_name)
 
 
+def test_relative_path():
+    test_folder, test_list, _ = setup_fixtures()
+    url_list_name = os.path.join(test_folder, "url_list")
+    image_folder_name = os.path.join(test_folder, "images")
+
+    url_list_name = generate_input_file("txt", url_list_name, test_list)
+
+    url_list_name = os.path.relpath(url_list_name)
+    image_folder_name = os.path.relpath(image_folder_name)
+
+    download(
+        url_list_name, image_size=256, output_folder=image_folder_name, thread_count=32, output_format="webdataset"
+    )
+
+    l = glob.glob(image_folder_name + "/*.tar")
+    assert len(l) == 1
+    if l[0] != image_folder_name + "/00000.tar":
+        raise Exception(l[0] + " is not 00000.tar")
+
+    assert len(tarfile.open(image_folder_name + "/00000.tar").getnames()) == len(test_list) * 2
+
+    os.remove(url_list_name)
+    shutil.rmtree(image_folder_name)
+
+
 @pytest.mark.parametrize(
     "distributor", ["multiprocessing", "pyspark",],
 )
