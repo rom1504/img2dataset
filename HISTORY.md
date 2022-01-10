@@ -1,3 +1,7 @@
+## 1.20.0
+
+* Add multi distributor support : multiprocessing and pyspark
+
 ## 1.19.0
 
 * make the reader emits file paths instead of samples
