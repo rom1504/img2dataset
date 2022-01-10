@@ -1,3 +1,7 @@
+## 1.20.1
+
+* fix relative path handling
+
 ## 1.20.0
 
 * Add multi distributor support : multiprocessing and pyspark
