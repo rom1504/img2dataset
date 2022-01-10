@@ -131,6 +131,8 @@ class Downloader:
                         "error_message": error_message,
                         "width": None,
                         "height": None,
+                        "original_width": None,
+                        "original_height": None,
                     }
                     if self.extract_exif:
                         meta["exif"] = None
