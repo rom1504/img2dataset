@@ -1,3 +1,7 @@
+## 1.20.2
+
+* add original_width by default for a consistent schema
+
 ## 1.20.1
 
 * fix relative path handling
