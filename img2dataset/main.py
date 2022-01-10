@@ -1,8 +1,6 @@
 """Img2dataset"""
 
-from multiprocessing import Pool
 from typing import List, Optional
-from tqdm import tqdm
 import fire
 import logging
 from .logger import LoggerProcess
@@ -10,6 +8,7 @@ from .resizer import Resizer
 from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter
 from .reader import Reader
 from .downloader import Downloader
+from .distributor import multiprocessing_distributor, pyspark_distributor
 import fsspec
 import sys
 import signal
@@ -41,6 +40,8 @@ def download(
     wandb_project: str = "img2dataset",
     oom_shard_count: int = 5,
     compute_md5: bool = True,
+    distributor: str = "multiprocessing",
+    subjob_size: int = 1000,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -121,13 +122,16 @@ def download(
     )
 
     print("Starting the downloading of this file")
-    with Pool(processes_count, maxtasksperchild=5) as process_pool:
-        for _ in tqdm(process_pool.imap_unordered(downloader, reader),):
-            pass
+    if distributor == "multiprocessing":
+        distributor_fn = multiprocessing_distributor
+    elif distributor == "pyspark":
+        distributor_fn = pyspark_distributor
+    else:
+        raise ValueError(f"Distributor {distributor} not supported")
 
-        process_pool.terminate()
-        process_pool.join()
-        del process_pool
+    distributor_fn(
+        processes_count, downloader, reader, subjob_size,
+    )
     logger_process.join()
     fs.rm(tmp_dir, recursive=True)
 

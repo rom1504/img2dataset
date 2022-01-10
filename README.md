@@ -14,11 +14,11 @@ pip install img2dataset
 
 ## Examples
 
-Example of datasets to download with example commands are available in the [examples](examples) folder. In particular:
-* [mscoco](examples/mscoco.md) 600k image/text pairs that can be downloaded in 10min
-* [cc3m](examples/cc3m.md) 3M image/text pairs that can be downloaded in one hour
-* [cc12m](examples/cc12m.md) 12M image/text pairs that can be downloaded in five hour
-* [laion400m](examples/laion400m.md) 400M image/text pairs that can be downloaded in 3.5 days
+Example of datasets to download with example commands are available in the [dataset_examples](dataset_examples) folder. In particular:
+* [mscoco](dataset_examples/mscoco.md) 600k image/text pairs that can be downloaded in 10min
+* [cc3m](dataset_examples/cc3m.md) 3M image/text pairs that can be downloaded in one hour
+* [cc12m](dataset_examples/cc12m.md) 12M image/text pairs that can be downloaded in five hour
+* [laion400m](dataset_examples/laion400m.md) 400M image/text pairs that can be downloaded in 3.5 days
 
 For all these examples, you may want to tweak the resizing to your preferences. The default is 256x256 with white borders.
 See options below.
@@ -75,6 +75,12 @@ It can be used to analyze the results efficiently.
 
 .json files will also be saved with the same name suffixed by _stats, they contain stats collected during downloading (download time, number of success, ...)
 
+## Python examples
+
+Checkout these examples to call this as a lib:
+* [simple_example.py](examples/simple_example.py)
+* [pyspark_example.py](examples/pyspark_example.py)
+
 ## API
 
 This module exposes a single function `download` which takes the same arguments as the command line tool:
@@ -115,6 +121,10 @@ This module exposes a single function `download` which takes the same arguments 
 * **wandb_project** name of W&B project used (default *img2dataset*)
 * **oom_shard_count** the order of magnitude of the number of shards, used only to decide what zero padding to use to name the shard files (default *5*)
 * **compute_md5** compute md5 of raw images and store it in metadata (default *True*)
+* **distributor** choose how to distribute the downloading (default *multiprocessing*)
+  * **multiprocessing** use a multiprocessing pool to spawn processes
+  * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
+* **subjob_size** the number of shards to download in each subjob supporting it, a subjob can be a pyspark job for example (default *1000*)
 
 ## How to tweak the options
 
@@ -131,6 +141,28 @@ Thanks to [fsspec](https://filesystem-spec.readthedocs.io/en/latest/), img2datas
 To use it, simply use the prefix of your filesystem before the path. For example `hdfs://`, `s3://`, `http://`, or `gcs://`.
 Some of these file systems require installing an additional package (for example s3fs for s3, gcsfs for gcs).
 See fsspec doc for all the details.
+
+## Distribution modes
+
+Img2dataset supports several distributors.
+* multiprocessing which spawns a process pool and use these local processes for downloading
+* pyspark which spawns workers in a spark pool to do the downloading
+
+multiprocessing is a good option for downloading on one machine, and as such it is the default.
+Pyspark lets img2dataset use many nodes, which makes it as fast as the number of machines.
+It can be particularly useful if downloading datasets with more than a billion image.
+
+### pyspark configuration
+
+In order to use img2dataset with pyspark, you will need to do this:
+1. `pip install pyspark`
+2. use the `--distributor pyspark` option
+3. tweak the `--subjob_size 1000` option: this is the number of images to download in each subjob. Increasing it will mean a longer time of preparation to put the feather files in the temporary dir, a shorter time will mean sending less shards at a time to the pyspark job.
+
+By default a local spark session will be created.
+You may want to create a custom spark session depending on your specific spark cluster.
+To do that check [pyspark_example.py](examples/pyspark_example.py), there you can plug your custom code to create a spark session, then
+run img2dataset which will use it for downloading.
 
 ## Integration with Weights & Biases
 
