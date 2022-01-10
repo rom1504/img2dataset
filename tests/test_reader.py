@@ -17,10 +17,11 @@ def current_memory_usage():
 @pytest.mark.parametrize(
     "input_format", ["txt", "csv", "tsv", "tsv.gz", "json", "parquet",],
 )
-def test_reader(input_format):
+def test_reader(input_format, tmp_path):
     """Tests whether Reader class works as expected."""
     expected_count = 10 ** 5 + 5312
-    test_folder, test_list, _ = setup_fixtures(count=expected_count)
+    test_folder = str(tmp_path)
+    test_list = setup_fixtures(count=expected_count)
     prefix = input_format + "_"
     url_list_name = os.path.join(test_folder, prefix + "url_list")
     url_list_name = generate_input_file(input_format, url_list_name, test_list)
@@ -84,6 +85,3 @@ def test_reader(input_format):
 
     final_memory_usage = current_memory_usage()
     assert final_memory_usage - initial_memory_usage < 100
-
-    os.remove(url_list_name)
-    shutil.rmtree(tmp_path)

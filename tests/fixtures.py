@@ -1,16 +1,10 @@
 import pandas as pd
 import cv2
-import os
 import glob
 import random
 
 
 def setup_fixtures(count=5):
-    current_folder = os.path.dirname(__file__)
-    test_folder = current_folder + "/" + "test_folder"
-    if not os.path.exists(test_folder):
-        os.mkdir(test_folder)
-
     test_list = []
     while len(test_list) < count:
         for i in range(count):
@@ -23,7 +17,7 @@ def setup_fixtures(count=5):
         test_list = list(set(test_list))
     test_list = test_list[:count]
 
-    return test_folder, test_list, current_folder
+    return test_list
 
 
 def generate_url_list_txt(output_file, test_list):

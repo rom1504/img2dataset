@@ -9,10 +9,11 @@ import pandas as pd
 
 
 @pytest.mark.parametrize("writer_type", ["files", "webdataset", "parquet"])
-def test_writer(writer_type):
+def test_writer(writer_type, tmp_path):
     current_folder = os.path.dirname(__file__)
+    test_folder = str(tmp_path)
     input_folder = current_folder + "/" + "resize_test_image"
-    output_folder = current_folder + "/" + "test_write"
+    output_folder = test_folder + "/" + "test_write"
     os.mkdir(output_folder)
     image_paths = glob.glob(input_folder + "/*")
     if writer_type == "files":
@@ -44,5 +45,3 @@ def test_writer(writer_type):
             raise Exception(l[0] + " is not 00000.parquet")
 
         assert len(pd.read_parquet(output_folder + "/00000.parquet").index) == len(image_paths)
-
-    shutil.rmtree(output_folder)

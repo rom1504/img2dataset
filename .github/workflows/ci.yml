@@ -9,8 +9,26 @@ on:
     - main
 
 jobs:
-  build:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install
+        run: |
+          python3 -m venv .env
+          source .env/bin/activate
+          python -m pip install -U pip
+          make install-dev
+      - name: Lint
+        run: |
+          source .env/bin/activate
+          make lint
 
+  tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,7 +40,14 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install, lint and unit tests
+    - name: Install
       run: |
-        make venv-lint-test
+        python3 -m venv .env
+        source .env/bin/activate
+        make install
+        make install-dev
+    - name: Unit tests
+      run: |
+        source .env/bin/activate
+        make test
 

@@ -8,8 +8,9 @@ import os
 import pandas as pd
 
 
-def test_downloader():
-    test_folder, test_list, _ = setup_fixtures(count=5)
+def test_downloader(tmp_path):
+    test_folder = str(tmp_path)
+    test_list = setup_fixtures(count=5)
     image_folder_name = os.path.join(test_folder, "images")
 
     os.mkdir(image_folder_name)
@@ -38,5 +39,3 @@ def test_downloader():
     downloader((0, tmp_file))
 
     assert len(os.listdir(image_folder_name + "/00000")) == 3 * len(test_list)
-
-    shutil.rmtree(image_folder_name)
