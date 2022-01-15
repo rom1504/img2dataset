@@ -14,19 +14,35 @@ import pandas as pd
 import fsspec
 from .logger import CappedCounter
 from .logger import write_stats
+from urllib.parse import urlparse
+import ssl
+
+
+
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
 
 
 def download_image(row, timeout):
     """Download an image with urllib"""
-    key, url = row
+    key, url, ip = row
     img_stream = None
     try:
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"}
+        if ip is not None:
+            domain = urlparse(url).netloc
+            url = url.replace(domain, ip)
+            headers['Host'] = domain
+        else:
+            return key, None, "no domain"
         request = urllib.request.Request(
             url,
             data=None,
-            headers={"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"},
+            headers=headers,
         )
-        with urllib.request.urlopen(request, timeout=timeout) as r:
+
+        with urllib.request.urlopen(request, timeout=timeout, context=ctx) as r:
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
@@ -102,7 +118,8 @@ class Downloader:
         failed_to_resize = 0
         url_indice = self.column_list.index("url")
         caption_indice = self.column_list.index("caption") if "caption" in self.column_list else None
-        key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
+        ip_indice = self.column_list.index("ip") if "ip" in self.column_list else None
+        key_url_list = [(key, x[url_indice], x[ip_indice] if ip_indice is not None else None) for key, x in shard_to_dl]
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
         # limit the memory usage

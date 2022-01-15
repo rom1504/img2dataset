@@ -29,6 +29,7 @@ class Reader:
         number_sample_per_shard,
         start_shard_id,
         tmp_path,
+        url_postprocessor=None,
     ) -> None:
         self.input_format = input_format
         self.url_col = url_col
@@ -54,6 +55,8 @@ class Reader:
                 self.column_list = self.column_list + ["caption", "url"]
             else:
                 self.column_list = self.column_list + ["url"]
+        
+        self.url_postprocessor = url_postprocessor
 
     def _save_to_arrow(self, input_file):
         """Read the input file and save to arrow files in a temporary directory"""
@@ -94,6 +97,8 @@ class Reader:
             end_shard = min(number_samples, (1 + shard_id) * self.number_sample_per_shard)
             df_shard = df[begin_shard:end_shard][self.column_list]
             df_shard = df_shard.reset_index(drop=True)
+            if self.url_postprocessor:
+                df_shard = self.url_postprocessor(df_shard)
             tmp_file = self.tmp_path + f"/{shard_id + self.start_shard_id}.feather"
             fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
             with fs.open(tmp_path, "wb") as file:

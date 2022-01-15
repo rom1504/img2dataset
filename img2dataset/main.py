@@ -3,6 +3,8 @@
 from typing import List, Optional
 import fire
 import logging
+
+from img2dataset.preresolver import Preresolver
 from .logger import LoggerProcess
 from .resizer import Resizer
 from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter
@@ -43,6 +45,7 @@ def download(
     compute_md5: bool = True,
     distributor: str = "multiprocessing",
     subjob_size: int = 1000,
+    preresolved_domains: str = None,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -90,6 +93,11 @@ def download(
                 max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files if x != tmp_path]) + 1
             )
 
+    if preresolved_domains is not None:
+        url_postprocessor = Preresolver(preresolved_domains)
+    else:
+        url_postprocessor = None
+
     reader = Reader(
         url_list,
         input_format,
@@ -99,6 +107,7 @@ def download(
         number_sample_per_shard,
         start_shard_id,
         tmp_path,
+        url_postprocessor=url_postprocessor
     )
 
     if output_format == "webdataset":
@@ -125,7 +134,7 @@ def download(
         save_caption=save_caption,
         extract_exif=extract_exif,
         output_folder=output_folder,
-        column_list=reader.column_list,
+        column_list=reader.column_list + (["ip"] if preresolved_domains else []),
         timeout=timeout,
         number_sample_per_shard=number_sample_per_shard,
         oom_shard_count=oom_shard_count,

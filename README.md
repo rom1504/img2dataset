@@ -125,6 +125,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **multiprocessing** use a multiprocessing pool to spawn processes
   * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
 * **subjob_size** the number of shards to download in each subjob supporting it, a subjob can be a pyspark job for example (default *1000*)
+* **preresolved_domains** passing a file with preresolved domains may speed up the downloading process, see preresolver section
 
 ## How to tweak the options
 
@@ -216,6 +217,31 @@ With these information in mind, the design choice was done in this way:
 This design make it possible to use the CPU resource efficiently by doing only 1 resize per core, reduce disk overhead by opening 1 file per core, while using the bandwidth resource as much as possible by using M thread per process.
 
 Also see [architecture.md](img2dataset/architecture.md) for the precise split in python modules.
+
+## Preresolver
+
+When downloading billion of urls, DNS resolving becomes an important think to consider. It needs to be fast, correct and not get overloaded.
+The next section describes how to setup a bind9 resolver for this purpose. This might not always be possible depending on the environment.
+An other way to reach a good level of performance is to preresolve the domains.
+In order to do this, a tool like [massdns](https://github.com/blechschmidt/massdns) can do the job quickly, it can resolve 350k domains per second. To avoid resolving many times the same domains, the advised process is to:
+1. get all the uniques domains from your url collections
+2. preresolve with massdns
+3. give that to img2dataset with the `--preresolved_domains` option
+
+To give an idea of how this can help:
+* laion400m has 400M urls but only 5M domains
+* massdns can resolve these domains in 15min
+* when img2dataset then use these domains, its sample/s increase of X % and there is now 0 risk of dns failure since it's not doing dns resolving at all
+
+Example of how to run massdns:
+```
+./bin/massdns -r lists/resolvers.txt -t A domains.txt -o J > results.json
+jq -r -f scripts/massdnsA.jq < results.json > parsed.csv
+```
+
+then give `parsed.csv` to img2dataset
+
+
 
 ## Setting up a bind9 resolver
 
