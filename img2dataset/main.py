@@ -43,6 +43,7 @@ def download(
     compute_md5: bool = True,
     distributor: str = "multiprocessing",
     subjob_size: int = 1000,
+    retries: int = 0,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -130,6 +131,7 @@ def download(
         number_sample_per_shard=number_sample_per_shard,
         oom_shard_count=oom_shard_count,
         compute_md5=compute_md5,
+        retries=retries,
     )
 
     print("Starting the downloading of this file")

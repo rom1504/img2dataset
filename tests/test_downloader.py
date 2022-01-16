@@ -30,6 +30,7 @@ def test_downloader(tmp_path):
         number_sample_per_shard=10,
         oom_shard_count=5,
         compute_md5=True,
+        retries=0,
     )
 
     tmp_file = os.path.join(test_folder, "test_list.feather")

@@ -125,6 +125,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **multiprocessing** use a multiprocessing pool to spawn processes
   * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
 * **subjob_size** the number of shards to download in each subjob supporting it, a subjob can be a pyspark job for example (default *1000*)
+* **retries** number of time a download should be retried (default *0*)
 
 ## How to tweak the options
 

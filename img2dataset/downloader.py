@@ -35,6 +35,14 @@ def download_image(row, timeout):
         return key, None, str(err)
 
 
+def download_image_with_retry(row, timeout, retries):
+    for _ in range(retries + 1):
+        key, img_stream, err = download_image(row, timeout)
+        if img_stream is not None:
+            return key, img_stream, err
+    return key, None, err
+
+
 def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
     true_key = (10 ** oom_sample_per_shard) * shard_id + key
     key_format = oom_sample_per_shard + oom_shard_count
@@ -58,6 +66,7 @@ class Downloader:
         number_sample_per_shard,
         oom_shard_count,
         compute_md5,
+        retries,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -70,6 +79,7 @@ class Downloader:
         self.number_sample_per_shard = number_sample_per_shard
         self.oom_shard_count = oom_shard_count
         self.compute_md5 = compute_md5
+        self.retries = retries
 
     def __call__(
         self, row,
@@ -119,7 +129,7 @@ class Downloader:
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
-                lambda x: download_image(x, timeout=self.timeout), loader
+                lambda x: download_image_with_retry(x, timeout=self.timeout, retries=self.retries), loader
             ):
                 try:
                     _, sample_data = shard_to_dl[key]
