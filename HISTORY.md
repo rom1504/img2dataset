@@ -1,3 +1,7 @@
+## 1.21.0
+
+* add option to retry http download
+
 ## 1.20.2
 
 * add original_width by default for a consistent schema
