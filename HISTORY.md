@@ -1,3 +1,7 @@
+## 1.21.1
+
+* decrease default log interval to 5s
+
 ## 1.21.0
 
 * add option to retry http download
