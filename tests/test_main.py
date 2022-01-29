@@ -316,7 +316,7 @@ def test_distributors(distributor, tmp_path):
     assert len(tarfile.open(image_folder_name + "/00000.tar").getnames()) == len(test_list) * 2
 
 
-# pytest.mark.skip(reason="slow")
+# @pytest.mark.skip(reason="slow")
 @pytest.mark.parametrize("output_format", ["webdataset", "files"])
 def test_benchmark(output_format, tmp_path):
     test_folder = str(tmp_path)
