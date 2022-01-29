@@ -74,7 +74,7 @@ class Logger:
 
     def sync(self):
         """Ensure last call is logged"""
-        if not self.last_call_logged:
+        if not self.last_call_logged and self.last_args is not None:
             self.do_log(*self.last_args, **self.last_kwargs)
             # reset for next file
             self.processes_returned = 0
