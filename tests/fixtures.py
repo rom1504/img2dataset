@@ -2,19 +2,21 @@ import pandas as pd
 import cv2
 import glob
 import random
+import os
+import sys
 
 
 def setup_fixtures(count=5):
     test_list = []
-    while len(test_list) < count:
-        for i in range(count):
-            test_list.append(
-                (
-                    f"caption {i}" if i != 0 else None,
-                    "https://picsum.photos/{}/{}".format(random.randint(200, 600), random.randint(200, 600)),
-                )
-            )
-        test_list = list(set(test_list))
+    current_folder = os.path.dirname(__file__)
+    test_folder = current_folder + "/" + "resize_test_image"
+    port = f"123{sys.version_info.minor}"
+    image_paths = glob.glob(test_folder + "/*")
+    for i in range(count):
+        item = random.randint(0, len(image_paths) - 1)
+        test_list.append(
+            (f"caption {i}" if i != 0 else None, image_paths[item].replace(test_folder, f"http://localhost:{port}"))
+        )
     test_list = test_list[:count]
 
     return test_list

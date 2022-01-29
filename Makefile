@@ -13,13 +13,8 @@ lint: ## [Local development] Run mypy, pylint and black
 black: ## [Local development] Auto-format python code using black
 	python -m black -l 120 .
 
-PAR=0
-
-test-parallel:
-	make test PAR=8
-
 test: ## [Local development] Run unit tests
-	python -m pytest -x -n $(PAR) -v --cov=img2dataset --cov-report term-missing --cov-fail-under 80 tests
+	python -m pytest -x -s -v tests
 
 .PHONY: help
 
