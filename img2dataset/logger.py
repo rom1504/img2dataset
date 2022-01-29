@@ -237,24 +237,27 @@ class LoggerProcess(Process):
                 # read new stats files
                 for stats_file in new_stats_files:
                     with self.fs.open(stats_file, "r") as f:
-                        stats = json.load(f)
-                        SpeedLogger("worker", enable_wandb=self.enable_wandb)(
-                            duration=stats["duration"],
-                            count=stats["count"],
-                            success=stats["successes"],
-                            failed_to_download=stats["failed_to_download"],
-                            failed_to_resize=stats["failed_to_resize"],
-                        )
-                        self.total_speed_logger(
-                            duration=time.perf_counter() - start_time,
-                            count=stats["count"],
-                            success=stats["successes"],
-                            failed_to_download=stats["failed_to_download"],
-                            failed_to_resize=stats["failed_to_resize"],
-                        )
-                        status_dict = CappedCounter.load(stats["status_dict"])
-                        total_status_dict.update(status_dict)
-                        self.status_table_logger(total_status_dict, self.total_speed_logger.count)
+                        try:
+                            stats = json.load(f)
+                            SpeedLogger("worker", enable_wandb=self.enable_wandb)(
+                                duration=stats["duration"],
+                                count=stats["count"],
+                                success=stats["successes"],
+                                failed_to_download=stats["failed_to_download"],
+                                failed_to_resize=stats["failed_to_resize"],
+                            )
+                            self.total_speed_logger(
+                                duration=time.perf_counter() - start_time,
+                                count=stats["count"],
+                                success=stats["successes"],
+                                failed_to_download=stats["failed_to_download"],
+                                failed_to_resize=stats["failed_to_resize"],
+                            )
+                            status_dict = CappedCounter.load(stats["status_dict"])
+                            total_status_dict.update(status_dict)
+                            self.status_table_logger(total_status_dict, self.total_speed_logger.count)
+                        except Exception as err:  # pylint: disable=broad-except
+                            print(f"failed to parse stats file {stats_file}", err)
 
                     self.stats_files.add(stats_file)
                 last_check = time.perf_counter()
