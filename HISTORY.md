@@ -1,3 +1,7 @@
+## 1.22.1
+
+* fix pex creation
+
 ## 1.22.0
 
 * add option not to write
