@@ -11,3 +11,4 @@ test_folder
 .env*
 wandb
 *.pex
+.pexing

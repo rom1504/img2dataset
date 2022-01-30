@@ -1,9 +1,17 @@
 from setuptools import setup, find_packages
 from pathlib import Path
+import os
 
 if __name__ == "__main__":
     with Path(Path(__file__).parent, "README.md").open(encoding="utf-8") as file:
         long_description = file.read()
+
+    def _read_reqs(relpath):
+        fullpath = os.path.join(os.path.dirname(__file__), relpath)
+        with open(fullpath) as f:
+            return [s.strip() for s in f.readlines() if (s.strip() and not s.startswith("#"))]
+
+    REQUIREMENTS = _read_reqs("requirements.txt")
 
     setup(
         name="img2dataset",
@@ -20,20 +28,7 @@ if __name__ == "__main__":
         url="https://github.com/rom1504/img2dataset",
         data_files=[(".", ["README.md"])],
         keywords=["machine learning", "computer vision", "download", "image", "dataset"],
-        install_requires=[
-            "tqdm",
-            "opencv-python",
-            "fire",
-            "webdataset",
-            "pandas",
-            "pyarrow",
-            "exifread",
-            "albumentations",
-            "pyyaml",
-            "dataclasses",
-            "wandb",
-            "fsspec",
-        ],
+        install_requires=REQUIREMENTS,
         classifiers=[
             "Development Status :: 4 - Beta",
             "Intended Audience :: Developers",
