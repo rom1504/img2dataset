@@ -1,3 +1,9 @@
+## 1.21.2
+
+* try catch in the logger for json.load
+* prevent error if logger sync is called when no call has been done
+* Add a build-pex target in Makefile and CI
+
 ## 1.21.1
 
 * decrease default log interval to 5s
