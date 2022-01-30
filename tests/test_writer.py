@@ -1,4 +1,4 @@
-from img2dataset.writer import FilesSampleWriter, WebDatasetSampleWriter, ParquetSampleWriter
+from img2dataset.writer import FilesSampleWriter, WebDatasetSampleWriter, ParquetSampleWriter, DummySampleWriter
 
 import os
 import glob
@@ -8,7 +8,7 @@ import tarfile
 import pandas as pd
 
 
-@pytest.mark.parametrize("writer_type", ["files", "webdataset", "parquet"])
+@pytest.mark.parametrize("writer_type", ["files", "webdataset", "parquet", "dummy"])
 def test_writer(writer_type, tmp_path):
     current_folder = os.path.dirname(__file__)
     test_folder = str(tmp_path)
@@ -22,6 +22,8 @@ def test_writer(writer_type, tmp_path):
         writer = WebDatasetSampleWriter(0, output_folder, True, 5)
     elif writer_type == "parquet":
         writer = ParquetSampleWriter(0, output_folder, True, 5)
+    elif writer_type == "dummy":
+        writer = DummySampleWriter(0, output_folder, True, 5)
     for i, image_path in enumerate(image_paths):
         with open(image_path, "rb") as f:
             img_str = f.read()
@@ -45,3 +47,6 @@ def test_writer(writer_type, tmp_path):
             raise Exception(l[0] + " is not 00000.parquet")
 
         assert len(pd.read_parquet(output_folder + "/00000.parquet").index) == len(image_paths)
+    elif writer_type == "dummy":
+        l = glob.glob(output_folder + "/*")
+        assert len(l) == 0

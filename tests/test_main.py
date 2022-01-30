@@ -3,6 +3,7 @@ import os
 import shutil
 import pytest
 import glob
+import pandas as pd
 import time
 import tarfile
 from fixtures import (
@@ -82,6 +83,8 @@ def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_re
         ["json", "webdataset"],
         ["parquet", "files"],
         ["parquet", "webdataset"],
+        ["parquet", "parquet"],
+        ["parquet", "dummy"],
     ],
 )
 def test_download_input_format(input_format, output_format, tmp_path):
@@ -119,6 +122,16 @@ def test_download_input_format(input_format, output_format, tmp_path):
             len([x for x in tarfile.open(image_folder_name + "/00000.tar").getnames() if x.endswith(".jpg")])
             == expected_file_count
         )
+    elif output_format == "parquet":
+        l = glob.glob(image_folder_name + "/*.parquet")
+        assert len(l) == 1
+        if l[0] != image_folder_name + "/00000.parquet":
+            raise Exception(l[0] + " is not 00000.parquet")
+
+        assert len(pd.read_parquet(image_folder_name + "/00000.parquet").index) == expected_file_count
+    elif output_format == "dummy":
+        l = [x for x in glob.glob(image_folder_name + "/*") if not x.endswith(".json")]
+        assert len(l) == 0
 
 
 @pytest.mark.parametrize(

@@ -104,6 +104,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **files** saves as a set of subfolder containing pictures
   * **webdataset** saves as tars containing pictures
   * **parquet** saves as parquet containing pictures as bytes
+  * **dummy** does not save. Useful for benchmarks
 * **input_format** decides how to load the urls (default *txt*)
   * **txt** loads the urls as a text file of url, one per line
   * **csv** loads the urls and optional caption as a csv
@@ -266,6 +267,8 @@ make test
 ```
 
 You can use `make black` to reformat the code
+
+`python -m pytest -x -s -v tests -k "dummy"` to run a specific test
 
 ## Benchmarks
 

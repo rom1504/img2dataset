@@ -137,3 +137,16 @@ class FilesSampleWriter:
 
     def close(self):
         self.buffered_parquet_writer.close()
+
+
+class DummySampleWriter:
+    """Does not write"""
+
+    def __init__(self, shard_id, output_folder, save_caption, oom_shard_count):
+        pass
+
+    def write(self, img_str, key, caption, meta):
+        pass
+
+    def close(self):
+        pass
