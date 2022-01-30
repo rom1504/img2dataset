@@ -5,7 +5,7 @@ import fire
 import logging
 from .logger import LoggerProcess
 from .resizer import Resizer
-from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter
+from .writer import WebDatasetSampleWriter, FilesSampleWriter, ParquetSampleWriter, DummySampleWriter
 from .reader import Reader
 from .downloader import Downloader
 from .distributor import multiprocessing_distributor, pyspark_distributor
@@ -108,6 +108,8 @@ def download(
         sample_writer_class = ParquetSampleWriter  # type: ignore
     elif output_format == "files":
         sample_writer_class = FilesSampleWriter  # type: ignore
+    elif output_format == "dummy":
+        sample_writer_class = DummySampleWriter  # type: ignore
 
     resizer = Resizer(
         image_size=image_size,
