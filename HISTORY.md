@@ -1,3 +1,7 @@
+## 1.22.0
+
+* add option not to write
+
 ## 1.21.2
 
 * try catch in the logger for json.load
