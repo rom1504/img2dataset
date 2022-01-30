@@ -1,28 +1,38 @@
-# This workflows will upload a Python Package using Twine when a release is created
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
-
-name: Upload Python Package
+name: Release
 
 on:
-  release:
-    types: [created]
-
+  push:
+    branches:
+    - main
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
+    - uses: actions-ecosystem/action-regex-match@v2
+      id: regex-match
+      with:
+        text: ${{ github.event.head_commit.message }}
+        regex: '^Release (.+?)$'
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.8'
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        pip install setuptools wheel twine pex
+    - name: Build pex
+      run: |
+        make build-pex
+    - name: Release
+      if: ${{ steps.regex-match.outputs.match != '' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        files: img2dataset.pex
+        tag_name: ${{ steps.regex-match.outputs.group1 }}
     - name: Build and publish
+      if: ${{ steps.regex-match.outputs.match != '' }}
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}

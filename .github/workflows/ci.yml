@@ -27,7 +27,6 @@ jobs:
         run: |
           source .env/bin/activate
           make lint
-
   tests:
     runs-on: ubuntu-latest
     strategy:

@@ -13,6 +13,9 @@ lint: ## [Local development] Run mypy, pylint and black
 black: ## [Local development] Auto-format python code using black
 	python -m black -l 120 .
 
+build-pex:
+	pex setuptools pyspark==3.2.0 img2dataset -o img2dataset.pex
+
 test: ## [Local development] Run unit tests
 	python -m pytest -x -s -v tests
 

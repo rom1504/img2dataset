@@ -10,3 +10,4 @@ test_folder
 .coverage*
 .env*
 wandb
+*.pex
