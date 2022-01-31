@@ -1,3 +1,7 @@
+## 1.22.3
+
+* fix release regex
+
 ## 1.22.2
 
 * fix fsspec support by using tmp_dir in main.py
