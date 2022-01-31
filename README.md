@@ -80,6 +80,7 @@ It can be used to analyze the results efficiently.
 Checkout these examples to call this as a lib:
 * [simple_example.py](examples/simple_example.py)
 * [pyspark_example.py](examples/pyspark_example.py)
+* [distributed img2dataset tutorial](examples/distributed_img2dataset_tutorial.md)
 
 ## API
 
@@ -165,6 +166,8 @@ By default a local spark session will be created.
 You may want to create a custom spark session depending on your specific spark cluster.
 To do that check [pyspark_example.py](examples/pyspark_example.py), there you can plug your custom code to create a spark session, then
 run img2dataset which will use it for downloading.
+
+To create a spark cluster check the [distributed img2dataset tutorial](examples/distributed_img2dataset_tutorial.md)
 
 ## Integration with Weights & Biases
 
