@@ -41,7 +41,7 @@ tar xf spark-3.2.0-bin-hadoop3.2.tgz
 
 Then download img2dataset:
 ```bash
-wget https://github.com/rom1504/img2dataset/releases/download/1.22.3/img2dataset.pex -O img2dataset_new.pex
+wget https://github.com/rom1504/img2dataset/releases/download/1.22.3/img2dataset.pex -O img2dataset.pex
 ```
 
 Pick an output folder and link it to a fixed place (should be the same location as in worker nodes):
@@ -65,6 +65,7 @@ We will start many tunnels from the worker nodes, so first increase your sshd pa
 sudo vim /etc/ssh/sshd_config 
 MaxSessions 200
 MaxStartups 200:30:200
+sudo service sshd reload
 ```
 
 Still in the master node, create a ips.txt with the ips of all the nodes
@@ -77,16 +78,28 @@ Install pssh with `sudo apt install pssh`
 
 Pick the right username (MASTER_USER) for the master node, and (USER) for the worker nodes, then run this to check your parallel ssh setup:
 ```bash
-MASTER_USER=laion
+MASTER_USER=rom1504
 USER=rom1504
+```
+
+Optionally, if another node than the current one has access to the worker nodes, you may need to add a ssh key to all the nodes with:
+```
+for IP in `cat ips.txt`
+do
+        ssh-copy-id -i the_new_id_rsa $USER@$IP
+done
+```
+
+Check you can connect to all the nodes with:
+```
 parallel-ssh -l $USER -i -h  ips.txt uname -a
 ```
 
 ##### Install some packages
 
 ```bash
-parallel-ssh -l $USER "sudo apt update"
-parallel-ssh -l $USER "sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs"
+parallel-ssh -l $USER -i -h  ips.txt "sudo apt update"
+parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs"
 ```
 
 ##### Optional swap disk
@@ -107,17 +120,27 @@ parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/rele
 ```
 Then:
 ```bash
-parallel-ssh -i -h ips.txt  "mv img2dataset_new.pex img2dataset.pex"
-parallel-ssh -i -h ips.txt  "chmod +x img2dataset.pex"
+parallel-ssh -l $USER -i -h  ips.txt  "mv img2dataset_new.pex img2dataset.pex"
+parallel-ssh -l $USER -i -h  ips.txt  "chmod +x img2dataset.pex"
 ```
 
 ##### Creating the tunnels and mounting the shared output folder
 
 For this step, we will need to let the workers connect to the master node in order to establish sshfs, so do it by allowing them to ssh to your master node:
-first create a key in a worker with ssh-keygen, and put it on all workers (with scp and parallel-scp)
+
+first create a key in a worker with ssh-keygen, and put it on all workers (with scp and parallel-scp):
+```bash
+FIRST_IP=`head -1 ips.txt`
+ssh $USER@$FIRST_IP "ssh-keygen -t rsa -N ''"
+scp $USER@$FIRST_IP:.ssh/id_rsa.pub first_ip_rsa.pub
+scp $USER@$FIRST_IP:.ssh/id_rsa first_ip_rsa
+parallel-scp -l $USER -i -h ips.txt first_ip_rsa.pub .ssh/id_rsa.pub
+parallel-scp -l $USER -i -h ips.txt first_ip_rsa .ssh/id_rsa
+```
+
 then add it to the authorized keys on the master node::
 ```bash
-cat ~/the_id_rsa_pub >> ~/.ssh/authorized_keys
+cat first_ip_rsa.pub >> ~/.ssh/authorized_keys
 ```
 
 Then create the location of the mounted folder on the workers:
@@ -126,8 +149,11 @@ parallel-ssh -l $USER -i -h  ips.txt  "mkdir -p /tmp/bench"
 ```
 
 Start the tunnels (7077 is the main spark master port, 5678 is the driver port, 6678 is the block manager port):
+put this in a start_tunnel.sh and run:
 ```bash
 OUTPUT_PATH=/some/output/path
+USER=rom1504
+MASTER_USER=rom1504
 for IP in `cat ips.txt`
 do
     ssh -R 7077:localhost:7077 -R 5678:localhost:5678 -R 6678:localhost:6678 -R 2300:localhost:22  $USER@$IP "sshfs  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no  -p 2300 $MASTER_USER@localhost:$OUTPUT_PATH /tmp/bench && sleep infinity" &
@@ -148,7 +174,7 @@ When you're ready, you can start the master node with:
 When you're ready, you can start the worker nodes with:
 
 ```bash
-parallel-ssh -l rom1504 -i -h ips.txt  "./spark-3.2.0-bin-hadoop3.2/sbin/start-worker.sh -c 2 -m 1G -h 127.0.0.1 spark://127.0.0.1:7077"
+parallel-ssh -l $USER -i -h  ips.txt  "./spark-3.2.0-bin-hadoop3.2/sbin/start-worker.sh -c 2 -m 1G -h 127.0.0.1 spark://127.0.0.1:7077"
 ```
 
 
@@ -157,9 +183,9 @@ parallel-ssh -l rom1504 -i -h ips.txt  "./spark-3.2.0-bin-hadoop3.2/sbin/start-w
 When you're done, you can stop the worker nodes with:
 
 ```bash
-parallel-ssh -l rom1504 -i -h ips.txt "rm -rf ~/spark-3.2.0-bin-hadoop3.2/work/*"
+parallel-ssh -l $USER -i -h  ips.txt "rm -rf ~/spark-3.2.0-bin-hadoop3.2/work/*"
 pkill -f "ssh -R"
-parallel-ssh -l rom1504 -i -h  ips.txt  "pkill java"
+parallel-ssh -l $USER -i -h  ips.txt  "pkill java"
 ```
 
 
