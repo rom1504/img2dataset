@@ -208,7 +208,7 @@ This put a stress on various kind of resources. Some numbers assuming 1350 image
 * Disk: if using resizing, up to 30MB/s write speed is necessary. If not using resizing, up to 130MB/s. Writing in few tar files make it possible to use rotational drives instead of a SSD.
 
 With these information in mind, the design choice was done in this way:
-* the list of urls is split in N shards. N is usually chosen as the number of cores
+* the list of urls is split in K shards. K is chosen such that a shard has a reasonable size on disk (for example 256MB), by default K = 10000
 * N processes are started (using multiprocessing process pool)
   * each process starts M threads. M should be maximized in order to use as much network as possible while keeping cpu usage below 100%.
   * each of this thread download 1 image and returns it
