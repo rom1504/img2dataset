@@ -83,12 +83,12 @@ def download(
         fs.mkdir(output_path)
         start_shard_id = 0
     else:
-        existing_top_level_files = [x for x in fs.glob(output_path + "/*") if x != tmp_path]
+        existing_top_level_files = [x for x in fs.glob(output_path + "/*") if x != tmp_dir]
         if len(existing_top_level_files) == 0:
             start_shard_id = 0
         else:
             start_shard_id = (
-                max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files if x != tmp_path]) + 1
+                max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files if x != tmp_dir]) + 1
             )
 
     reader = Reader(
