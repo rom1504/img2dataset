@@ -45,10 +45,9 @@ class CappedCounter:
 class Logger:
     """logger which logs when number of calls reaches a value or a time interval has passed"""
 
-    def __init__(self, processes_count=1, min_interval=0):
-        """Log only every processes_count and if min_interval (seconds) have elapsed since last log"""
+    def __init__(self, min_interval=0):
+        """Log only every if min_interval (seconds) have elapsed since last log"""
         # wait for all processes to return
-        self.processes_count = processes_count
         self.processes_returned = 0
         # min time (in seconds) before logging a new table (avoids too many logs)
         self.min_interval = min_interval
@@ -60,7 +59,7 @@ class Logger:
 
     def __call__(self, *args, **kwargs):
         self.processes_returned += 1
-        if self.processes_returned % self.processes_count == 0 and time.perf_counter() - self.last > self.min_interval:
+        if time.perf_counter() - self.last > self.min_interval:
             self.do_log(*args, **kwargs)
             self.last = time.perf_counter()
             self.last_call_logged = True
@@ -186,7 +185,7 @@ def write_stats(
 class LoggerProcess(multiprocessing.context.SpawnProcess):
     """Logger process that reads stats files regularly, aggregates and send to wandb / print to terminal"""
 
-    def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, processes_count, log_interval=5):
+    def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, log_interval=5):
         super().__init__()
         self.log_interval = log_interval
         self.enable_wandb = enable_wandb
@@ -194,7 +193,6 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
         self.stats_files = set()
         self.wandb_project = wandb_project
         self.config_parameters = config_parameters
-        self.processes_count = processes_count
         ctx = multiprocessing.get_context("spawn")
         self.q = ctx.Queue()
 
@@ -207,12 +205,8 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
             self.current_run = wandb.init(project=self.wandb_project, config=self.config_parameters, anonymous="allow")
         else:
             self.current_run = None
-        self.total_speed_logger = SpeedLogger(
-            "total", processes_count=self.processes_count, enable_wandb=self.enable_wandb
-        )
-        self.status_table_logger = StatusTableLogger(
-            processes_count=self.processes_count, enable_wandb=self.enable_wandb
-        )
+        self.total_speed_logger = SpeedLogger("total", enable_wandb=self.enable_wandb)
+        self.status_table_logger = StatusTableLogger(enable_wandb=self.enable_wandb)
         start_time = time.perf_counter()
         last_check = 0
         total_status_dict = CappedCounter()

@@ -57,7 +57,7 @@ def download(
     output_folder = make_path_absolute(output_folder)
     url_list = make_path_absolute(url_list)
 
-    logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters, processes_count)
+    logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters)
     logger_process.start()
 
     tmp_path = output_folder + "/_tmp"
