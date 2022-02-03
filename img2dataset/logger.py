@@ -5,7 +5,7 @@ import time
 from collections import Counter
 import fsspec
 import json
-from multiprocessing import Process, Queue
+import multiprocessing
 import queue
 
 
@@ -183,7 +183,7 @@ def write_stats(
 
 # https://docs.python.org/3/library/multiprocessing.html
 # logger process that reads stats files regularly, aggregates and send to wandb / print to terminal
-class LoggerProcess(Process):
+class LoggerProcess(multiprocessing.context.SpawnProcess):
     """Logger process that reads stats files regularly, aggregates and send to wandb / print to terminal"""
 
     def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, processes_count, log_interval=5):
@@ -195,7 +195,8 @@ class LoggerProcess(Process):
         self.wandb_project = wandb_project
         self.config_parameters = config_parameters
         self.processes_count = processes_count
-        self.q = Queue()
+        ctx = multiprocessing.get_context("spawn")
+        self.q = ctx.Queue()
 
     def run(self):
         """Run logger process"""

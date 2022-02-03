@@ -1,6 +1,6 @@
 """distributor defines the distribution strategies for img2dataset"""
 
-from multiprocessing import Pool
+from multiprocessing import get_context
 from tqdm import tqdm
 from itertools import islice, chain
 
@@ -9,7 +9,8 @@ def multiprocessing_distributor(
     processes_count, downloader, reader, _,
 ):
     """Distribute the work to the processes using multiprocessing"""
-    with Pool(processes_count, maxtasksperchild=5) as process_pool:
+    ctx = get_context("spawn")
+    with ctx.Pool(processes_count, maxtasksperchild=5) as process_pool:
         for _ in tqdm(process_pool.imap_unordered(downloader, reader),):
             pass
 
