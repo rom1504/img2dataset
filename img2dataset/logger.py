@@ -129,7 +129,7 @@ class SpeedLogger(Logger):
                     f"{self.prefix}/img_per_sec": img_per_sec,
                     f"{self.prefix}/success": success_ratio,
                     f"{self.prefix}/failed_to_download": failed_to_download_ratio,
-                    f"{self.prefix}/failed_to_resize": failed_to_resize_ratselfio,
+                    f"{self.prefix}/failed_to_resize": failed_to_resize_ratio,
                     f"{self.prefix}/count": count,
                 }
             )
