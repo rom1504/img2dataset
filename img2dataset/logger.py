@@ -5,7 +5,7 @@ import time
 from collections import Counter
 import fsspec
 import json
-from multiprocessing import Process, Queue
+import multiprocessing
 import queue
 
 
@@ -183,22 +183,25 @@ def write_stats(
 
 # https://docs.python.org/3/library/multiprocessing.html
 # logger process that reads stats files regularly, aggregates and send to wandb / print to terminal
-class LoggerProcess(Process):
+class LoggerProcess(multiprocessing.context.SpawnProcess):
     """Logger process that reads stats files regularly, aggregates and send to wandb / print to terminal"""
 
     def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, processes_count, log_interval=5):
         super().__init__()
         self.log_interval = log_interval
         self.enable_wandb = enable_wandb
-        self.fs, self.output_path = fsspec.core.url_to_fs(output_folder)
+        self.output_folder = output_folder
         self.stats_files = set()
         self.wandb_project = wandb_project
         self.config_parameters = config_parameters
         self.processes_count = processes_count
-        self.q = Queue()
+        ctx = multiprocessing.get_context("spawn")
+        self.q = ctx.Queue()
 
     def run(self):
         """Run logger process"""
+
+        fs, output_path = fsspec.core.url_to_fs(self.output_folder)
 
         if self.enable_wandb:
             self.current_run = wandb.init(project=self.wandb_project, config=self.config_parameters, anonymous="allow")
@@ -225,7 +228,7 @@ class LoggerProcess(Process):
 
             try:
                 # read stats files
-                stats_files = self.fs.glob(self.output_path + "/*.json")
+                stats_files = fs.glob(output_path + "/*.json")
 
                 # get new stats files
                 new_stats_files = set(stats_files) - self.stats_files
@@ -236,7 +239,7 @@ class LoggerProcess(Process):
 
                 # read new stats files
                 for stats_file in new_stats_files:
-                    with self.fs.open(stats_file, "r") as f:
+                    with fs.open(stats_file, "r") as f:
                         try:
                             stats = json.load(f)
                             SpeedLogger("worker", enable_wandb=self.enable_wandb)(
