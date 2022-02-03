@@ -1,3 +1,12 @@
+## 1.23.0
+
+* add tutorial on how to setup a spark cluster and use it for distributed img2dataset
+better aws s3 support:
+* initialize logger fs in subprocess to avoid moving fs over a fork()
+* use spawn instead of fork method
+
+* make total logging more intuitive and convenient by logging every worker return
+
 ## 1.22.3
 
 * fix release regex
