@@ -222,7 +222,38 @@ This design make it possible to use the CPU resource efficiently by doing only 1
 
 Also see [architecture.md](img2dataset/architecture.md) for the precise split in python modules.
 
-## Setting up a bind9 resolver
+## Setting up a high performance dns resolver
+
+To get the best performances with img2dataset, using an efficient dns resolver is needed.
+* knot resolver can run in parallel
+* bind resolver is the historic resolver and is mono core but very optimized
+
+
+### Setting up a knot resolver
+
+Follow [the official quick start](https://knot-resolver.readthedocs.io/en/stable/quickstart-install.html) or run this on ubuntu:
+
+first stop systemd-resolved with `sudo systemctl stop systemd-resolved`
+
+then install knot with
+```
+wget https://secure.nic.cz/files/knot-resolver/knot-resolver-release.deb
+sudo dpkg -i knot-resolver-release.deb
+sudo apt update
+sudo apt install -y knot-resolver
+```
+
+then start 4 instances with
+```
+sudo systemctl start kresd@1.service
+sudo systemctl start kresd@2.service
+sudo systemctl start kresd@3.service
+sudo systemctl start kresd@4.service
+```
+
+You may have to change /etc/resolv.conf to point to 127.0.0.1
+
+### Setting up a bind9 resolver
 
 In order to keep the success rate high, it is necessary to use an efficient DNS resolver.
 I tried several options: systemd-resolved, dnsmaskq and bind9 and reached the conclusion that bind9 reaches the best performance for this use case.
