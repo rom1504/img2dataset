@@ -1,3 +1,7 @@
+## 1.23.1
+
+* fix logger on s3: do not use listing caching in logger
+
 ## 1.23.0
 
 * add tutorial on how to setup a spark cluster and use it for distributed img2dataset
