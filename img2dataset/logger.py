@@ -199,7 +199,7 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
     def run(self):
         """Run logger process"""
 
-        fs, output_path = fsspec.core.url_to_fs(self.output_folder)
+        fs, output_path = fsspec.core.url_to_fs(self.output_folder, use_listings_cache=False)
 
         if self.enable_wandb:
             self.current_run = wandb.init(project=self.wandb_project, config=self.config_parameters, anonymous="allow")
