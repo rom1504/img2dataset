@@ -85,7 +85,8 @@ class SpeedLogger(Logger):
     def __init__(self, prefix, enable_wandb, **logger_args):
         super().__init__(**logger_args)
         self.prefix = prefix
-        self.start = time.perf_counter()
+        self.start_time = float("+inf")
+        self.end_time = float("-inf")
         self.count = 0
         self.success = 0
         self.failed_to_download = 0
@@ -93,17 +94,22 @@ class SpeedLogger(Logger):
         self.enable_wandb = enable_wandb
 
     def __call__(
-        self, duration, count, success, failed_to_download, failed_to_resize
+        self, count, success, failed_to_download, failed_to_resize, start_time, end_time
     ):  # pylint: disable=arguments-differ
         self.count += count
         self.success += success
         self.failed_to_download += failed_to_download
         self.failed_to_resize += failed_to_resize
-        super().__call__(duration, self.count, self.success, self.failed_to_download, self.failed_to_resize)
+        self.start_time = min(start_time, self.start_time)
+        self.end_time = max(end_time, self.end_time)
+        super().__call__(
+            self.count, self.success, self.failed_to_download, self.failed_to_resize, self.start_time, self.end_time
+        )
 
     def do_log(
-        self, duration, count, success, failed_to_download, failed_to_resize
+        self, count, success, failed_to_download, failed_to_resize, start_time, end_time
     ):  # pylint: disable=arguments-differ
+        duration = end_time - start_time
         img_per_sec = count / duration
         success_ratio = 1.0 * success / count
         failed_to_download_ratio = 1.0 * failed_to_download / count
@@ -171,6 +177,8 @@ def write_stats(
         "failed_to_download": failed_to_download,
         "failed_to_resize": failed_to_resize,
         "duration": end_time - start_time,
+        "start_time": start_time,
+        "end_time": end_time,
         "status_dict": status_dict.dump(),
     }
     fs, output_path = fsspec.core.url_to_fs(output_folder)
@@ -207,7 +215,6 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
             self.current_run = None
         self.total_speed_logger = SpeedLogger("total", enable_wandb=self.enable_wandb)
         self.status_table_logger = StatusTableLogger(enable_wandb=self.enable_wandb)
-        start_time = time.perf_counter()
         last_check = 0
         total_status_dict = CappedCounter()
         while True:
@@ -237,18 +244,20 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
                         try:
                             stats = json.load(f)
                             SpeedLogger("worker", enable_wandb=self.enable_wandb)(
-                                duration=stats["duration"],
                                 count=stats["count"],
                                 success=stats["successes"],
                                 failed_to_download=stats["failed_to_download"],
                                 failed_to_resize=stats["failed_to_resize"],
+                                start_time=stats["start_time"],
+                                end_time=stats["end_time"],
                             )
                             self.total_speed_logger(
-                                duration=time.perf_counter() - start_time,
                                 count=stats["count"],
                                 success=stats["successes"],
                                 failed_to_download=stats["failed_to_download"],
                                 failed_to_resize=stats["failed_to_resize"],
+                                start_time=stats["start_time"],
+                                end_time=stats["end_time"],
                             )
                             status_dict = CappedCounter.load(stats["status_dict"])
                             total_status_dict.update(status_dict)

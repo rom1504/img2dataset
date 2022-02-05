@@ -96,6 +96,7 @@ class Downloader:
         """Function to start an image downloading in one process"""
 
         shard_id, shard_file = row
+        start_time = time.perf_counter()
 
         fs, shard_path = fsspec.core.url_to_fs(shard_file)
         with fs.open(shard_path, "rb") as f:
@@ -103,7 +104,6 @@ class Downloader:
         shard_to_dl = list(enumerate(df[self.column_list].to_records(index=False).tolist()))
         del df
 
-        start_time = time.perf_counter()
         status_dict = CappedCounter()
 
         count = len(shard_to_dl)
