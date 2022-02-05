@@ -1,8 +1,10 @@
 """Reader is module to read the url list and return shards"""
 
+from multiprocessing.pool import ThreadPool
 import pandas as pd
 import math
 import fsspec
+from tqdm import tqdm
 
 
 class Reader:
@@ -88,8 +90,7 @@ class Reader:
 
         number_shards = math.ceil(len(df) / self.number_sample_per_shard)
 
-        shards = []
-        for shard_id in range(number_shards):
+        def write_shard(shard_id):
             begin_shard = shard_id * self.number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * self.number_sample_per_shard)
             df_shard = df[begin_shard:end_shard][self.column_list]
@@ -98,7 +99,16 @@ class Reader:
             fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
             with fs.open(tmp_path, "wb") as file:
                 df_shard.to_feather(file)
-            shards.append((shard_id, tmp_file))
+            return (shard_id, tmp_file)
+
+        shards = []
+        # thread pool to make it faster to write files to low latency file systems (ie s3, hdfs)
+        with ThreadPool(32) as thread_pool:
+            for shard in tqdm(thread_pool.imap_unordered(write_shard, range(number_shards)), total=number_shards):
+                shards.append(shard)
+
+        shards.sort(key=lambda k: k[0])
+
         del df
 
         return shards
