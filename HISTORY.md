@@ -1,3 +1,10 @@
+## 1.24.0
+
+* force one thread for opencv
+* make total logger start time the minimum of workers start time
+* add s3fs into the released pex for convenience
+* make sharding faster on high latency fs by using a thread pool
+
 ## 1.23.1
 
 * fix logger on s3: do not use listing caching in logger
