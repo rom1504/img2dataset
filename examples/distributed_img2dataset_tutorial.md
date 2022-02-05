@@ -8,6 +8,15 @@ However, what if you have billion of samples and you don't want to wait weeks ?
 To support that use case, img2dataset proposes to use multiple machines by setting up a pyspark cluster.
 This document will help you setup such a cluster and run img2dataset on it.
 
+## Where to get a cluster, what machines to use?
+
+These providers have been tested to work well with img2dataset:
+* aliyun small 2 cores nodes ($4.5/month for 40 sample/s)
+* aws c6i.4xlarge nodes ($0.68/h for 1000 sample/s)
+
+Ubuntu 20.04 works well with img2dataset. Centos7 also works.
+Other providers probably work too but haven't been tested.
+
 ## Setting up a pyspark cluster
 
 ### You already got a cluster
@@ -29,8 +38,11 @@ Tools:
 An additional assumption we will be making is all the nodes are not in the same network, hence we will need to make tunnels.
 If the master and worker nodes are all in the same network, no tunnel will be needed.
 
+We will be assuming ubuntu 20.04.
+
 
 #### Setup the master node
+
 On the master node:
 
 First download spark:
@@ -41,7 +53,7 @@ tar xf spark-3.2.0-bin-hadoop3.2.tgz
 
 Then download img2dataset:
 ```bash
-wget https://github.com/rom1504/img2dataset/releases/download/1.22.3/img2dataset.pex -O img2dataset.pex
+wget https://github.com/rom1504/img2dataset/releases/download/1.24.0/img2dataset.pex -O img2dataset.pex
 ```
 
 Pick an output folder and link it to a fixed place (should be the same location as in worker nodes):
@@ -50,7 +62,7 @@ OUTPUT_FOLDER=some/output/folder
 ln -s $OUTPUT_FOLDER /tmp/bench
 ```
 
-You can do a tunnel between your local machine and the master node to be able to see the spark ui (at http://localhost:8080)
+If the master node cannot open ports that are visible from your local machine, you can do a tunnel between your local machine and the master node to be able to see the spark ui (at http://localhost:8080)
 ```bash
 ssh -L 8080:localhost:8080 -L 4040:localhost:4040 master_node
 ```
@@ -58,7 +70,10 @@ ssh -L 8080:localhost:8080 -L 4040:localhost:4040 master_node
 
 #### Setup the worker nodes
 
-##### ssh basic setup
+Everything marked as [Optional: Setup a ssh tunnels] in the following section can be skipped if you already have a shared folder (eg s3, hdfs, ...) and nodes can see each other over some network (eg aws vpc, public network, ...)
+
+##### [Optional: Setup a ssh tunnels] setup for reverse ssh
+
 
 We will start many tunnels from the worker nodes, so first increase your sshd parameter in the master node:
 ```bash
@@ -67,6 +82,8 @@ MaxSessions 200
 MaxStartups 200:30:200
 sudo service sshd reload
 ```
+
+##### ssh basic setup
 
 Still in the master node, create a ips.txt with the ips of all the nodes
 
@@ -102,7 +119,7 @@ parallel-ssh -l $USER -i -h  ips.txt "sudo apt update"
 parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs"
 ```
 
-##### Optional swap disk
+##### [Optional] swap disk
 
 Optionally you may want to create a swap disk if you don't have a lot of ram in the worker nodes:
 ```bash
@@ -116,7 +133,7 @@ parallel-ssh -l $USER -i -h  ips.txt  "sudo swapon /home/$USER/swapfile.img"
 
 Download img2dataset on all node by retrying this N times until parallel ssh says success for all:
 ```bash
-parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/releases/download/1.22.3/img2dataset.pex -O img2dataset_new.pex"
+parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/releases/download/1.24.0/img2dataset.pex -O img2dataset_new.pex"
 ```
 Then:
 ```bash
@@ -124,7 +141,7 @@ parallel-ssh -l $USER -i -h  ips.txt  "mv img2dataset_new.pex img2dataset.pex"
 parallel-ssh -l $USER -i -h  ips.txt  "chmod +x img2dataset.pex"
 ```
 
-##### Creating the tunnels and mounting the shared output folder
+##### [Optional: Setup a ssh tunnels] Creating the tunnels and mounting the shared output folder
 
 For this step, we will need to let the workers connect to the master node in order to establish sshfs, so do it by allowing them to ssh to your master node:
 
@@ -168,6 +185,8 @@ When you're ready, you can start the master node with:
 ./spark-3.2.0-bin-hadoop3.2/sbin/start-master.sh -h 127.0.0.1 -p 7077
 ```
 
+Replace 127.0.0.1 by an other IP if your master and workers can see each other over a network.
+
 
 #### Start the worker nodes
 
@@ -176,6 +195,8 @@ When you're ready, you can start the worker nodes with:
 ```bash
 parallel-ssh -l $USER -i -h  ips.txt  "./spark-3.2.0-bin-hadoop3.2/sbin/start-worker.sh -c 2 -m 1G -h 127.0.0.1 spark://127.0.0.1:7077"
 ```
+
+Replace 127.0.0.1 by the master node ip if your master and workers can see each other over a network.
 
 
 #### Stop the worker nodes
