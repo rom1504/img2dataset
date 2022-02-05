@@ -73,6 +73,7 @@ class Resizer:
         output: img_str, width, height, original_width, original_height, err
         """
         try:
+            cv2.setNumThreads(1)
             encode_needed = imghdr.what(img_stream) != "jpeg" if self.skip_reencode else True
             img_buf = np.frombuffer(img_stream.read(), np.uint8)
             img = cv2.imdecode(img_buf, cv2.IMREAD_UNCHANGED)
