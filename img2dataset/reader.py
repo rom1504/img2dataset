@@ -111,11 +111,11 @@ class Reader:
         sample is a tuple of the columns
         """
         for i, input_file in enumerate(self.input_files):
-            print(
-                "Downloading file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file
-            )
+            print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
 
             shards = self._save_to_arrow(input_file)
+            print("File sharded")
+
             num_shard = 0
             for num_shard, arrow_file in shards:
                 yield (
