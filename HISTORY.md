@@ -1,3 +1,7 @@
+## 1.24.1
+
+* hide opencv warning
+
 ## 1.24.0
 
 * force one thread for opencv
