@@ -4,7 +4,6 @@ from multiprocessing.pool import ThreadPool
 import pandas as pd
 import math
 import fsspec
-from tqdm import tqdm
 
 
 class Reader:
@@ -104,7 +103,7 @@ class Reader:
         shards = []
         # thread pool to make it faster to write files to low latency file systems (ie s3, hdfs)
         with ThreadPool(32) as thread_pool:
-            for shard in tqdm(thread_pool.imap_unordered(write_shard, range(number_shards)), total=number_shards):
+            for shard in thread_pool.imap_unordered(write_shard, range(number_shards)):
                 shards.append(shard)
 
         shards.sort(key=lambda k: k[0])
@@ -124,7 +123,11 @@ class Reader:
             print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
 
             shards = self._save_to_arrow(input_file)
-            print("File sharded")
+            print("File sharded in " + str(len(shards)) + " shards")
+            print(
+                "Downloading starting now, check your bandwidth speed (with bwm-ng)"
+                "your cpu (with htop), and your disk usage (with iotop)!"
+            )
 
             num_shard = 0
             for num_shard, arrow_file in shards:
