@@ -1,3 +1,8 @@
+## 1.25.1
+
+* small fix for logger and continuing
+* use time instead of perf_counter to measure shard duration
+
 ## 1.25.0
 
 * make metadata writer much faster by building the schema in the downloader instead of guessing it
