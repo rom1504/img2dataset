@@ -83,7 +83,7 @@ def download(
         fs.mkdir(output_path)
         start_shard_id = 0
     else:
-        existing_top_level_files = [x for x in fs.glob(output_path + "/*") if x != tmp_dir]
+        existing_top_level_files = [x for x in fs.glob(output_path + "/*") if x != tmp_dir and "stats" not in x]
         if len(existing_top_level_files) == 0:
             start_shard_id = 0
         else:
