@@ -91,6 +91,23 @@ Still in the master node, create a ips.txt with the ips of all the nodes
 ssh-keyscan `cat ips.txt` >> ~/.ssh/known_hosts
 ```
 
+You may use a script like this to fill your .ssh/config file
+```
+def generate(ip):
+    print(
+        f"Host {ip}\n"
+        f"        HostName {ip}\n"
+        "        User ubuntu\n"
+        "        IdentityFile ~/yourkey.pem"
+        )
+
+with open("ips.txt") as f:
+    lines = f.readlines()
+    for line in lines:
+        generate(line.strip())
+```
+python3 generate.py >> ~/.ssh/config
+
 Install pssh with `sudo apt install pssh`
 
 Pick the right username (MASTER_USER) for the master node, and (USER) for the worker nodes, then run this to check your parallel ssh setup:
@@ -116,8 +133,30 @@ parallel-ssh -l $USER -i -h  ips.txt uname -a
 
 ```bash
 parallel-ssh -l $USER -i -h  ips.txt "sudo apt update"
-parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs"
+parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs -y"
 ```
+
+
+#### [Optional] Network setting on aws
+
+put in same VPC and security group and allow inbound
+
+on master:
+sudo sh -c 'echo `hostname -I` `hostname` >> /etc/hosts'
+
+on workers
+parallel-ssh -l $USER -i -h  ips.txt  "sudo sh -c 'echo \`hostname -I\` \`hostname\` >> /etc/hosts'"
+
+
+### [Optional] install knot resolver
+
+parallel-ssh -l $USER -i -h  ips.txt "sudo apt update && sudo apt install libgl1 htop tmux bwm-ng python3.8-venv awscli -y"
+parallel-ssh -l $USER -i -h  ips.txt "wget https://secure.nic.cz/files/knot-resolver/knot-resolver-release.deb && sudo dpkg -i knot-resolver-release.deb && sudo apt update && sudo apt install -y knot-resolver"
+
+parallel-ssh -l $USER -i -h  ips.txt "sudo systemctl stop systemd-resolved"
+parallel-ssh -l $USER -i -h  ips.txt "sudo systemctl start kresd@{1..4}.service"
+parallel-ssh -l $USER -i -h  ips.txt 'sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"'
+parallel-ssh -l $USER -i -h  ips.txt 'dig @localhost google.com'
 
 ##### [Optional] swap disk
 
@@ -133,7 +172,7 @@ parallel-ssh -l $USER -i -h  ips.txt  "sudo swapon /home/$USER/swapfile.img"
 
 Download img2dataset on all node by retrying this N times until parallel ssh says success for all:
 ```bash
-parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/releases/download/1.24.0/img2dataset.pex -O img2dataset_new.pex"
+parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/releases/download/1.25.1/img2dataset.pex -O img2dataset_new.pex"
 ```
 Then:
 ```bash
@@ -176,6 +215,11 @@ do
     ssh -R 7077:localhost:7077 -R 5678:localhost:5678 -R 6678:localhost:6678 -R 2300:localhost:22  $USER@$IP "sshfs  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no  -p 2300 $MASTER_USER@localhost:$OUTPUT_PATH /tmp/bench && sleep infinity" &
 done
 ```
+
+##### Download spark on workers
+
+parallel-ssh -l $USER -i -h  ips.txt  "wget https://archive.apache.org/dist/spark/spark-3.2.0/spark-3.2.0-bin-hadoop3.2.tgz"
+parallel-ssh -l $USER -i -h  ips.txt  "tar xf spark-3.2.0-bin-hadoop3.2.tgz"
 
 #### Start the master node
 
