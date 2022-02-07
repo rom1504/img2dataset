@@ -1,3 +1,8 @@
+## 1.25.0
+
+* make metadata writer much faster by building the schema in the downloader instead of guessing it
+* add new option allowing to disable reencoding
+
 ## 1.24.1
 
 * hide opencv warning
