@@ -44,6 +44,7 @@ def download(
     distributor: str = "multiprocessing",
     subjob_size: int = 1000,
     retries: int = 0,
+    disable_all_reencoding: bool = False,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -119,6 +120,7 @@ def download(
         downscale_interpolation=downscale_interpolation,
         encode_quality=encode_quality,
         skip_reencode=skip_reencode,
+        disable_all_reencoding=disable_all_reencoding,
     )
 
     downloader = Downloader(
