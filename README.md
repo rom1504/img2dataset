@@ -128,6 +128,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
 * **subjob_size** the number of shards to download in each subjob supporting it, a subjob can be a pyspark job for example (default *1000*)
 * **retries** number of time a download should be retried (default *0*)
+* **disable_all_reencoding** if set to True, this will keep the image files in their original state with no resizing and no conversion, will not even check if the image is valid. Useful for benchmarks. To use only if you plan to post process the images by another program and you have plenty of storage available. (default *False*)
 
 ## How to tweak the options
 
@@ -137,6 +138,11 @@ The default values should be good enough for small sized dataset. For larger one
 * increase thread_count as long as your bandwidth and cpu are below the limits
 * I advise to set output_format to webdataset if your dataset has more than 1M elements, it will be easier to manipulate few tars rather than million of files
 * keeping metadata to True can be useful to check what items were already saved and avoid redownloading them
+
+To benchmark your system, and img2dataset interactions with it, it may be interesting to enable these options (only for testing, not for real downloads)
+* --output_format dummy : will not save anything. Good to remove the storage bottleneck
+* --disable_all_reencoding True : will not reencode anything. Good to remove the cpu bottleneck
+When both these options are enabled, the only bottlenecks left are network related: eg dns setup, your bandwidth or the url servers bandwidth.
 
 ## File system support
 

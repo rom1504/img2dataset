@@ -87,6 +87,7 @@ class Resizer:
         downscale_interpolation="area",
         encode_quality=95,
         skip_reencode=False,
+        disable_all_reencoding=False,
     ):
         self.image_size = image_size
         if isinstance(resize_mode, str):
@@ -99,6 +100,7 @@ class Resizer:
         self.downscale_interpolation = inter_str_to_cv2(downscale_interpolation)
         self.encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), encode_quality]
         self.skip_reencode = skip_reencode
+        self.disable_all_reencoding = disable_all_reencoding
 
     def __call__(self, img_stream):
         """
@@ -106,6 +108,8 @@ class Resizer:
         output: img_str, width, height, original_width, original_height, err
         """
         try:
+            if self.disable_all_reencoding:
+                return img_stream.read(), None, None, None, None, None
             with SuppressStdoutStderr():
                 cv2.setNumThreads(1)
                 encode_needed = imghdr.what(img_stream) != "jpeg" if self.skip_reencode else True
