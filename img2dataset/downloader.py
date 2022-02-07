@@ -99,7 +99,7 @@ class Downloader:
         """Function to start an image downloading in one process"""
 
         shard_id, shard_file = row
-        start_time = time.perf_counter()
+        start_time = time.time()
 
         fs, shard_path = fsspec.core.url_to_fs(shard_file)
         with fs.open(shard_path, "rb") as f:
@@ -236,7 +236,7 @@ class Downloader:
             thread_pool.join()
             del thread_pool
 
-        end_time = time.perf_counter()
+        end_time = time.time()
         write_stats(
             self.output_folder,
             shard_id,
