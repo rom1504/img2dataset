@@ -6,6 +6,7 @@ import shutil
 import pytest
 import tarfile
 import pandas as pd
+import pyarrow as pa
 
 
 @pytest.mark.parametrize("writer_type", ["files", "webdataset", "parquet", "dummy"])
@@ -16,19 +17,74 @@ def test_writer(writer_type, tmp_path):
     output_folder = test_folder + "/" + "test_write"
     os.mkdir(output_folder)
     image_paths = glob.glob(input_folder + "/*")
+    schema = pa.schema(
+        [
+            pa.field("key", pa.string()),
+            pa.field("caption", pa.string()),
+            pa.field("status", pa.string()),
+            pa.field("error_message", pa.string()),
+            pa.field("width", pa.int32()),
+            pa.field("height", pa.int32()),
+            pa.field("original_width", pa.int32()),
+            pa.field("original_height", pa.int32()),
+        ]
+    )
     if writer_type == "files":
-        writer = FilesSampleWriter(0, output_folder, True, 5)
+        writer = FilesSampleWriter(0, output_folder, True, 5, schema)
     elif writer_type == "webdataset":
-        writer = WebDatasetSampleWriter(0, output_folder, True, 5)
+        writer = WebDatasetSampleWriter(0, output_folder, True, 5, schema)
     elif writer_type == "parquet":
-        writer = ParquetSampleWriter(0, output_folder, True, 5)
+        writer = ParquetSampleWriter(0, output_folder, True, 5, schema)
     elif writer_type == "dummy":
-        writer = DummySampleWriter(0, output_folder, True, 5)
+        writer = DummySampleWriter(0, output_folder, True, 5, schema)
     for i, image_path in enumerate(image_paths):
         with open(image_path, "rb") as f:
             img_str = f.read()
-            writer.write(img_str=img_str, key=str(i), caption=str(i), meta={"caption": str(i)})
+            writer.write(
+                img_str=img_str,
+                key=str(i),
+                caption=str(i),
+                meta={
+                    "key": str(i),
+                    "caption": str(i),
+                    "status": "ok",
+                    "error_message": "",
+                    "width": 100,
+                    "height": 100,
+                    "original_width": 100,
+                    "original_height": 100,
+                },
+            )
     writer.close()
+
+    if writer_type != "dummy":
+
+        df = pd.read_parquet(output_folder + "/00000.parquet")
+
+        expected_columns = [
+            "key",
+            "caption",
+            "status",
+            "error_message",
+            "width",
+            "height",
+            "original_width",
+            "original_height",
+        ]
+
+        if writer_type == "parquet":
+            expected_columns.append("jpg")
+
+        assert df.columns.tolist() == expected_columns
+
+        assert df["key"].iloc[0] == "0"
+        assert df["caption"].iloc[0] == "0"
+        assert df["status"].iloc[0] == "ok"
+        assert df["error_message"].iloc[0] == ""
+        assert df["width"].iloc[0] == 100
+        assert df["height"].iloc[0] == 100
+        assert df["original_width"].iloc[0] == 100
+        assert df["original_height"].iloc[0] == 100
 
     if writer_type == "files":
         saved_files = list(glob.glob(output_folder + "/00000/*"))
@@ -46,7 +102,7 @@ def test_writer(writer_type, tmp_path):
         if l[0] != output_folder + "/00000.parquet":
             raise Exception(l[0] + " is not 00000.parquet")
 
-        assert len(pd.read_parquet(output_folder + "/00000.parquet").index) == len(image_paths)
+        assert len(df.index) == len(image_paths)
     elif writer_type == "dummy":
         l = glob.glob(output_folder + "/*")
         assert len(l) == 0

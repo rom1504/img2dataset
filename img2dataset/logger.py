@@ -7,6 +7,7 @@ import fsspec
 import json
 import multiprocessing
 import queue
+import traceback
 
 
 class CappedCounter:
@@ -272,7 +273,8 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
                     self.finish()
                     return
             except Exception as e:  # pylint: disable=broad-except
-                print(e)
+                traceback.print_exc()
+                print("logger error", e)
                 self.finish()
                 return
 

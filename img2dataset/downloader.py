@@ -10,6 +10,8 @@ import json
 import time
 import hashlib
 import pandas as pd
+import pyarrow as pa
+import traceback
 
 import fsspec
 from .logger import CappedCounter
@@ -87,7 +89,8 @@ class Downloader:
         try:
             return self.download_shard(row)
         except Exception as err:  # pylint: disable=broad-except
-            print(err)
+            traceback.print_exc()
+            print(f"shard {row[0]} failed with error {err}")
             return (False, 0, 0, 0, 0, 0, None)
 
     def download_shard(
@@ -101,6 +104,23 @@ class Downloader:
         fs, shard_path = fsspec.core.url_to_fs(shard_file)
         with fs.open(shard_path, "rb") as f:
             df = pd.read_feather(f)
+        schema = pa.Schema.from_pandas(df)
+        schema = schema.remove_metadata()
+        schema = (
+            schema.append(pa.field("key", pa.string()))
+            .append(pa.field("status", pa.string()))
+            .append(pa.field("error_message", pa.string()))
+            .append(pa.field("width", pa.int32()))
+            .append(pa.field("height", pa.int32()))
+            .append(pa.field("original_width", pa.int32()))
+            .append(pa.field("original_height", pa.int32()))
+        )
+        if self.extract_exif:
+            schema = schema.append(pa.field("exif", pa.string()))
+
+        if self.compute_md5:
+            schema = schema.append(pa.field("md5", pa.string()))
+
         shard_to_dl = list(enumerate(df[self.column_list].to_records(index=False).tolist()))
         del df
 
@@ -125,7 +145,10 @@ class Downloader:
 
         loader = data_generator()
 
-        sample_writer = self.sample_writer_class(shard_id, self.output_folder, self.save_caption, self.oom_shard_count)
+        # give schema to writer
+        sample_writer = self.sample_writer_class(
+            shard_id, self.output_folder, self.save_caption, self.oom_shard_count, schema
+        )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
@@ -204,7 +227,8 @@ class Downloader:
                         img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
                     )
                 except Exception as err:  # pylint: disable=broad-except
-                    print(err)
+                    traceback.print_exc()
+                    print(f"Sample {key} failed to download: {err}")
                 semaphore.release()
 
             sample_writer.close()

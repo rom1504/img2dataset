@@ -108,6 +108,31 @@ def test_download_input_format(input_format, output_format, tmp_path):
         caption_col="caption",
     )
 
+    if output_format != "dummy":
+
+        df = pd.read_parquet(image_folder_name + "/00000.parquet")
+
+        expected_columns = [
+            "url",
+            "key",
+            "status",
+            "error_message",
+            "width",
+            "height",
+            "original_width",
+            "original_height",
+            "exif",
+            "md5",
+        ]
+
+        if input_format != "txt":
+            expected_columns.insert(2, "caption")
+
+        if output_format == "parquet":
+            expected_columns.append("jpg")
+
+        assert set(df.columns.tolist()) == set(expected_columns)
+
     expected_file_count = len(test_list)
     if output_format == "files":
         l = get_all_files(image_folder_name, "jpg")
