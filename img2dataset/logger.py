@@ -201,6 +201,7 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
         self.output_folder = output_folder
         self.stats_files = set()
         self.wandb_project = wandb_project
+        self.start_shard_id = 0
         self.config_parameters = config_parameters
         ctx = multiprocessing.get_context("spawn")
         self.q = ctx.Queue()
@@ -231,6 +232,9 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
             try:
                 # read stats files
                 stats_files = fs.glob(output_path + "/*.json")
+
+                # filter out files that have an id smaller than start_shard_id
+                stats_files = [f for f in stats_files if int(f.split("/")[-1].split("_")[0]) >= self.start_shard_id]
 
                 # get new stats files
                 new_stats_files = set(stats_files) - self.stats_files

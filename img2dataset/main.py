@@ -59,7 +59,6 @@ def download(
     url_list = make_path_absolute(url_list)
 
     logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters)
-    logger_process.start()
 
     tmp_path = output_folder + "/_tmp"
     fs, tmp_dir = fsspec.core.url_to_fs(tmp_path)
@@ -91,6 +90,9 @@ def download(
             start_shard_id = (
                 max([int(x.split("/")[-1].split(".")[0]) for x in existing_top_level_files if x != tmp_dir]) + 1
             )
+
+    logger_process.start_shard_id = start_shard_id
+    logger_process.start()
 
     reader = Reader(
         url_list,
