@@ -4,6 +4,7 @@ from multiprocessing.pool import ThreadPool
 import pandas as pd
 import math
 import fsspec
+import time
 
 
 class Reader:
@@ -95,10 +96,18 @@ class Reader:
             df_shard = df[begin_shard:end_shard][self.column_list]
             df_shard = df_shard.reset_index(drop=True)
             tmp_file = self.tmp_path + f"/{shard_id + self.start_shard_id}.feather"
-            fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
-            with fs.open(tmp_path, "wb") as file:
-                df_shard.to_feather(file)
-            return (shard_id, tmp_file)
+            for i in range(10):
+                try:
+                    fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
+                    with fs.open(tmp_path, "wb") as file:
+                        df_shard.to_feather(file)
+                    return (shard_id, tmp_file)
+                except Exception as e:  # pylint: disable=broad-except
+                    if i != 9:
+                        print("retrying to write to file due to error:", e)
+                        time.sleep(1)
+                    else:
+                        raise e
 
         shards = []
         # thread pool to make it faster to write files to low latency file systems (ie s3, hdfs)
