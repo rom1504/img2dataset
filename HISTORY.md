@@ -1,3 +1,7 @@
+## 1.25.2
+
+* retry writing the shard in reader in case of error
+
 ## 1.25.1
 
 * small fix for logger and continuing
