@@ -1,3 +1,7 @@
+## 1.25.3
+
+* retry whole sharding if it fails
+
 ## 1.25.2
 
 * retry writing the shard in reader in case of error
