@@ -1,3 +1,7 @@
+## 1.25.4
+
+* use exifread-nocycle to avoid cycle in exifread
+
 ## 1.25.3
 
 * retry whole sharding if it fails
