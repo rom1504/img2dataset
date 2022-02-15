@@ -4,7 +4,7 @@ fire
 webdataset
 pandas
 pyarrow
-exifread
+exifread-nocycle
 albumentations
 pyyaml
 dataclasses
