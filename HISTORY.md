@@ -1,3 +1,7 @@
+## 1.25.5
+
+* fix dependency ranges
+
 ## 1.25.4
 
 * use exifread-nocycle to avoid cycle in exifread
