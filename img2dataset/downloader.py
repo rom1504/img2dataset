@@ -181,6 +181,7 @@ class Downloader:
                         )
                         semaphore.release()
                         continue
+                    img_stream.seek(0)
                     (img, width, height, original_width, original_height, error_message,) = self.resizer(img_stream)
                     if error_message is not None:
                         failed_to_resize += 1
@@ -201,6 +202,7 @@ class Downloader:
 
                     if self.extract_exif:
                         try:
+                            img_stream.seek(0)
                             exif = json.dumps(
                                 {
                                     k: str(v).strip()
@@ -213,6 +215,7 @@ class Downloader:
                         meta["exif"] = exif
 
                     if self.compute_md5:
+                        img_stream.seek(0)
                         meta["md5"] = hashlib.md5(img_stream.read()).hexdigest()
 
                     meta["status"] = status
