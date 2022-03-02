@@ -5,7 +5,6 @@ import json
 import pyarrow.parquet as pq
 import pyarrow as pa
 import fsspec
-import importlib
 
 
 class BufferedParquetWriter:
@@ -110,12 +109,12 @@ class WebDatasetSampleWriter:
 class TFRecordSampleWriter:
     """TFRecordSampleWriter is a image+caption writer to TFRecord"""
 
-    if importlib.util.find_spec("tensorflow") is not None:
-        import tensorflow as tf
+    try:
+        import tensorflow as tf  # pylint: disable=import-outside-toplevel
 
         _tf = tf
-    else:
-        raise ModuleNotFoundError("tfrecords require tensorflow to be installed. Run `pip install tensorflow`.")
+    except ImportError as e:
+        raise ModuleNotFoundError("tfrecords require tensorflow to be installed. Run `pip install tensorflow`.") from e
 
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
 
@@ -127,6 +126,7 @@ class TFRecordSampleWriter:
         self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
 
     def write(self, img_str, key, caption, meta):
+        """Write a sample using tfrecord writer"""
         if img_str is not None:
             sample = {
                 "__key__": self._bytes_feature(key.encode()),
