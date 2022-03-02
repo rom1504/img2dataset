@@ -113,9 +113,22 @@ class TFRecordSampleWriter:
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
         try:
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-            import tensorflow as tf  # pylint: disable=import-outside-toplevel
+            from tensorflow.python.training.training import (
+                BytesList,
+                Int64List,
+                FloatList,
+                Example,
+                Features,
+                Feature,
+            )
+            from tensorflow.python.lib.io.tf_record import TFRecordWriter
 
-            self._tf = tf
+            self._BytesList = BytesList
+            self._Int64List = Int64List
+            self._FloatList = FloatList
+            self._Example = Example
+            self._Features = Features
+            self._Feature = Feature
         except ImportError as e:
             raise ModuleNotFoundError(
                 "tfrecords require tensorflow to be installed. Run `pip install tensorflow`."
@@ -124,7 +137,7 @@ class TFRecordSampleWriter:
         self.oom_shard_count = oom_shard_count
         shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
         self.shard_id = shard_id
-        self.tf_writer = self._tf.io.TFRecordWriter(f"{output_folder}/{shard_name}.tfrecord")
+        self.tf_writer = TFRecordWriter(f"{output_folder}/{shard_name}.tfrecord")
         self.save_caption = save_caption
         self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
 
@@ -139,7 +152,7 @@ class TFRecordSampleWriter:
                 sample["txt"] = self._bytes_feature(str(caption) if caption is not None else "")
             for k, v in meta.items():
                 sample[k] = self._feature(v)
-            tf_example = self._tf.train.Example(features=self._tf.train.Features(feature=sample))
+            tf_example = self._Example(features=self._Features(feature=sample))
             self.tf_writer.write(tf_example.SerializeToString())
         self.buffered_parquet_writer.write(meta)
 
@@ -162,15 +175,15 @@ class TFRecordSampleWriter:
             value = ""
         if isinstance(value, str):
             value = value.encode()
-        return self._tf.train.Feature(bytes_list=self._tf.train.BytesList(value=[value]))
+        return self._Feature(bytes_list=self._BytesList(value=[value]))
 
     def _float_feature(self, value):
         """Returns a float_list from a float / double."""
-        return self._tf.train.Feature(float_list=self._tf.train.FloatList(value=[value]))
+        return self._Feature(float_list=self._FloatList(value=[value]))
 
     def _int64_feature(self, value):
         """Returns an int64_list from a bool / enum / int / uint."""
-        return self._tf.train.Feature(int64_list=self._tf.train.Int64List(value=[value]))
+        return self._Feature(int64_list=self._Int64List(value=[value]))
 
 
 class FilesSampleWriter:
