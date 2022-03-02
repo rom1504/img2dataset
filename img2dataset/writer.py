@@ -113,7 +113,8 @@ class TFRecordSampleWriter:
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
         try:
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-            from tensorflow.python.training.training import (
+            import tensorflow_io as _  # pylint: disable=import-outside-toplevel
+            from tensorflow.python.training.training import (  # pylint: disable=import-outside-toplevel
                 BytesList,
                 Int64List,
                 FloatList,
@@ -121,17 +122,18 @@ class TFRecordSampleWriter:
                 Features,
                 Feature,
             )
-            from tensorflow.python.lib.io.tf_record import TFRecordWriter
+            from tensorflow.python.lib.io.tf_record import TFRecordWriter  # pylint: disable=import-outside-toplevel
 
-            self._BytesList = BytesList
-            self._Int64List = Int64List
-            self._FloatList = FloatList
-            self._Example = Example
-            self._Features = Features
-            self._Feature = Feature
+            self._BytesList = BytesList  # pylint: disable=invalid-name
+            self._Int64List = Int64List  # pylint: disable=invalid-name
+            self._FloatList = FloatList  # pylint: disable=invalid-name
+            self._Example = Example  # pylint: disable=invalid-name
+            self._Features = Features  # pylint: disable=invalid-name
+            self._Feature = Feature  # pylint: disable=invalid-name
         except ImportError as e:
             raise ModuleNotFoundError(
-                "tfrecords require tensorflow to be installed. Run `pip install tensorflow`."
+                "tfrecords require tensorflow and tensorflow_io to be installed."
+                "Run `pip install tensorflow tensorflow_io`."
             ) from e
 
         self.oom_shard_count = oom_shard_count

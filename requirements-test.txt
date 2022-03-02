@@ -9,3 +9,4 @@ pyspark
 uvicorn
 fastapi
 tensorflow
+tensorflow_io
