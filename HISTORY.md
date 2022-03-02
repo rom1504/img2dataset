@@ -1,3 +1,7 @@
+## 1.25.6
+
+* fix an interaction between md5 and exif option
+
 ## 1.25.5
 
 * fix dependency ranges
