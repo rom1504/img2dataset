@@ -5,6 +5,7 @@ import json
 import pyarrow.parquet as pq
 import pyarrow as pa
 import fsspec
+import os
 
 
 class BufferedParquetWriter:
@@ -109,14 +110,16 @@ class WebDatasetSampleWriter:
 class TFRecordSampleWriter:
     """TFRecordSampleWriter is a image+caption writer to TFRecord"""
 
-    try:
-        import tensorflow as tf  # pylint: disable=import-outside-toplevel
-
-        _tf = tf
-    except ImportError as e:
-        raise ModuleNotFoundError("tfrecords require tensorflow to be installed. Run `pip install tensorflow`.") from e
-
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
+        try:
+            os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+            import tensorflow as tf  # pylint: disable=import-outside-toplevel
+
+            self._tf = tf
+        except ImportError as e:
+            raise ModuleNotFoundError(
+                "tfrecords require tensorflow to be installed. Run `pip install tensorflow`."
+            ) from e
 
         self.oom_shard_count = oom_shard_count
         shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
@@ -144,34 +147,30 @@ class TFRecordSampleWriter:
         self.buffered_parquet_writer.close()
         self.tf_writer.close()
 
-    @classmethod
-    def _feature(cls, value):
+    def _feature(self, value):
         """Convert to proper feature type"""
         if isinstance(value, int):
-            return cls._int64_feature(value)
+            return self._int64_feature(value)
         elif isinstance(value, float):
-            return cls._float_feature(value)
+            return self._float_feature(value)
         else:
-            return cls._bytes_feature(value)
+            return self._bytes_feature(value)
 
-    @classmethod
-    def _bytes_feature(cls, value):
+    def _bytes_feature(self, value):
         """Returns a bytes_list from a string / byte."""
         if value is None:
             value = ""
         if isinstance(value, str):
             value = value.encode()
-        return cls._tf.train.Feature(bytes_list=cls._tf.train.BytesList(value=[value]))
+        return self._tf.train.Feature(bytes_list=self._tf.train.BytesList(value=[value]))
 
-    @classmethod
-    def _float_feature(cls, value):
+    def _float_feature(self, value):
         """Returns a float_list from a float / double."""
-        return cls._tf.train.Feature(float_list=cls._tf.train.FloatList(value=[value]))
+        return self._tf.train.Feature(float_list=self._tf.train.FloatList(value=[value]))
 
-    @classmethod
-    def _int64_feature(cls, value):
+    def _int64_feature(self, value):
         """Returns an int64_list from a bool / enum / int / uint."""
-        return cls._tf.train.Feature(int64_list=cls._tf.train.Int64List(value=[value]))
+        return self._tf.train.Feature(int64_list=self._tf.train.Int64List(value=[value]))
 
 
 class FilesSampleWriter:
