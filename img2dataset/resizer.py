@@ -112,7 +112,9 @@ class Resizer:
                 return img_stream.read(), None, None, None, None, None
             with SuppressStdoutStderr():
                 cv2.setNumThreads(1)
+                img_stream.seek(0)
                 encode_needed = imghdr.what(img_stream) != "jpeg" if self.skip_reencode else True
+                img_stream.seek(0)
                 img_buf = np.frombuffer(img_stream.read(), np.uint8)
                 img = cv2.imdecode(img_buf, cv2.IMREAD_UNCHANGED)
                 if img is None:
