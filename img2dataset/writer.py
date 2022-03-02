@@ -147,7 +147,7 @@ class TFRecordSampleWriter:
         """Write a sample using tfrecord writer"""
         if img_str is not None:
             sample = {
-                "__key__": self._bytes_feature(key.encode()),
+                "key": self._bytes_feature(key.encode()),
                 "jpg": self._bytes_feature(img_str),
             }
             if self.save_caption:
