@@ -315,7 +315,7 @@ You can use `make black` to reformat the code
 ### 10000 image benchmark
 
 ```
-cd tests
+cd tests/test_files
 bash benchmark.sh
 ```
 
