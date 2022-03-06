@@ -142,21 +142,29 @@ parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless l
 put in same VPC and security group and allow inbound
 
 on master:
+```bash
 sudo sh -c 'echo `hostname -I` `hostname` >> /etc/hosts'
+```
 
 on workers
+```bash
 parallel-ssh -l $USER -i -h  ips.txt  "sudo sh -c 'echo \`hostname -I\` \`hostname\` >> /etc/hosts'"
+```
 
 
 ### [Optional] install knot resolver
 
+```bash
 parallel-ssh -l $USER -i -h  ips.txt "sudo apt update && sudo apt install libgl1 htop tmux bwm-ng python3.8-venv awscli -y"
 parallel-ssh -l $USER -i -h  ips.txt "wget https://secure.nic.cz/files/knot-resolver/knot-resolver-release.deb && sudo dpkg -i knot-resolver-release.deb && sudo apt update && sudo apt install -y knot-resolver"
+```
 
+```bash
 parallel-ssh -l $USER -i -h  ips.txt "sudo systemctl stop systemd-resolved"
 parallel-ssh -l $USER -i -h  ips.txt "sudo systemctl start kresd@{1..4}.service"
 parallel-ssh -l $USER -i -h  ips.txt 'sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"'
 parallel-ssh -l $USER -i -h  ips.txt 'dig @localhost google.com'
+```
 
 ##### [Optional] swap disk
 
@@ -218,8 +226,10 @@ done
 
 ##### Download spark on workers
 
+```bash
 parallel-ssh -l $USER -i -h  ips.txt  "wget https://archive.apache.org/dist/spark/spark-3.2.0/spark-3.2.0-bin-hadoop3.2.tgz"
 parallel-ssh -l $USER -i -h  ips.txt  "tar xf spark-3.2.0-bin-hadoop3.2.tgz"
+```
 
 #### Start the master node
 
