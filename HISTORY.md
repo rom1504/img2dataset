@@ -1,3 +1,7 @@
+## 1.26.0
+
+* add tfrecord output format (thanks @borisdayma)
+
 ## 1.25.6
 
 * fix an interaction between md5 and exif option
