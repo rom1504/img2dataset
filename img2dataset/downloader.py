@@ -2,7 +2,7 @@
 
 from multiprocessing.pool import ThreadPool
 from threading import Semaphore
-import urllib.request
+import requests
 import io
 import math
 import exifread
@@ -18,17 +18,27 @@ from .logger import write_stats
 
 
 def download_image(row, timeout):
-    """Download an image with urllib"""
+    """Download an image with requests"""
     key, url = row
     img_stream = None
     try:
-        request = urllib.request.Request(
+        request = requests.get(
             url,
             data=None,
             headers={"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"},
+            timeout=timeout,
+            stream=True,
         )
-        with urllib.request.urlopen(request, timeout=timeout) as r:
-            img_stream = io.BytesIO(r.read())
+        if request.status_code != 200:
+            return key, None, "HTTP status code {}".format(request.status_code)
+        start_time = time.time()
+        img_stream = io.BytesIO()
+        for chunk in request.iter_content(chunk_size=1024):
+            # append to the image stream
+            img_stream.write(chunk)
+            # check if it was too long
+            if time.time() - start_time > timeout:
+                return key, None, "Timeout during reading"
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
