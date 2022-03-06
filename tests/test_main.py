@@ -85,6 +85,7 @@ def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_re
         ["parquet", "webdataset"],
         ["parquet", "parquet"],
         ["parquet", "dummy"],
+        ["parquet", "tfrecord"],
     ],
 )
 def test_download_input_format(input_format, output_format, tmp_path):
@@ -157,6 +158,11 @@ def test_download_input_format(input_format, output_format, tmp_path):
     elif output_format == "dummy":
         l = [x for x in glob.glob(image_folder_name + "/*") if not x.endswith(".json")]
         assert len(l) == 0
+    elif output_format == "tfrecord":
+        l = glob.glob(image_folder_name + "/*.tfrecord")
+        assert len(l) == 1
+        if l[0] != image_folder_name + "/00000.tfrecord":
+            raise Exception(l[0] + " is not 00000.tfrecord")
 
 
 @pytest.mark.parametrize(

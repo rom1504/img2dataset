@@ -1,4 +1,10 @@
-from img2dataset.writer import FilesSampleWriter, WebDatasetSampleWriter, ParquetSampleWriter, DummySampleWriter
+from img2dataset.writer import (
+    FilesSampleWriter,
+    WebDatasetSampleWriter,
+    ParquetSampleWriter,
+    DummySampleWriter,
+    TFRecordSampleWriter,
+)
 
 import os
 import glob
@@ -9,7 +15,7 @@ import pandas as pd
 import pyarrow as pa
 
 
-@pytest.mark.parametrize("writer_type", ["files", "webdataset", "parquet", "dummy"])
+@pytest.mark.parametrize("writer_type", ["files", "webdataset", "parquet", "dummy", "tfrecord"])
 def test_writer(writer_type, tmp_path):
     current_folder = os.path.dirname(__file__)
     test_folder = str(tmp_path)
@@ -30,13 +36,18 @@ def test_writer(writer_type, tmp_path):
         ]
     )
     if writer_type == "files":
-        writer = FilesSampleWriter(0, output_folder, True, 5, schema)
+        writer_class = FilesSampleWriter
     elif writer_type == "webdataset":
-        writer = WebDatasetSampleWriter(0, output_folder, True, 5, schema)
+        writer_class = WebDatasetSampleWriter
     elif writer_type == "parquet":
-        writer = ParquetSampleWriter(0, output_folder, True, 5, schema)
+        writer_class = ParquetSampleWriter
     elif writer_type == "dummy":
-        writer = DummySampleWriter(0, output_folder, True, 5, schema)
+        writer_class = DummySampleWriter
+    elif writer_type == "tfrecord":
+        writer_class = TFRecordSampleWriter
+
+    writer = writer_class(0, output_folder, True, 5, schema)
+
     for i, image_path in enumerate(image_paths):
         with open(image_path, "rb") as f:
             img_str = f.read()
@@ -106,3 +117,8 @@ def test_writer(writer_type, tmp_path):
     elif writer_type == "dummy":
         l = glob.glob(output_folder + "/*")
         assert len(l) == 0
+    elif writer_type == "tfrecord":
+        l = glob.glob(output_folder + "/*.tfrecord")
+        assert len(l) == 1
+        if l[0] != output_folder + "/00000.tfrecord":
+            raise Exception(l[0] + " is not 00000.tfrecord")
