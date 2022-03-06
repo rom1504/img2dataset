@@ -22,7 +22,7 @@ Other providers probably work too but haven't been tested.
 ### You already got a cluster
 
 That option is of course the best. If you have an existing on-premise cluster, or you're using a cloud cluster like amazon emr, then you're all set, go directly to the use img2dataset section.
-You may want to put https://github.com/rom1504/img2dataset/releases/download/1.22.3/img2dataset.pex in a place that is available to all your nodes.
+You may want to put https://github.com/rom1504/img2dataset/releases/latest/download/img2dataset.pex in a place that is available to all your nodes.
 
 ### You don't have a cluster, but you have access to N machines over ssh
 
@@ -53,7 +53,7 @@ tar xf spark-3.2.0-bin-hadoop3.2.tgz
 
 Then download img2dataset:
 ```bash
-wget https://github.com/rom1504/img2dataset/releases/download/1.24.0/img2dataset.pex -O img2dataset.pex
+wget https://github.com/rom1504/img2dataset/releases/latest/download/img2dataset.pex -O img2dataset.pex
 ```
 
 Pick an output folder and link it to a fixed place (should be the same location as in worker nodes):
@@ -180,7 +180,7 @@ parallel-ssh -l $USER -i -h  ips.txt  "sudo swapon /home/$USER/swapfile.img"
 
 Download img2dataset on all node by retrying this N times until parallel ssh says success for all:
 ```bash
-parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/releases/download/1.25.1/img2dataset.pex -O img2dataset_new.pex"
+parallel-ssh -i -h ips.txt  "wget -c https://github.com/rom1504/img2dataset/releases/latest/download/img2dataset.pex -O img2dataset_new.pex"
 ```
 Then:
 ```bash
