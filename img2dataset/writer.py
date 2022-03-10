@@ -98,6 +98,7 @@ class WebDatasetSampleWriter:
         self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
 
     def write(self, img_str, key, caption, meta):
+        """write sample to tars"""
         if img_str is not None:
             sample = {"__key__": key, "jpg": img_str}
             if self.save_caption:
@@ -226,6 +227,10 @@ class FilesSampleWriter:
                 with self.fs.open(caption_filename, "w") as f:
                     f.write(str(caption))
 
+            # some meta data may not be JSON serializable
+            for k, v in meta.items():
+                if isinstance(v, np.ndarray):
+                    meta[k] = v.tolist()
             j = json.dumps(meta, indent=4)
             meta_filename = f"{self.subfolder}/{key}.json"
             with self.fs.open(meta_filename, "w") as f:
