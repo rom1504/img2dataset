@@ -6,6 +6,7 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 import fsspec
 import os
+import numpy as np
 
 
 class BufferedParquetWriter:
@@ -101,6 +102,10 @@ class WebDatasetSampleWriter:
             sample = {"__key__": key, "jpg": img_str}
             if self.save_caption:
                 sample["txt"] = str(caption) if caption is not None else ""
+            # some meta data may not be JSON serializable
+            for k, v in meta.items():
+                if isinstance(v, np.ndarray):
+                    meta[k] = v.tolist()
             sample["json"] = json.dumps(meta, indent=4)
             self.tarwriter.write(sample)
         self.buffered_parquet_writer.write(meta)
