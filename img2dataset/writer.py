@@ -30,7 +30,7 @@ class BufferedParquetWriter:
         self.current_buffer_size += 1
 
     def write(self, sample):
-        if len(self.buffer) >= self.buffer_size:
+        if self.current_buffer_size >= self.buffer_size:
             self.flush()
         self._add_sample_to_buffer(sample)
 
