@@ -20,6 +20,7 @@ Example of datasets to download with example commands are available in the [data
 * [cc3m](dataset_examples/cc3m.md) 3M image/text pairs that can be downloaded in one hour
 * [cc12m](dataset_examples/cc12m.md) 12M image/text pairs that can be downloaded in five hour
 * [laion400m](dataset_examples/laion400m.md) 400M image/text pairs that can be downloaded in 3.5 days
+* [laion5B](dataset_examples/laion5B.md) 5B image/text pairs that can be downloaded in 7 days using 10 nodes
 
 For all these examples, you may want to tweak the resizing to your preferences. The default is 256x256 with white borders.
 See options below.
