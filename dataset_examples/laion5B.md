@@ -7,6 +7,23 @@ See https://laion.ai/laion-5b-a-new-era-of-open-large-scale-multi-modal-datasets
 
 Download from https://huggingface.co/datasets/laion/laion2B-en https://huggingface.co/datasets/laion/laion2B-multi https://huggingface.co/datasets/laion/laion1B-nolang
 
+```
+mkdir laion2B-en && cd laion2B-en
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-en/resolve/main/part-$i-5114fd87-297e-42b0-9d11-50f1df323dfa-c000.snappy.parquet; done
+cd ..
+```
+
+```
+mkdir laion2B-multi && cd laion2B-multi
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-multi/resolve/main/part-$i-fc82da14-99c9-4ff6-ab6a-ac853ac82819-c000.snappy.parquet; done
+cd ..
+```
+
+```
+mkdir laion1B-nolang && cd laion1B-nolang
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion1B-nolang/resolve/main/part-$i-d6a94da9-d368-4d5b-9ab7-3f6d3c7abdb3-c000.snappy.parquet; done
+```
+
 
 ### Download the images
 
