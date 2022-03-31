@@ -1,10 +1,11 @@
 ## Laion5B
 
 Laion5B has 5.86B samples
+See https://laion.ai/laion-5b-a-new-era-of-open-large-scale-multi-modal-datasets/ and https://rom1504.medium.com/semantic-search-at-billions-scale-95f21695689a for details. 
 
 ### Download the metadata
 
-Download from ...
+Download from https://huggingface.co/datasets/laion/laion2B-en https://huggingface.co/datasets/laion/laion2B-multi https://huggingface.co/datasets/laion/laion1B-nolang
 
 
 ### Download the images
