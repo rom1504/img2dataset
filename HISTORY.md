@@ -1,3 +1,7 @@
+## 1.27.4
+
+* use 2022.1.0 of fsspec for python3.6
+
 ## 1.27.3
 
 * fix fsspec version
