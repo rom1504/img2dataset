@@ -1,3 +1,7 @@
+## 1.27.2
+
+* fix fsspec version
+
 ## 1.27.1
 
 * add gcsfs to pex
