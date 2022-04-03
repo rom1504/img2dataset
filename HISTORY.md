@@ -1,3 +1,8 @@
+## 1.27.0
+
+* buffered writer fix: release ram more often
+* feat: accept numpy arrays (thanks @borisdayma)
+
 ## 1.26.0
 
 * add tfrecord output format (thanks @borisdayma)
