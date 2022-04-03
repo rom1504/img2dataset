@@ -1,3 +1,7 @@
+## 1.27.1
+
+* add gcsfs to pex
+
 ## 1.27.0
 
 * buffered writer fix: release ram more often
