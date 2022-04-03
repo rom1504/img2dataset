@@ -108,6 +108,8 @@ class Reader:
                         time.sleep(1)
                     else:
                         raise e
+            # can't reach here
+            raise Exception("Failed to write to file.")
 
         for i in range(10):
             shards = []

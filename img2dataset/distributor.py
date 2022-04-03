@@ -6,12 +6,17 @@ from itertools import islice, chain
 
 
 def multiprocessing_distributor(
-    processes_count, downloader, reader, _,
+    processes_count,
+    downloader,
+    reader,
+    _,
 ):
     """Distribute the work to the processes using multiprocessing"""
     ctx = get_context("spawn")
     with ctx.Pool(processes_count, maxtasksperchild=5) as process_pool:
-        for _ in tqdm(process_pool.imap_unordered(downloader, reader),):
+        for _ in tqdm(
+            process_pool.imap_unordered(downloader, reader),
+        ):
             pass
 
         process_pool.terminate()
@@ -20,7 +25,10 @@ def multiprocessing_distributor(
 
 
 def pyspark_distributor(
-    processes_count, downloader, reader, subjob_size,
+    processes_count,
+    downloader,
+    reader,
+    subjob_size,
 ):
     """Distribute the work to the processes using pyspark"""
 

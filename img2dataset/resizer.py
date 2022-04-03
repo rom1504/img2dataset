@@ -20,10 +20,10 @@ _INTER_STR_TO_CV2 = dict(
 
 
 class ResizeMode(Enum):
-    no = 0
-    keep_ratio = 1
-    center_crop = 2
-    border = 3
+    no = 0  # pylint: disable=invalid-name
+    keep_ratio = 1  # pylint: disable=invalid-name
+    center_crop = 2  # pylint: disable=invalid-name
+    border = 3  # pylint: disable=invalid-name
 
 
 # thanks https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions

@@ -8,7 +8,16 @@ import sys
 
 def spawn_and_wait_server():
     port = f"123{sys.version_info.minor}"
-    process = subprocess.Popen([sys.executable, "-m", "uvicorn", "tests.http_server:app", "--port", str(port),])
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "tests.http_server:app",
+            "--port",
+            str(port),
+        ]
+    )
     while True:
         try:
             urllib.request.urlopen(f"http://localhost:{port}")

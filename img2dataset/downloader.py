@@ -46,9 +46,11 @@ def download_image_with_retry(row, timeout, retries):
 
 
 def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
-    true_key = (10 ** oom_sample_per_shard) * shard_id + key
+    true_key = (10**oom_sample_per_shard) * shard_id + key
     key_format = oom_sample_per_shard + oom_shard_count
-    str_key = "{true_key:0{key_format}d}".format(key_format=key_format, true_key=true_key)
+    str_key = "{true_key:0{key_format}d}".format(  # pylint: disable=consider-using-f-string
+        key_format=key_format, true_key=true_key
+    )
     return str_key
 
 
@@ -84,7 +86,8 @@ class Downloader:
         self.retries = retries
 
     def __call__(
-        self, row,
+        self,
+        row,
     ):
         try:
             return self.download_shard(row)
@@ -94,7 +97,8 @@ class Downloader:
             return (False, 0, 0, 0, 0, 0, None)
 
     def download_shard(
-        self, row,
+        self,
+        row,
     ):
         """Function to start an image downloading in one process"""
 
@@ -140,19 +144,24 @@ class Downloader:
 
         def data_generator():
             for e in key_url_list:
-                semaphore.acquire()
+                semaphore.acquire()  # pylint: disable=consider-using-with
                 yield e
 
         loader = data_generator()
 
         # give schema to writer
         sample_writer = self.sample_writer_class(
-            shard_id, self.output_folder, self.save_caption, self.oom_shard_count, schema
+            shard_id,
+            self.output_folder,
+            self.save_caption,
+            self.oom_shard_count,
+            schema,
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
-                lambda x: download_image_with_retry(x, timeout=self.timeout, retries=self.retries), loader
+                lambda x: download_image_with_retry(x, timeout=self.timeout, retries=self.retries),
+                loader,
             ):
                 try:
                     _, sample_data = shard_to_dl[key]
@@ -177,12 +186,22 @@ class Downloader:
                         status_dict.increment(error_message)
                         meta["status"] = status
                         sample_writer.write(
-                            None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
+                            None,
+                            str_key,
+                            sample_data[caption_indice] if caption_indice is not None else None,
+                            meta,
                         )
                         semaphore.release()
                         continue
                     img_stream.seek(0)
-                    (img, width, height, original_width, original_height, error_message,) = self.resizer(img_stream)
+                    (
+                        img,
+                        width,
+                        height,
+                        original_width,
+                        original_height,
+                        error_message,
+                    ) = self.resizer(img_stream)
                     if error_message is not None:
                         failed_to_resize += 1
                         status = "failed_to_resize"
@@ -190,7 +209,10 @@ class Downloader:
                         meta["status"] = status
                         meta["error_message"] = error_message
                         sample_writer.write(
-                            None, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta
+                            None,
+                            str_key,
+                            sample_data[caption_indice] if caption_indice is not None else None,
+                            meta,
                         )
                         img_stream.close()
                         del img_stream
@@ -227,7 +249,10 @@ class Downloader:
                     del img_stream
 
                     sample_writer.write(
-                        img, str_key, sample_data[caption_indice] if caption_indice is not None else None, meta,
+                        img,
+                        str_key,
+                        sample_data[caption_indice] if caption_indice is not None else None,
+                        meta,
                     )
                 except Exception as err:  # pylint: disable=broad-except
                     traceback.print_exc()
