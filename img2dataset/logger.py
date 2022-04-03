@@ -13,7 +13,7 @@ import traceback
 class CappedCounter:
     """Maintain a counter with a capping to avoid memory issues"""
 
-    def __init__(self, max_size=10 ** 5):
+    def __init__(self, max_size=10**5):
         self.max_size = max_size
         self.counter = Counter()
 
@@ -37,7 +37,7 @@ class CappedCounter:
         return self.counter
 
     @classmethod
-    def load(cls, d, max_size=10 ** 5):
+    def load(cls, d, max_size=10**5):
         c = CappedCounter(max_size)
         c.counter = Counter(d)
         return c
@@ -183,7 +183,9 @@ def write_stats(
         "status_dict": status_dict.dump(),
     }
     fs, output_path = fsspec.core.url_to_fs(output_folder)
-    shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+    shard_name = "{shard_id:0{oom_shard_count}d}".format(  # pylint: disable=consider-using-f-string
+        shard_id=shard_id, oom_shard_count=oom_shard_count
+    )
     json_file = f"{output_path}/{shard_name}_stats.json"
     with fs.open(json_file, "w") as f:
         json.dump(stats, f, indent=4)

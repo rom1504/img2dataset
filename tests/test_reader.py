@@ -15,11 +15,19 @@ def current_memory_usage():
 
 
 @pytest.mark.parametrize(
-    "input_format", ["txt", "csv", "tsv", "tsv.gz", "json", "parquet",],
+    "input_format",
+    [
+        "txt",
+        "csv",
+        "tsv",
+        "tsv.gz",
+        "json",
+        "parquet",
+    ],
 )
 def test_reader(input_format, tmp_path):
     """Tests whether Reader class works as expected."""
-    expected_count = 10 ** 5 + 5312
+    expected_count = 10**5 + 5312
     test_folder = str(tmp_path)
     test_list = setup_fixtures(count=expected_count)
     prefix = input_format + "_"

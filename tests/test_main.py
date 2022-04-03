@@ -230,7 +230,13 @@ def test_download_multiple_input_files(input_format, output_format, tmp_path):
 
 
 @pytest.mark.parametrize(
-    "save_caption, output_format", [[True, "files"], [False, "files"], [True, "webdataset"], [False, "webdataset"],],
+    "save_caption, output_format",
+    [
+        [True, "files"],
+        [False, "files"],
+        [True, "webdataset"],
+        [False, "webdataset"],
+    ],
 )
 def test_captions_saving(save_caption, output_format, tmp_path):
     test_folder = str(tmp_path)
@@ -332,7 +338,11 @@ def test_relative_path(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "distributor", ["multiprocessing", "pyspark",],
+    "distributor",
+    [
+        "multiprocessing",
+        "pyspark",
+    ],
 )
 def test_distributors(distributor, tmp_path):
     test_folder = str(tmp_path)

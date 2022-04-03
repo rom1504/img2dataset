@@ -57,7 +57,9 @@ class ParquetSampleWriter:
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
         self.oom_shard_count = oom_shard_count
         schema = schema.append(pa.field("jpg", pa.binary()))
-        shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+        shard_name = "{shard_id:0{oom_shard_count}d}".format(  # pylint: disable=consider-using-f-string
+            shard_id=shard_id, oom_shard_count=oom_shard_count
+        )
         output_file = f"{output_folder}/{shard_name}.parquet"
         self.buffered_parquet_writer = BufferedParquetWriter(output_file, schema, 100)
         self.save_caption = save_caption
@@ -84,7 +86,9 @@ class WebDatasetSampleWriter:
 
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
         self.oom_shard_count = oom_shard_count
-        shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+        shard_name = "{shard_id:0{oom_shard_count}d}".format(  # pylint: disable=consider-using-f-string
+            shard_id=shard_id, oom_shard_count=oom_shard_count
+        )
         self.shard_id = shard_id
         fs, output_path = fsspec.core.url_to_fs(output_folder)
         self.tar_fd = fs.open(f"{output_path}/{shard_name}.tar", "wb")
@@ -137,7 +141,9 @@ class TFRecordSampleWriter:
             ) from e
 
         self.oom_shard_count = oom_shard_count
-        shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+        shard_name = "{shard_id:0{oom_shard_count}d}".format(  # pylint: disable=consider-using-f-string
+            shard_id=shard_id, oom_shard_count=oom_shard_count
+        )
         self.shard_id = shard_id
         self.tf_writer = TFRecordWriter(f"{output_folder}/{shard_name}.tfrecord")
         self.save_caption = save_caption
@@ -193,7 +199,9 @@ class FilesSampleWriter:
 
     def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
         self.oom_shard_count = oom_shard_count
-        shard_name = "{shard_id:0{oom_shard_count}d}".format(shard_id=shard_id, oom_shard_count=oom_shard_count)
+        shard_name = "{shard_id:0{oom_shard_count}d}".format(  # pylint: disable=consider-using-f-string
+            shard_id=shard_id, oom_shard_count=oom_shard_count
+        )
         self.shard_id = shard_id
         self.fs, self.subfolder = fsspec.core.url_to_fs(f"{output_folder}/{shard_name}")
         if not self.fs.exists(self.subfolder):

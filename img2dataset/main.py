@@ -157,7 +157,10 @@ def download(
         raise ValueError(f"Distributor {distributor} not supported")
 
     distributor_fn(
-        processes_count, downloader, reader, subjob_size,
+        processes_count,
+        downloader,
+        reader,
+        subjob_size,
     )
     logger_process.join()
     fs.rm(tmp_dir, recursive=True)
