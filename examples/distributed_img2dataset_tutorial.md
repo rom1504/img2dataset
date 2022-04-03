@@ -32,11 +32,7 @@ This is actually fairly easy to use this to setup a pyspark cluster. Let's see h
 Tools:
 * spark and pyspark
 * parallel ssh
-* ssh tunnels
 * pex
-
-An additional assumption we will be making is all the nodes are not in the same network, hence we will need to make tunnels.
-If the master and worker nodes are all in the same network, no tunnel will be needed.
 
 We will be assuming ubuntu 20.04.
 
@@ -69,19 +65,6 @@ ssh -L 8080:localhost:8080 -L 4040:localhost:4040 master_node
 
 
 #### Setup the worker nodes
-
-Everything marked as [Optional: Setup a ssh tunnels] in the following section can be skipped if you already have a shared folder (eg s3, hdfs, ...) and nodes can see each other over some network (eg aws vpc, public network, ...)
-
-##### [Optional: Setup a ssh tunnels] setup for reverse ssh
-
-
-We will start many tunnels from the worker nodes, so first increase your sshd parameter in the master node:
-```bash
-sudo vim /etc/ssh/sshd_config 
-MaxSessions 200
-MaxStartups 200:30:200
-sudo service sshd reload
-```
 
 ##### ssh basic setup
 
@@ -137,9 +120,7 @@ parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless l
 ```
 
 
-#### [Optional] Network setting on aws
-
-put in same VPC and security group and allow inbound
+#### Network setting
 
 on master:
 ```bash
@@ -152,7 +133,7 @@ parallel-ssh -l $USER -i -h  ips.txt  "sudo sh -c 'echo \`hostname -I\` \`hostna
 ```
 
 
-### [Optional] install knot resolver
+### Install knot resolver
 
 ```bash
 parallel-ssh -l $USER -i -h  ips.txt "sudo apt update && sudo apt install libgl1 htop tmux bwm-ng python3.8-venv awscli -y"
@@ -164,15 +145,6 @@ parallel-ssh -l $USER -i -h  ips.txt "sudo systemctl stop systemd-resolved"
 parallel-ssh -l $USER -i -h  ips.txt "sudo systemctl start kresd@{1..4}.service"
 parallel-ssh -l $USER -i -h  ips.txt 'sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"'
 parallel-ssh -l $USER -i -h  ips.txt 'dig @localhost google.com'
-```
-
-##### [Optional] swap disk
-
-Optionally you may want to create a swap disk if you don't have a lot of ram in the worker nodes:
-```bash
-parallel-ssh -l $USER -i -h   ips.txt  "dd if=/dev/zero of=/home/$USER/swapfile.img bs=1024 count=5M"
-parallel-ssh -l $USER -i -h   ips.txt  "mkswap /home/$USER/swapfile.img"
-parallel-ssh -l $USER -i -h  ips.txt  "sudo swapon /home/$USER/swapfile.img"
 ```
 
 
@@ -188,42 +160,6 @@ parallel-ssh -l $USER -i -h  ips.txt  "mv img2dataset_new.pex img2dataset.pex"
 parallel-ssh -l $USER -i -h  ips.txt  "chmod +x img2dataset.pex"
 ```
 
-##### [Optional: Setup a ssh tunnels] Creating the tunnels and mounting the shared output folder
-
-For this step, we will need to let the workers connect to the master node in order to establish sshfs, so do it by allowing them to ssh to your master node:
-
-first create a key in a worker with ssh-keygen, and put it on all workers (with scp and parallel-scp):
-```bash
-FIRST_IP=`head -1 ips.txt`
-ssh $USER@$FIRST_IP "ssh-keygen -t rsa -N ''"
-scp $USER@$FIRST_IP:.ssh/id_rsa.pub first_ip_rsa.pub
-scp $USER@$FIRST_IP:.ssh/id_rsa first_ip_rsa
-parallel-scp -l $USER -i -h ips.txt first_ip_rsa.pub .ssh/id_rsa.pub
-parallel-scp -l $USER -i -h ips.txt first_ip_rsa .ssh/id_rsa
-```
-
-then add it to the authorized keys on the master node::
-```bash
-cat first_ip_rsa.pub >> ~/.ssh/authorized_keys
-```
-
-Then create the location of the mounted folder on the workers:
-```bash
-parallel-ssh -l $USER -i -h  ips.txt  "mkdir -p /tmp/bench"
-```
-
-Start the tunnels (7077 is the main spark master port, 5678 is the driver port, 6678 is the block manager port):
-put this in a start_tunnel.sh and run:
-```bash
-OUTPUT_PATH=/some/output/path
-USER=rom1504
-MASTER_USER=rom1504
-for IP in `cat ips.txt`
-do
-    ssh -R 7077:localhost:7077 -R 5678:localhost:5678 -R 6678:localhost:6678 -R 2300:localhost:22  $USER@$IP "sshfs  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no  -p 2300 $MASTER_USER@localhost:$OUTPUT_PATH /tmp/bench && sleep infinity" &
-done
-```
-
 ##### Download spark on workers
 
 ```bash
@@ -236,10 +172,10 @@ parallel-ssh -l $USER -i -h  ips.txt  "tar xf spark-3.2.0-bin-hadoop3.2.tgz"
 When you're ready, you can start the master node with:
 
 ```bash
-./spark-3.2.0-bin-hadoop3.2/sbin/start-master.sh -h 127.0.0.1 -p 7077
+./spark-3.2.0-bin-hadoop3.2/sbin/start-master.sh -h master_node -p 7077
 ```
 
-Replace 127.0.0.1 by an other IP if your master and workers can see each other over a network.
+Replace master_node by the master node ip.
 
 
 #### Start the worker nodes
@@ -247,10 +183,11 @@ Replace 127.0.0.1 by an other IP if your master and workers can see each other o
 When you're ready, you can start the worker nodes with:
 
 ```bash
-parallel-ssh -l $USER -i -h  ips.txt  "./spark-3.2.0-bin-hadoop3.2/sbin/start-worker.sh -c 2 -m 1G -h 127.0.0.1 spark://127.0.0.1:7077"
+parallel-ssh -l $USER -i -h  ips.txt  "./spark-3.2.0-bin-hadoop3.2/sbin/start-worker.sh -c 16 -m 16G spark://master_node:7077"
 ```
 
-Replace 127.0.0.1 by the master node ip if your master and workers can see each other over a network.
+Replace master_node by the master node ip.
+Replace -c 16 -m 16g but the number of cores and ram you want to use on each worker.
 
 
 #### Stop the worker nodes
@@ -276,11 +213,13 @@ pkill java
 ### Running img2dataset on it
 
 Once your spark cluster is setup, you're ready to start img2dataset in distributed mode.
-Make sure to open your spark UI, at http://localhost:8080 (or the ip where the master node is running)
+Make sure to open your spark UI, at http://master_node:8080
 
 Save this script to download.py.
 
 Then run ./img2dataset.pex download.py
+
+Replace master_node by the master node ip.
 
 ```python
 from img2dataset import download
@@ -300,16 +239,16 @@ def create_spark_session():
         .config("spark.submit.deployMode", "client") \
         #.config("spark.files", pex_file) \ # you may choose to uncomment this option if you want spark to automatically download the pex file, but it may be slow
         .config("spark.executorEnv.PEX_ROOT", "./.pex")
-        .config("spark.executor.cores", "2")
-        .config("spark.cores.max", "200") # you can reduce this number if you want to use only some cores ; if you're using yarn the option name is different, check spark doc
+        #.config("spark.executor.cores", "2")
+        #.config("spark.cores.max", "200") # you can reduce this number if you want to use only some cores ; if you're using yarn the option name is different, check spark doc
         .config("spark.driver.port", "5678")
         .config("spark.driver.blockManager.port", "6678")
-        .config("spark.driver.host", "127.0.0.1")
-        .config("spark.driver.bindAddress", "127.0.0.1")
-        .config("spark.executor.memory", "800M") # make sure to increase this if you're using more cores per executor
-        .config("spark.executor.memoryOverhead", "300M")
+        .config("spark.driver.host", "master_node")
+        .config("spark.driver.bindAddress", "master_node")
+        .config("spark.executor.memory", "16GB") # make sure to increase this if you're using more cores per executor
+        .config("spark.executor.memoryOverhead", "8GB")
         .config("spark.task.maxFailures", "100")
-        .master("spark://127.0.0.1:7077") # this should point to your master node, if using the tunnelling version, keep this to localhost
+        .master("spark://master_node:7077") # this should point to your master node, if using the tunnelling version, keep this to localhost
         .appName("spark-stats")
         .getOrCreate()
     )
