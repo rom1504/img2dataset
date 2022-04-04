@@ -1,10 +1,13 @@
 """Reader is module to read the url list and return shards"""
 
 from multiprocessing.pool import ThreadPool
-import pandas as pd
 import math
 import fsspec
 import time
+import pyarrow.parquet as pq
+import pyarrow.csv as csv_pq
+import pyarrow as pa
+import pandas as pd
 
 
 class Reader:
@@ -60,47 +63,53 @@ class Reader:
     def _save_to_arrow(self, input_file):
         """Read the input file and save to arrow files in a temporary directory"""
         if self.input_format in ["txt", "json", "csv", "tsv"]:
-            with self.fs.open(input_file, encoding="utf-8", mode="r") as file:
-                if self.input_format == "txt":
-                    df = pd.DataFrame([(url.rstrip(),) for url in file.readlines()], columns=self.column_list)
-                elif self.input_format == "json":
-                    df = pd.read_json(file)
-                elif self.input_format == "csv":
-                    df = pd.read_csv(file)
-                elif self.input_format == "tsv":
-                    df = pd.read_table(file)
-        elif self.input_format in ["tsv", "tsv.gz", "parquet"]:
             with self.fs.open(input_file, mode="rb") as file:
-                if self.input_format == "tsv.gz":
-                    df = pd.read_table(file, compression="gzip")
-                elif self.input_format == "parquet":
-                    columns_to_read = [self.url_col]
-                    if self.caption_col is not None:
-                        columns_to_read += [self.caption_col]
-                    if self.save_additional_columns is not None:
-                        columns_to_read += self.save_additional_columns
-                    df = pd.read_parquet(file, columns=columns_to_read)
+                if self.input_format == "txt":
+                    df = csv_pq.read_csv(file, read_options=csv_pq.ReadOptions(column_names=["url"]))
+                elif self.input_format == "json":
+                    df = pa.Table.from_pandas(pd.read_json(file))
+                elif self.input_format == "csv":
+                    df = csv_pq.read_csv(file)
+                elif self.input_format == "tsv":
+                    df = csv_pq.read_csv(file, parse_options=csv_pq.ParseOptions(delimiter="\t"))
+                else:
+                    raise ValueError(f"Unknown input format {self.input_format}")
+        elif self.input_format == "tsv.gz":
+            with self.fs.open(input_file, encoding="utf-8", mode="rb", compression="gzip") as file:
+                df = csv_pq.read_csv(file, parse_options=csv_pq.ParseOptions(delimiter="\t"))
+        elif self.input_format == "parquet":
+            with self.fs.open(input_file, mode="rb") as file:
+                columns_to_read = [self.url_col]
+                if self.caption_col is not None:
+                    columns_to_read += [self.caption_col]
+                if self.save_additional_columns is not None:
+                    columns_to_read += self.save_additional_columns
+                df = pq.read_table(file, columns=columns_to_read)
         else:
-            assert False, f"Unexpected input format ({self.input_format})."
+            raise ValueError(f"Unknown input format {self.input_format}")
 
-        df = df.rename(columns={self.caption_col: "caption", self.url_col: "url"})
-        df = df.where(pd.notnull(df), None)
+        column_names = df.column_names
+        if self.caption_col is not None:
+            column_names = [c if c != self.caption_col else "caption" for c in column_names]
+        column_names = [c if c != self.url_col else "url" for c in column_names]
 
-        number_samples = len(df)
+        df = df.rename_columns(column_names)
 
-        number_shards = math.ceil(len(df) / self.number_sample_per_shard)
+        number_samples = df.num_rows
+
+        number_shards = math.ceil(df.num_rows / self.number_sample_per_shard)
 
         def write_shard(shard_id):
             begin_shard = shard_id * self.number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * self.number_sample_per_shard)
-            df_shard = df[begin_shard:end_shard][self.column_list]
-            df_shard = df_shard.reset_index(drop=True)
+            df_shard = df.slice(begin_shard, end_shard - begin_shard).select(self.column_list)
             tmp_file = self.tmp_path + f"/{shard_id + self.start_shard_id}.feather"
             for i in range(10):
                 try:
                     fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
                     with fs.open(tmp_path, "wb") as file:
-                        df_shard.to_feather(file)
+                        with pa.ipc.new_file(file, df_shard.schema) as writer:
+                            writer.write_table(df_shard)
                     return (shard_id, tmp_file)
                 except Exception as e:  # pylint: disable=broad-except
                     if i != 9:
