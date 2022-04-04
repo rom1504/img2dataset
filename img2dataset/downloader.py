@@ -9,7 +9,6 @@ import exifread
 import json
 import time
 import hashlib
-import pandas as pd
 import pyarrow as pa
 import traceback
 
@@ -107,9 +106,8 @@ class Downloader:
 
         fs, shard_path = fsspec.core.url_to_fs(shard_file)
         with fs.open(shard_path, "rb") as f:
-            df = pd.read_feather(f)
-        schema = pa.Schema.from_pandas(df)
-        schema = schema.remove_metadata()
+            df = pa.ipc.open_file(f).read_all()
+        schema = df.schema
         schema = (
             schema.append(pa.field("key", pa.string()))
             .append(pa.field("status", pa.string()))
@@ -125,7 +123,9 @@ class Downloader:
         if self.compute_md5:
             schema = schema.append(pa.field("md5", pa.string()))
 
-        shard_to_dl = list(enumerate(df[self.column_list].to_records(index=False).tolist()))
+        pydict = df.select(self.column_list).to_pydict()
+        shard_to_dl = list(enumerate(zip(*(pydict[col] for col in self.column_list))))
+        del pydict
         del df
 
         status_dict = CappedCounter()
