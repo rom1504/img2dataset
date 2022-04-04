@@ -1,3 +1,7 @@
+## 1.28.0
+
+* use pyarrow in the reader to make it much faster
+
 ## 1.27.4
 
 * use 2022.1.0 of fsspec for python3.6
