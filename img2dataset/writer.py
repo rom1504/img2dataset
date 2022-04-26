@@ -1,6 +1,6 @@
 """"writer module handle writing the images to disk"""
 
-import webdataset as wds
+from webdataset.writer import TarWriter
 import json
 import pyarrow.parquet as pq
 import pyarrow as pa
@@ -93,7 +93,7 @@ class WebDatasetSampleWriter:
         self.shard_id = shard_id
         fs, output_path = fsspec.core.url_to_fs(output_folder)
         self.tar_fd = fs.open(f"{output_path}/{shard_name}.tar", "wb")
-        self.tarwriter = wds.TarWriter(self.tar_fd)
+        self.tarwriter = TarWriter(self.tar_fd)
         self.save_caption = save_caption
         self.buffered_parquet_writer = BufferedParquetWriter(output_folder + "/" + shard_name + ".parquet", schema, 100)
 
