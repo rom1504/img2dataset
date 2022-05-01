@@ -109,6 +109,11 @@ parallel-ssh -l $USER -i -h  ips.txt uname -a
 ##### Install some packages
 
 ```bash
+sudo apt update
+sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs -y
+```
+
+```bash
 parallel-ssh -l $USER -i -h  ips.txt "sudo apt update"
 parallel-ssh -l $USER -i -h  ips.txt "sudo apt install openjdk-11-jre-headless libgl1 htop tmux bwm-ng sshfs -y"
 ```

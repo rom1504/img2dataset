@@ -5,6 +5,8 @@ See https://laion.ai/laion-5b-a-new-era-of-open-large-scale-multi-modal-datasets
 
 ### Download the metadata
 
+#### Normal
+
 Download from https://huggingface.co/datasets/laion/laion2B-en https://huggingface.co/datasets/laion/laion2B-multi https://huggingface.co/datasets/laion/laion1B-nolang
 
 ```
@@ -24,6 +26,39 @@ mkdir laion1B-nolang && cd laion1B-nolang
 for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion1B-nolang/resolve/main/part-$i-d6a94da9-d368-4d5b-9ab7-3f6d3c7abdb3-c000.snappy.parquet; done
 ```
 
+
+#### Joined: with punsafe and pwatermark
+
+You may also choose to download the joined collection that include the pwatermark and punsafe fields:
+https://huggingface.co/datasets/laion/laion2B-en-joined https://huggingface.co/datasets/laion/laion2B-multi-joined https://huggingface.co/datasets/laion/laion1B-nolang-joined
+
+```
+mkdir laion2B-en && cd laion2B-en
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-en-joined/resolve/main/part-$i-4cfd6e30-f032-46ee-9105-8696034a8373-c000.snappy.parquet; done
+cd ..
+```
+
+```
+mkdir laion2B-multi && cd laion2B-multi
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-multi-joined/resolve/main/part-$i-fcd86c9b-36f4-49ff-bea1-8c9a0e029fb7-c000.snappy.parquet; done
+cd ..
+```
+
+```
+mkdir laion1B-nolang && cd laion1B-nolang
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion1B-nolang-joined/resolve/main/part-$i-4852663c-9585-44b0-9a45-f95c2b89c792-c000.snappy.parquet; done
+```
+
+#### Saving to aws
+
+If instead of saving to a local folder you prefer saving on eg aws, you may use commands like this:
+```
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-en-joined/resolve/main/part-$i-4cfd6e30-f032-46ee-9105-8696034a8373-c000.snappy.parquet -O - | aws s3 cp - s3://laion5b/metadata/laion2B-en-joined/part-$i-4cfd6e30-f032-46ee-9105-8696034a8373-c000.snappy.parquet; done
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-multi-joined/resolve/main/part-$i-fcd86c9b-36f4-49ff-bea1-8c9a0e029fb7-c000.snappy.parquet -O - | aws s3 cp - s3://laion5b/metadata/laion2B-multi-joined/art-$i-fcd86c9b-36f4-49ff-bea1-8c9a0e029fb7-c000.snappy.parquet; done
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion1B-nolang-joined/resolve/main/part-$i-4852663c-9585-44b0-9a45-f95c2b89c792-c000.snappy.parquet -O - | aws s3 cp - s3://laion5b/metadata/laion1B-nolang-joined/part-$i-4852663c-9585-44b0-9a45-f95c2b89c792-c000.snappy.parquet; done
+```
+
+You may also decide to put a `&` at the end of the line to download all files in parallel. (in this case expand the for loop in multiple lines for bash syntax reasons)
 
 ### Download the images
 
