@@ -52,12 +52,6 @@ Then download img2dataset:
 wget https://github.com/rom1504/img2dataset/releases/latest/download/img2dataset.pex -O img2dataset.pex
 ```
 
-Pick an output folder and link it to a fixed place (should be the same location as in worker nodes):
-```bash
-OUTPUT_FOLDER=some/output/folder
-ln -s $OUTPUT_FOLDER /tmp/bench
-```
-
 If the master node cannot open ports that are visible from your local machine, you can do a tunnel between your local machine and the master node to be able to see the spark ui (at http://localhost:8080)
 ```bash
 ssh -L 8080:localhost:8080 -L 4040:localhost:4040 master_node
