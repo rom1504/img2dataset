@@ -162,6 +162,20 @@ To use it, simply use the prefix of your filesystem before the path. For example
 Some of these file systems require installing an additional package (for example s3fs for s3, gcsfs for gcs).
 See fsspec doc for all the details.
 
+If you need specific configuration for your filesystem, you may handle this problem by using the [fsspec configuration system](https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration) that makes it possible to create a file such as `.config/fsspec/s3.json` and have information in it such as:
+```
+{
+  "s3": {
+    "client_kwargs": {
+            "endpoint_url": "https://some_endpoint",
+            "aws_access_key_id": "your_user",
+           "aws_secret_access_key": "your_password"
+    }
+  }
+}
+```
+Which may be necessary if using s3 compatible file systems such as [minio](https://min.io/). That kind of configuration also work for all other fsspec-supported file systems.
+
 ## Distribution modes
 
 Img2dataset supports several distributors.
