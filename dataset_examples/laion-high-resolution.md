@@ -28,5 +28,7 @@ img2dataset --url_list laion-high-resolution --input_format "parquet"\
 
 ### Benchmark
 
-This can be downloaded at 1300 sample/s so it takes 36h to download with one 16 cores 2Gbps machine.
-The result is 81TB (high resolution images are big!)
+https://wandb.ai/rom1504/img2dataset/reports/laion-high-resolution--VmlldzoxOTY0MzA4
+
+This can be downloaded at 280 sample/s so it takes 7 days to download with one 32 cores 2Gbps machine.
+The result is 50TB (high resolution images are big and slow to download!)
