@@ -59,6 +59,8 @@ class Reader:
                 self.column_list = self.column_list + ["caption", "url"]
             else:
                 self.column_list = self.column_list + ["url"]
+        else:
+            raise ValueError(f"Invalid input format {self.input_format}")
 
     def _save_to_arrow(self, input_file):
         """Read the input file and save to arrow files in a temporary directory"""

@@ -121,6 +121,8 @@ def download(
         sample_writer_class = TFRecordSampleWriter  # type: ignore
     elif output_format == "dummy":
         sample_writer_class = DummySampleWriter  # type: ignore
+    else:
+        raise ValueError(f"Invalid output format {output_format}")
 
     resizer = Resizer(
         image_size=image_size,
