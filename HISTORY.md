@@ -1,3 +1,7 @@
+## 1.30.0
+
+* Implement shard retrying
+
 ## 1.29.0
 
 * Validate input and output format
