@@ -1,3 +1,8 @@
+## 1.29.0
+
+* Validate input and output format
+* Implement incremental mode
+
 ## 1.28.0
 
 * use pyarrow in the reader to make it much faster
