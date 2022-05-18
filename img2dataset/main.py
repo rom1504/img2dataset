@@ -52,6 +52,7 @@ def download(
     retries: int = 0,
     disable_all_reencoding: bool = False,
     incremental_mode: str = "incremental",
+    max_shard_retry: int = 1,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -165,6 +166,7 @@ def download(
         downloader,
         reader,
         subjob_size,
+        max_shard_retry,
     )
     logger_process.join()
     fs.rm(tmp_dir, recursive=True)
