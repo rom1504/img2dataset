@@ -89,11 +89,12 @@ class Downloader:
         row,
     ):
         try:
-            return self.download_shard(row)
+            self.download_shard(row)
+            return (True, row)
         except Exception as err:  # pylint: disable=broad-except
             traceback.print_exc()
             print(f"shard {row[0]} failed with error {err}")
-            return (False, 0, 0, 0, 0, 0, None)
+            return (False, row)
 
     def download_shard(
         self,
