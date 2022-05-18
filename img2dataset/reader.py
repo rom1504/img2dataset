@@ -48,6 +48,8 @@ class Reader:
 
         if fs.isdir(url_path):
             self.input_files = sorted(fs.glob(url_path + "/*." + input_format))
+            if len(self.input_files) == 0:
+                raise Exception("No file found at path {url_path} with extension {input_format}")
         else:
             self.input_files = [url_path]
 
