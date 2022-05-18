@@ -21,7 +21,7 @@ class Reader:
     - caption_col: the column name of the caption
     - save_additional_columns: the list of additional columns to save
     - number_sample_per_shard: the number of samples per shard
-    - start_shard_id: the id of the first shard
+    - done_shards: a set of already done shards
     """
 
     def __init__(
@@ -32,7 +32,7 @@ class Reader:
         caption_col,
         save_additional_columns,
         number_sample_per_shard,
-        start_shard_id,
+        done_shards,
         tmp_path,
     ) -> None:
         self.input_format = input_format
@@ -40,7 +40,7 @@ class Reader:
         self.caption_col = caption_col
         self.save_additional_columns = save_additional_columns
         self.number_sample_per_shard = number_sample_per_shard
-        self.start_shard_id = start_shard_id
+        self.done_shards = done_shards
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
         self.fs = fs
@@ -64,7 +64,7 @@ class Reader:
         else:
             raise ValueError(f"Invalid input format {self.input_format}")
 
-    def _save_to_arrow(self, input_file):
+    def _save_to_arrow(self, input_file, start_shard_id):
         """Read the input file and save to arrow files in a temporary directory"""
         if self.input_format in ["txt", "json", "csv", "tsv"]:
             with self.fs.open(input_file, mode="rb") as file:
@@ -102,19 +102,27 @@ class Reader:
         number_samples = df.num_rows
 
         number_shards = math.ceil(df.num_rows / self.number_sample_per_shard)
+        shards_to_write = [
+            (start_shard_id + shard_id, shard_id)
+            for shard_id in range(number_shards)
+            if start_shard_id + shard_id not in self.done_shards
+        ]
+        if len(shards_to_write) == 0:
+            return []
 
-        def write_shard(shard_id):
+        def write_shard(t):
+            full_shard_id, shard_id = t
             begin_shard = shard_id * self.number_sample_per_shard
             end_shard = min(number_samples, (1 + shard_id) * self.number_sample_per_shard)
             df_shard = df.slice(begin_shard, end_shard - begin_shard).select(self.column_list)
-            tmp_file = self.tmp_path + f"/{shard_id + self.start_shard_id}.feather"
+            tmp_file = self.tmp_path + f"/{full_shard_id}.feather"
             for i in range(10):
                 try:
                     fs, tmp_path = fsspec.core.url_to_fs(tmp_file)
                     with fs.open(tmp_path, "wb") as file:
                         with pa.ipc.new_file(file, df_shard.schema) as writer:
                             writer.write_table(df_shard)
-                    return (shard_id, tmp_file)
+                    return (full_shard_id, tmp_file)
                 except Exception as e:  # pylint: disable=broad-except
                     if i != 9:
                         print("retrying to write to file due to error:", e)
@@ -129,7 +137,7 @@ class Reader:
             # thread pool to make it faster to write files to low latency file systems (ie s3, hdfs)
             try:
                 with ThreadPool(32) as thread_pool:
-                    for shard in thread_pool.imap_unordered(write_shard, range(number_shards)):
+                    for shard in thread_pool.imap_unordered(write_shard, shards_to_write):
                         shards.append(shard)
                 break
             except Exception as e:  # pylint: disable=broad-except
@@ -152,22 +160,20 @@ class Reader:
         shard is a tuple (sample id, sample)
         sample is a tuple of the columns
         """
+        start_shard_id = 0
         for i, input_file in enumerate(self.input_files):
             print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
 
-            shards = self._save_to_arrow(input_file)
+            shards = self._save_to_arrow(input_file, start_shard_id)
             print("File sharded in " + str(len(shards)) + " shards")
             print(
                 "Downloading starting now, check your bandwidth speed (with bwm-ng)"
                 "your cpu (with htop), and your disk usage (with iotop)!"
             )
 
-            num_shard = 0
-            for num_shard, arrow_file in shards:
+            for shard_id, arrow_file in shards:
                 yield (
-                    num_shard + self.start_shard_id,
+                    shard_id,
                     arrow_file,
                 )
-
-                num_shard += 1
-            self.start_shard_id += num_shard
+            start_shard_id += len(shards)
