@@ -20,7 +20,7 @@ build-pex:
 	rm -rf .pexing
 
 test: ## [Local development] Run unit tests
-	python -m pytest -x -s -v tests
+	python -m pytest  -n 2 -x -s -v tests
 
 .PHONY: help
 

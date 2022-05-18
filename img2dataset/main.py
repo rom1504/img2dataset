@@ -79,7 +79,10 @@ def download(
         logger_process.terminate()
         sys.exit(0)
 
-    signal.signal(signal.SIGINT, signal_handler)
+    try:
+        signal.signal(signal.SIGINT, signal_handler)
+    except ValueError:
+        pass
 
     save_caption = caption_col is not None
 
