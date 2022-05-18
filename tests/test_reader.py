@@ -36,8 +36,8 @@ def test_reader(input_format, tmp_path):
     tmp_path = os.path.join(test_folder, prefix + "tmp")
     os.mkdir(tmp_path)
 
-    start_shard_id = 37
-    batch_size = 10000
+    done_shards = [0, 1, 2, 3]
+    batch_size = 1000
     reader = Reader(
         url_list=url_list_name,
         input_format=input_format,
@@ -45,7 +45,7 @@ def test_reader(input_format, tmp_path):
         caption_col=None if input_format == "txt" else "caption",
         save_additional_columns=None,
         number_sample_per_shard=batch_size,
-        start_shard_id=start_shard_id,
+        done_shards=done_shards,
         tmp_path=test_folder,
     )
 
@@ -58,8 +58,9 @@ def test_reader(input_format, tmp_path):
     total_sample_count = 0
     start_time = time.time()
     initial_memory_usage = current_memory_usage()
-    for incremental_shard_id, (shard_id, shard_path) in enumerate(reader):
-        assert incremental_shard_id + start_shard_id == shard_id
+    for i, (shard_id, shard_path) in enumerate(reader):
+        incremental_shard_id = len(done_shards) + i
+        assert incremental_shard_id == shard_id
         shard_df = pd.read_feather(shard_path)
         shard = list(enumerate(shard_df[reader.column_list].to_records(index=False).tolist()))
         total_sample_count += len(shard)
@@ -82,7 +83,7 @@ def test_reader(input_format, tmp_path):
 
     del reader
 
-    assert total_sample_count == expected_count
+    assert total_sample_count == expected_count - batch_size * len(done_shards)
 
     total_time = time.time() - start_time
     print("Total time:", total_time)
