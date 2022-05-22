@@ -23,6 +23,8 @@ for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-e
 cd ..
 ```
 
+Very similar for laion2B-multi and laion1B-nolang
+
 ### Download the images with img2dataset
 
 ```
