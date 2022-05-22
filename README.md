@@ -292,6 +292,11 @@ sudo systemctl start kresd@3.service
 sudo systemctl start kresd@4.service
 ```
 
+Check it works with
+```
+dig @localhost google.com
+```
+
 ### Setting up a bind9 resolver
 
 In order to keep the success rate high, it is necessary to use an efficient DNS resolver.
