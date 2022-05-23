@@ -25,6 +25,13 @@ cd ..
 
 Very similar for laion2B-multi and laion1B-nolang
 
+Example of copy to s3:
+```
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-en-aesthetic/resolve/main/part-$i-9230b837-b1e0-4254-8b88-ed2976e9cee9-c000.snappy.parquet -O - | aws s3 cp - s3://s-laion/laion-aesthetic/metadata/laion2B-en-aesthetic/part-$i-9230b837-b1e0-4254-8b88-ed2976e9cee9-c000.snappy.parquet; done
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion2B-multi-aesthetic/resolve/main/part-$i-41ee6475-31c6-4d39-960e-7dbbe96bc95b-c000.snappy.parquet -O - | aws s3 cp - s3://s-laion/laion-aesthetic/metadata/laion2B-multi-aesthetic/part-$i-41ee6475-31c6-4d39-960e-7dbbe96bc95b-c000.snappy.parquet; done
+for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion1B-nolang-aesthetic/resolve/main/part-$i-604e83c4-a4f2-460a-8aae-1c0fa1d4f6d5-c000.snappy.parquet -O - | aws s3 cp - s3://s-laion/laion-aesthetic/metadata/laion1B-nolang-aesthetic/part-$i-604e83c4-a4f2-460a-8aae-1c0fa1d4f6d5-c000.snappy.parquet; done
+```
+
 ### Download the images with img2dataset
 
 ```
