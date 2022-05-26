@@ -1,3 +1,7 @@
+## 1.30.1
+
+* Bug fix: shard id was incorrect when resuming (thanks @lxj616)
+
 ## 1.30.0
 
 * Implement shard retrying
