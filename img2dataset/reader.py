@@ -151,7 +151,7 @@ class Reader:
 
         del df
 
-        return shards
+        return shards, number_shards
 
     def __iter__(self):
         """
