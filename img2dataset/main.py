@@ -133,7 +133,7 @@ def download(
     if encode_format == "png":
         if encode_quality < 0 or encode_quality > 9:
             raise ValueError(
-                f"For png, encode quality represents png compression which must be between 0 and 9, got {encode_quality}"
+                f"For png, encode quality represents compression which must be between 0 and 9, got {encode_quality}"
             )
 
     resizer = Resizer(
