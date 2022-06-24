@@ -158,9 +158,7 @@ class TFRecordSampleWriter:
                 Features,
                 Feature,
             )
-            from tensorflow.python.lib.io.tf_record import (
-                TFRecordWriter,
-            )  # pylint: disable=import-outside-toplevel
+            from tensorflow.python.lib.io.tf_record import TFRecordWriter  # pylint: disable=import-outside-toplevel
 
             self._BytesList = BytesList  # pylint: disable=invalid-name
             self._Int64List = Int64List  # pylint: disable=invalid-name
