@@ -1,3 +1,7 @@
+## 1.30.2
+
+* Fix error message for incorrect input format 
+
 ## 1.30.1
 
 * Bug fix: shard id was incorrect when resuming (thanks @lxj616)
