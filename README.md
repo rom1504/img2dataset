@@ -105,6 +105,10 @@ This module exposes a single function `download` which takes the same arguments 
 * **upscale_interpolation** kind of upscale interpolation used for resizing (default *"lanczos"*)
 * **downscale_interpolation** kind of downscale interpolation used for resizing (default *"area"*)
 * **encode_quality** encode quality (default *95*)
+* **encode_format** encode format (default *jpg*)
+  * **jpg** jpeg format
+  * **png** png format
+  * **webp** webp format
 * **skip_reencode** whether to skip reencoding if no resizing is done (default *False*)
 * **output_format** decides how to save pictures (default *files*)
   * **files** saves as a set of subfolder containing pictures
