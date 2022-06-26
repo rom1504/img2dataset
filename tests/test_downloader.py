@@ -34,6 +34,7 @@ def test_unique_md5(tmp_path):
         number_sample_per_shard=10,
         oom_shard_count=5,
         compute_md5=True,
+        encode_format="jpg",
         retries=0,
     )
 
@@ -76,6 +77,7 @@ def test_downloader(tmp_path):
         number_sample_per_shard=10,
         oom_shard_count=5,
         compute_md5=True,
+        encode_format="jpg",
         retries=0,
     )
 
