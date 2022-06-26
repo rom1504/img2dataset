@@ -14,7 +14,7 @@ https://huggingface.co/datasets/laion/laion2B-en-aesthetic
 https://huggingface.co/datasets/laion/laion2B-multi-aesthetic](https://huggingface.co/datasets/laion/laion-art)
 
 ```
-wget https://huggingface.co/datasets/laion/laion-art/resolve/main/laion-art.snappy.parquet
+wget https://huggingface.co/datasets/laion/laion-art/resolve/main/laion-art.parquet
 ```
 
 ### Download the images with img2dataset
