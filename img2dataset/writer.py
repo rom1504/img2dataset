@@ -280,7 +280,7 @@ class FilesSampleWriter:
 class DummySampleWriter:
     """Does not write"""
 
-    def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema):
+    def __init__(self, shard_id, output_folder, save_caption, oom_shard_count, schema, encode_format):
         pass
 
     def write(self, img_str, key, caption, meta):
