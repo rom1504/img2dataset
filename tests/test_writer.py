@@ -8,7 +8,6 @@ from img2dataset.writer import (
 
 import os
 import glob
-import shutil
 import pytest
 import tarfile
 import pandas as pd
@@ -46,7 +45,7 @@ def test_writer(writer_type, tmp_path):
     elif writer_type == "tfrecord":
         writer_class = TFRecordSampleWriter
 
-    writer = writer_class(0, output_folder, True, 5, schema)
+    writer = writer_class(0, output_folder, True, 5, schema, "jpg")
 
     for i, image_path in enumerate(image_paths):
         with open(image_path, "rb") as f:
