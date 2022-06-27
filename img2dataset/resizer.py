@@ -86,6 +86,7 @@ class Resizer:
         upscale_interpolation="lanczos",
         downscale_interpolation="area",
         encode_quality=95,
+        encode_format="jpg",
         skip_reencode=False,
         disable_all_reencoding=False,
     ):
@@ -98,7 +99,20 @@ class Resizer:
         self.resize_only_if_bigger = resize_only_if_bigger
         self.upscale_interpolation = inter_str_to_cv2(upscale_interpolation)
         self.downscale_interpolation = inter_str_to_cv2(downscale_interpolation)
-        self.encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), encode_quality]
+        self.encode_format = encode_format
+        cv2_img_quality = None
+        if encode_format == "jpg":
+            cv2_img_quality = int(cv2.IMWRITE_JPEG_QUALITY)
+            self.what_ext = "jpeg"
+        elif encode_format == "png":
+            cv2_img_quality = int(cv2.IMWRITE_PNG_COMPRESSION)
+            self.what_ext = "png"
+        elif encode_format == "webp":
+            cv2_img_quality = int(cv2.IMWRITE_WEBP_QUALITY)
+            self.what_ext = "webp"
+        if cv2_img_quality is None:
+            raise Exception(f"Invalid option for encode_format: {encode_format}")
+        self.encode_params = [cv2_img_quality, encode_quality]
         self.skip_reencode = skip_reencode
         self.disable_all_reencoding = disable_all_reencoding
 
@@ -113,7 +127,7 @@ class Resizer:
             with SuppressStdoutStderr():
                 cv2.setNumThreads(1)
                 img_stream.seek(0)
-                encode_needed = imghdr.what(img_stream) != "jpeg" if self.skip_reencode else True
+                encode_needed = imghdr.what(img_stream) != self.what_ext if self.skip_reencode else True
                 img_stream.seek(0)
                 img_buf = np.frombuffer(img_stream.read(), np.uint8)
                 img = cv2.imdecode(img_buf, cv2.IMREAD_UNCHANGED)
@@ -151,7 +165,7 @@ class Resizer:
                         encode_needed = True
                 height, width = img.shape[:2]
                 if encode_needed:
-                    img_str = cv2.imencode(".jpg", img, params=self.encode_params)[1].tobytes()
+                    img_str = cv2.imencode(f".{self.encode_format}", img, params=self.encode_params)[1].tobytes()
                 else:
                     img_str = img_buf.tobytes()
                 return img_str, width, height, original_width, original_height, None

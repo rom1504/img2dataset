@@ -33,6 +33,7 @@ def download(
     upscale_interpolation: str = "lanczos",
     downscale_interpolation: str = "area",
     encode_quality: int = 95,
+    encode_format: str = "jpg",
     skip_reencode: bool = False,
     output_format: str = "files",
     input_format: str = "txt",
@@ -127,6 +128,14 @@ def download(
     else:
         raise ValueError(f"Invalid output format {output_format}")
 
+    if encode_format not in ["jpg", "png", "webp"]:
+        raise ValueError(f"Invalid encode format {encode_format}")
+    if encode_format == "png":
+        if encode_quality < 0 or encode_quality > 9:
+            raise ValueError(
+                f"For png, encode quality represents compression which must be between 0 and 9, got {encode_quality}"
+            )
+
     resizer = Resizer(
         image_size=image_size,
         resize_mode=resize_mode,
@@ -134,6 +143,7 @@ def download(
         upscale_interpolation=upscale_interpolation,
         downscale_interpolation=downscale_interpolation,
         encode_quality=encode_quality,
+        encode_format=encode_format,
         skip_reencode=skip_reencode,
         disable_all_reencoding=disable_all_reencoding,
     )
@@ -150,6 +160,7 @@ def download(
         number_sample_per_shard=number_sample_per_shard,
         oom_shard_count=oom_shard_count,
         compute_md5=compute_md5,
+        encode_format=encode_format,
         retries=retries,
     )
 

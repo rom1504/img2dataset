@@ -105,7 +105,11 @@ This module exposes a single function `download` which takes the same arguments 
 * **resize_only_if_bigger** resize pictures only if bigger that the image_size (default *False*)
 * **upscale_interpolation** kind of upscale interpolation used for resizing (default *"lanczos"*)
 * **downscale_interpolation** kind of downscale interpolation used for resizing (default *"area"*)
-* **encode_quality** encode quality (default *95*)
+* **encode_quality** encode quality from 0 to 100, when using png it is the compression factor from 0 to 9 (default *95*)
+* **encode_format** encode format (default *jpg*)
+  * **jpg** jpeg format
+  * **png** png format
+  * **webp** webp format
 * **skip_reencode** whether to skip reencoding if no resizing is done (default *False*)
 * **output_format** decides how to save pictures (default *files*)
   * **files** saves as a set of subfolder containing pictures
@@ -150,6 +154,28 @@ Img2dataset support several formats. There are trade off for which to choose:
 * webdataset: webdataset format saves samples in tar files, thanks to [webdataset](https://webdataset.github.io/webdataset/) library, this makes it possible to load the resulting dataset fast in both pytorch, tensorflow and jax. Choose this for most use cases. It works well for any filesystem
 * parquet: parquet is a columnar format that allows fast filtering. It's particularly easy to read it using pyarrow and pyspark. Choose this if the rest of your data ecosystem is based on pyspark. [petastorm](https://github.com/uber/petastorm) can be used to read the data but it's not as easy to use as webdataset
 * tfrecord: tfrecord is a protobuf based format. It's particularly easy to use from tensorflow and using [tf data](https://www.tensorflow.org/guide/data). Use this if you plan to use the dataset only in the tensorflow ecosystem. The tensorflow writer does not use fsspec and as a consequence supports only a limited amount of filesystem, including local, hdfs, s3 and gcs. It is also less efficient than the webdataset writer when writing to other filesystems than local, losing some 30% performance.
+
+## Encode format choice
+
+Images can be encoded in jpeg, png or webp, with diffent quality settings.
+
+Here are a few comparisons of space used for 1M images at 256 x 256:
+
+| format | quality | compression | size (GB)  |
+| ------ | ------- | ----------- | ---------- |
+| jpg    | 100     | N/A         | 54.2       |
+| jpg    | 95      | N/A         | 29.9       |
+| png    | N/A     | 0           | 187.9      |
+| png    | N/A     | 9           | 97.7       |
+| webp   | 100     | N/A         | 31.0       |
+| webp   | 95      | N/A         | 23.8       |
+
+Notes:
+
+* jpeg at quality 100 is NOT lossless
+* png format is lossless
+* webp at quality 100 is lossless
+* same quality scale between formats does not mean same image quality
 
 ## How to tweak the options
 
