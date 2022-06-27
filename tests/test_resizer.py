@@ -29,7 +29,7 @@ testformat = [
 
 @pytest.mark.parametrize("image_size", [256, 512])
 @pytest.mark.parametrize("resize_mode, resize_only_if_bigger, skip_reencode", testdata)
-@pytest.mark.paremetrize("encode_quality, encode_format", testformat)
+@pytest.mark.parametrize("encode_quality, encode_format", testformat)
 def test_resizer(image_size, resize_mode, resize_only_if_bigger, skip_reencode, encode_quality, encode_format):
     current_folder = os.path.dirname(__file__)
     test_folder = current_folder + "/" + "resize_test_image"
