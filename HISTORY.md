@@ -1,3 +1,7 @@
+## 1.31.0
+
+* feat: allow encoding in different formats (thanks @borisdayma)
+
 ## 1.30.2
 
 * Fix error message for incorrect input format 
