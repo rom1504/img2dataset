@@ -140,6 +140,8 @@ This module exposes a single function `download` which takes the same arguments 
 * **subjob_size** the number of shards to download in each subjob supporting it, a subjob can be a pyspark job for example (default *1000*)
 * **retries** number of time a download should be retried (default *0*)
 * **disable_all_reencoding** if set to True, this will keep the image files in their original state with no resizing and no conversion, will not even check if the image is valid. Useful for benchmarks. To use only if you plan to post process the images by another program and you have plenty of storage available. (default *False*)
+* **min_image_size** minimum size of the image to download (default *0*)
+* **max_aspect_ratio** maximum aspect ratio of the image to download (default *inf*)
 * **incremental_mode** Can be "incremental" or "overwrite". For "incremental", img2dataset will download all the shards that were not downloaded, for "overwrite" img2dataset will delete recursively the output folder then start from zero (default *incremental*)
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
 

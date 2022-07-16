@@ -52,6 +52,8 @@ def download(
     subjob_size: int = 1000,
     retries: int = 0,
     disable_all_reencoding: bool = False,
+    min_image_size: int = 0,
+    max_aspect_ratio: float = float("inf"),
     incremental_mode: str = "incremental",
     max_shard_retry: int = 1,
 ):
@@ -146,6 +148,8 @@ def download(
         encode_format=encode_format,
         skip_reencode=skip_reencode,
         disable_all_reencoding=disable_all_reencoding,
+        min_image_size=min_image_size,
+        max_aspect_ratio=max_aspect_ratio,
     )
 
     downloader = Downloader(
