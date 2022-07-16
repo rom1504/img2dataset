@@ -11,7 +11,9 @@ Also supports saving captions for url+caption datasets.
 
 ## Install
 
+```
 pip install img2dataset
+```
 
 ## Examples
 
