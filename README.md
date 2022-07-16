@@ -179,6 +179,16 @@ Notes:
 * webp at quality 100 is lossless
 * same quality scale between formats does not mean same image quality
 
+## Filtering the dataset
+
+Whenever feasible, you should pre-filter your dataset prior to downloading.
+
+If needed, you can use:
+* --min_image_size SIZE : to filter out images with one side smaller than SIZE
+* --max_aspect_ratio RATIO : to filter out images with an aspect ratio greater than RATIO
+
+When filtering data, it is recommended to pre-shuffle your dataset to limit the impact on shard size distribution.
+
 ## How to tweak the options
 
 The default values should be good enough for small sized dataset. For larger ones, these tips may help you get the best performance:
