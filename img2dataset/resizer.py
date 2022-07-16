@@ -89,6 +89,8 @@ class Resizer:
         encode_format="jpg",
         skip_reencode=False,
         disable_all_reencoding=False,
+        min_image_size=0,
+        max_aspect_ratio=float("inf"),
     ):
         self.image_size = image_size
         if isinstance(resize_mode, str):
@@ -115,6 +117,8 @@ class Resizer:
         self.encode_params = [cv2_img_quality, encode_quality]
         self.skip_reencode = skip_reencode
         self.disable_all_reencoding = disable_all_reencoding
+        self.min_image_size = min_image_size
+        self.max_aspect_ratio = max_aspect_ratio
 
     def __call__(self, img_stream):
         """
@@ -140,6 +144,12 @@ class Resizer:
                     img = np.rint(img.clip(min=0, max=255)).astype(np.uint8)
                     encode_needed = True
                 original_height, original_width = img.shape[:2]
+                # check if image is too small
+                if min(original_height, original_width) < self.min_image_size:
+                    return None, None, None, None, None, "image too small"
+                # check if wrong aspect ratio
+                if max(original_height, original_width) / min(original_height, original_width) > self.max_aspect_ratio:
+                    return None, None, None, None, None, "aspect ratio too large"
 
                 # resizing in following conditions
                 if self.resize_mode in (ResizeMode.keep_ratio, ResizeMode.center_crop):
