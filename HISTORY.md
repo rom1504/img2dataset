@@ -1,3 +1,7 @@
+## 1.32.0
+
+* feat: support min image size + max aspect ratio (@borisdayma)
+
 ## 1.31.0
 
 * feat: allow encoding in different formats (thanks @borisdayma)
