@@ -11,12 +11,13 @@ import time
 import hashlib
 import pyarrow as pa
 import traceback
-
+import sys
 import fsspec
 from .logger import CappedCounter
 from .logger import write_stats
 
-
+sys.stdin.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8')
 def download_image(row, timeout):
     """Download an image with urllib"""
     key, url = row

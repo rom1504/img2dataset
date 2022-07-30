@@ -7,8 +7,10 @@ import pyarrow as pa
 import fsspec
 import os
 import numpy as np
+import sys
 
-
+sys.stdin.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8')
 class BufferedParquetWriter:
     """Write samples to parquet files incrementally with a buffer"""
 
@@ -260,7 +262,7 @@ class FilesSampleWriter:
             if self.save_caption:
                 caption = str(caption) if caption is not None else ""
                 caption_filename = f"{self.subfolder}/{key}.txt"
-                with self.fs.open(caption_filename, "w") as f:
+                with self.fs.open(caption_filename, "w", encoding="utf-8") as f:
                     f.write(str(caption))
 
             # some meta data may not be JSON serializable
@@ -269,7 +271,7 @@ class FilesSampleWriter:
                     meta[k] = v.tolist()
             j = json.dumps(meta, indent=4)
             meta_filename = f"{self.subfolder}/{key}.json"
-            with self.fs.open(meta_filename, "w") as f:
+            with self.fs.open(meta_filename, "w", encoding="utf-8") as f:
                 f.write(j)
         self.buffered_parquet_writer.write(meta)
 
