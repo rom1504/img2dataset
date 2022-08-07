@@ -19,7 +19,7 @@ from .logger import write_stats
 
 def download_image(row, timeout):
     """Download an image with urllib"""
-    key, url = row
+    key, url, maybe_md5 = row
     img_stream = None
     try:
         request = urllib.request.Request(
@@ -28,20 +28,26 @@ def download_image(row, timeout):
             headers={"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"},
         )
         with urllib.request.urlopen(request, timeout=timeout) as r:
-            img_stream = io.BytesIO(r.read())
-        return key, img_stream, None
+            body = r.read()
+            img_stream = io.BytesIO(body)
+            md5 = hashlib.md5(body).hexdigest()
+        if maybe_md5 is not None:
+            assert md5 == maybe_md5, \
+                f"Received MD5 hash does not match expected MD5 hash"
+
+        return key, img_stream, md5, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
             img_stream.close()
-        return key, None, str(err)
+        return key, None, None, str(err)
 
 
 def download_image_with_retry(row, timeout, retries):
     for _ in range(retries + 1):
-        key, img_stream, err = download_image(row, timeout)
+        key, img_stream, md5, err = download_image(row, timeout)
         if img_stream is not None:
-            return key, img_stream, err
-    return key, None, err
+            return key, img_stream, md5, err
+    return key, None, None, err
 
 
 def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
@@ -123,7 +129,7 @@ class Downloader:
         if self.extract_exif:
             schema = schema.append(pa.field("exif", pa.string()))
 
-        if self.compute_md5:
+        if self.compute_md5 and "md5" not in self.column_list:
             schema = schema.append(pa.field("md5", pa.string()))
 
         pydict = df.select(self.column_list).to_pydict()
@@ -139,7 +145,12 @@ class Downloader:
         failed_to_resize = 0
         url_indice = self.column_list.index("url")
         caption_indice = self.column_list.index("caption") if "caption" in self.column_list else None
-        key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
+
+        if "md5" in self.column_list:
+            md5_indice = self.column_list.index("md5")
+            key_url_list = [(key, x[url_indice], x[md5_indice]) for key, x in shard_to_dl]
+        else:
+            key_url_list = [(key, x[url_indice], None) for key, x in shard_to_dl]
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
         # limit the memory usage
@@ -163,7 +174,7 @@ class Downloader:
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
-            for key, img_stream, error_message in thread_pool.imap_unordered(
+            for key, img_stream, md5, error_message in thread_pool.imap_unordered(
                 lambda x: download_image_with_retry(x, timeout=self.timeout, retries=self.retries),
                 loader,
             ):
@@ -241,8 +252,7 @@ class Downloader:
                         meta["exif"] = exif
 
                     if self.compute_md5:
-                        img_stream.seek(0)
-                        meta["md5"] = hashlib.md5(img_stream.read()).hexdigest()
+                        meta["md5"] = md5
 
                     meta["status"] = status
                     meta["width"] = width

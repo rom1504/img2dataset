@@ -128,6 +128,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
+* **verify_md5_col** the name of the md5 hash column for parquet and csv (default *None*)
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
 * **extract_exif** if true, extract the exif information of the images and save it to the metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)
