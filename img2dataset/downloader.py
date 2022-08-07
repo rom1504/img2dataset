@@ -32,8 +32,7 @@ def download_image(row, timeout):
             img_stream = io.BytesIO(body)
             md5 = hashlib.md5(body).hexdigest()
         if maybe_md5 is not None:
-            assert md5 == maybe_md5, \
-                "Received MD5 hash does not match expected MD5 hash"
+            assert md5 == maybe_md5, "Received MD5 hash does not match expected MD5 hash"
 
         return key, img_stream, md5, None
     except Exception as err:  # pylint: disable=broad-except
