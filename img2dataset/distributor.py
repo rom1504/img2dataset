@@ -58,8 +58,13 @@ def pyspark_distributor(
     """Distribute the work to the processes using pyspark"""
 
     from pyspark.sql import SparkSession  # pylint: disable=import-outside-toplevel
+    import pyspark
 
-    spark = SparkSession.getActiveSession()
+    spark_major_version = pyspark.version.__version__[0]
+    if spark_major_version >= 3:
+        spark = SparkSession.getActiveSession()
+    else:
+        spark = pyspark.sql.SparkSession._instantiatedSession
 
     if spark is None:
         print("No pyspark session found, creating a new one!")
