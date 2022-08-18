@@ -73,7 +73,7 @@ def _spark_session(processes_count: int):
     from pyspark.sql import SparkSession  # pylint: disable=import-outside-toplevel
     import pyspark  # pylint: disable=import-outside-toplevel
 
-    spark_major_version = pyspark.version.__version__[0]
+    spark_major_version = int(pyspark.version.__version__[0])
     if spark_major_version >= 3:
         spark = SparkSession.getActiveSession()
     else:
