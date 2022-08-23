@@ -1,3 +1,7 @@
+## 1.33.0
+
+* feat: support pyspark < 3 when distributing image-to-dataset job
+
 ## 1.32.0
 
 * feat: support min image size + max aspect ratio (@borisdayma)
