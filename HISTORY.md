@@ -1,4 +1,4 @@
-## 1.32.1
+## 1.33.0
 
 * feat: support pyspark < 3 when distributing image-to-dataset job
 
