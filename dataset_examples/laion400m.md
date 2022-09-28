@@ -18,6 +18,8 @@ img2dataset --url_list laion400m-meta --input_format "parquet"\
              --save_additional_columns '["NSFW","similarity","LICENSE"]' --enable_wandb True
 ```
 
+**Note: Please reduce the `thread_count` to 64 if you are using systemd-resolved, otherwise, your DNS server may stop working.**
+
 ### Benchmark
 
 This can be downloaded at 1300 sample/s so it takes 3.5 days to download with one 16 cores 2Gbps machine.
