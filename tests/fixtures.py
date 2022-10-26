@@ -6,7 +6,7 @@ import os
 import sys
 
 
-def setup_fixtures(count=5):
+def setup_fixtures(count=5, disallowed=0):
     test_list = []
     current_folder = os.path.dirname(__file__)
     test_folder = current_folder + "/" + "resize_test_image"
@@ -15,9 +15,16 @@ def setup_fixtures(count=5):
     for i in range(count):
         item = random.randint(0, len(image_paths) - 1)
         test_list.append(
-            (f"caption {i}" if i != 0 else "", image_paths[item].replace(test_folder, f"http://localhost:{port}"))
+            (f"caption {i}" if i != 0 else "", image_paths[item].replace(test_folder, f"http://localhost:{port}/allowed"))
         )
     test_list = test_list[:count]
+
+    for i in range(disallowed):
+        item = random.randint(0, len(image_paths) - 1)
+        test_list.append(
+            (f"caption {i}" if i != 0 else "", image_paths[item].replace(test_folder, f"http://localhost:{port}/disallowed"))
+        )
+    test_list = test_list[:count+disallowed]
 
     return test_list
 

@@ -17,6 +17,27 @@ from .logger import CappedCounter
 from .logger import write_stats
 
 
+DISALLOWED_DIRECTIVES = ("noindex", "noimageindex", "noai", "noimageai")
+USER_AGENT_TOKEN = "img2dataset"
+
+
+def is_disallowed(headers):
+    """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage"""
+    for values in headers.get_all("X-Robots-Tag", []):
+        try:
+            uatoken_directives = values.split(":", 1)
+            directives = [x.strip().lower() for x in uatoken_directives[-1].split(",")]
+            ua_token = uatoken_directives[0].lower() if len(uatoken_directives) == 2 else None
+            if (ua_token is None or ua_token == USER_AGENT_TOKEN) and any(
+                x in DISALLOWED_DIRECTIVES for x in directives
+            ):
+                return True
+        except Exception as err:  # pylint: disable=broad-except
+            traceback.print_exc()
+            print(f"Failed to parse X-Robots-Tag: {values}: {err}")
+    return False
+
+
 def download_image(row, timeout):
     """Download an image with urllib"""
     key, url = row
@@ -25,9 +46,13 @@ def download_image(row, timeout):
         request = urllib.request.Request(
             url,
             data=None,
-            headers={"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0 (compatible; img2dataset; +https://github.com/rom1504/img2dataset)"
+            },
         )
         with urllib.request.urlopen(request, timeout=timeout) as r:
+            if is_disallowed(r.headers):
+                return key, None, "Use of image disallowed by X-Robots-Tag directive"
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except

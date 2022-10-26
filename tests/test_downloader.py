@@ -57,7 +57,12 @@ def test_unique_md5(tmp_path):
 
 def test_downloader(tmp_path):
     test_folder = str(tmp_path)
-    test_list = setup_fixtures(count=5)
+    n_allowed = 5
+    n_disallowed = 5
+    test_list = setup_fixtures(count=n_allowed, disallowed=n_disallowed)
+
+    assert len(test_list) == n_allowed + n_disallowed
+
     image_folder_name = os.path.join(test_folder, "images")
 
     os.mkdir(image_folder_name)
@@ -87,4 +92,4 @@ def test_downloader(tmp_path):
 
     downloader((0, tmp_file))
 
-    assert len(os.listdir(image_folder_name + "/00000")) == 3 * len(test_list)
+    assert len(os.listdir(image_folder_name + "/00000")) == 3 * n_allowed
