@@ -1,12 +1,13 @@
 """"writer module handle writing the images to disk"""
 
-import webdataset as wds
 import json
-import pyarrow.parquet as pq
-import pyarrow as pa
-import fsspec
 import os
+
+import fsspec
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
+import webdataset as wds
 
 
 class BufferedParquetWriter:
@@ -150,15 +151,10 @@ class TFRecordSampleWriter:
         try:
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
             import tensorflow_io as _  # pylint: disable=import-outside-toplevel
+            from tensorflow.python.lib.io.tf_record import \
+                TFRecordWriter  # pylint: disable=import-outside-toplevel
             from tensorflow.python.training.training import (  # pylint: disable=import-outside-toplevel
-                BytesList,
-                Int64List,
-                FloatList,
-                Example,
-                Features,
-                Feature,
-            )
-            from tensorflow.python.lib.io.tf_record import TFRecordWriter  # pylint: disable=import-outside-toplevel
+                BytesList, Example, Feature, Features, FloatList, Int64List)
 
             self._BytesList = BytesList  # pylint: disable=invalid-name
             self._Int64List = Int64List  # pylint: disable=invalid-name
@@ -203,7 +199,9 @@ class TFRecordSampleWriter:
 
     def _feature(self, value):
         """Convert to proper feature type"""
-        if isinstance(value, int):
+        if isinstance(value, list):
+            return self._list_feature(value)
+        elif isinstance(value, int):
             return self._int64_feature(value)
         elif isinstance(value, float):
             return self._float_feature(value)
@@ -225,6 +223,18 @@ class TFRecordSampleWriter:
     def _int64_feature(self, value):
         """Returns an int64_list from a bool / enum / int / uint."""
         return self._Feature(int64_list=self._Int64List(value=[value]))
+
+    def _list_feature(self, value):
+        """Returns an int64_list from a bool / enum / int / uint or float_list from a float / double."""
+        if isinstance(value[0], int):
+            return self._Feature(int64_list=self._Int64List(value=value))
+        elif isinstance(value[0], float):
+            return self._Feature(float_list=self._FloatList(value=value))
+        else:
+            raise NotImplementedError(
+                "list feature can only have int64 or floats"
+            )
+
 
 
 class FilesSampleWriter:
