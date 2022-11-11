@@ -151,10 +151,15 @@ class TFRecordSampleWriter:
         try:
             os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
             import tensorflow_io as _  # pylint: disable=import-outside-toplevel
-            from tensorflow.python.lib.io.tf_record import \
-                TFRecordWriter  # pylint: disable=import-outside-toplevel
+            from tensorflow.python.lib.io.tf_record import TFRecordWriter  # pylint: disable=import-outside-toplevel
             from tensorflow.python.training.training import (  # pylint: disable=import-outside-toplevel
-                BytesList, Example, Feature, Features, FloatList, Int64List)
+                BytesList,
+                Example,
+                Feature,
+                Features,
+                FloatList,
+                Int64List,
+            )
 
             self._BytesList = BytesList  # pylint: disable=invalid-name
             self._Int64List = Int64List  # pylint: disable=invalid-name
@@ -231,13 +236,12 @@ class TFRecordSampleWriter:
         elif isinstance(value[0], float):
             return self._Feature(float_list=self._FloatList(value=value))
         else:
-            for i, _bytes_feature in enumerate(value):
-                if _bytes_feature is None:
+            for i, bytes_feature in enumerate(value):
+                if bytes_feature is None:
                     value[i] = ""
-                if isinstance(_bytes_feature, str):
-                    value[i] = _bytes_feature.encode()
+                if isinstance(bytes_feature, str):
+                    value[i] = bytes_feature.encode()
             return self._Feature(bytes_list=self._BytesList(value=value))
-
 
 
 class FilesSampleWriter:
