@@ -32,6 +32,7 @@ def test_writer(writer_type, tmp_path):
             pa.field("height", pa.int32()),
             pa.field("original_width", pa.int32()),
             pa.field("original_height", pa.int32()),
+            pa.field("labels", pa.list_(pa.int32())),
         ]
     )
     if writer_type == "files":
@@ -63,6 +64,7 @@ def test_writer(writer_type, tmp_path):
                     "height": 100,
                     "original_width": 100,
                     "original_height": 100,
+                    "labels": [0, 100, 200],
                 },
             )
     writer.close()
@@ -80,6 +82,7 @@ def test_writer(writer_type, tmp_path):
             "height",
             "original_width",
             "original_height",
+            "labels",
         ]
 
         if writer_type == "parquet":
@@ -95,6 +98,7 @@ def test_writer(writer_type, tmp_path):
         assert df["height"].iloc[0] == 100
         assert df["original_width"].iloc[0] == 100
         assert df["original_height"].iloc[0] == 100
+        assert (df["labels"].iloc[0] == [0, 100, 200]).all()
 
     if writer_type == "files":
         saved_files = list(glob.glob(output_folder + "/00000/*"))
