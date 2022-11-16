@@ -27,6 +27,7 @@ Example of datasets to download with example commands are available in the [data
 * [laion-art](dataset_examples/laion-art.md) Laion aesthetic is a 8M laion5B subset with aesthetic > 8 pwatermark < 0.8 punsafe < 0.5
 * [laion-high-resolution](dataset_examples/laion-high-resolution.md) Laion high resolution is a 170M resolution >= 1024x1024 subset of laion5B
 * [laion-face](dataset_examples/laion-face.md) Laion face is the human face subset of LAION-400M for large-scale face pretraining. It has 50M image-text pairs.
+* [coyo-700m](dataset_examples/coyo-700m.md) COYO is a large-scale dataset that contains 747M image-text pairs as well as many other meta-attributes to increase the usability to train various models.
 
 For all these examples, you may want to tweak the resizing to your preferences. The default is 256x256 with white borders.
 See options below.
