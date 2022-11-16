@@ -17,7 +17,8 @@ Run this command. It will download the mscoco dataset as resized images in the w
 img2dataset --url_list mscoco.parquet --input_format "parquet"\
          --url_col "URL" --caption_col "TEXT" --output_format webdataset\
            --output_folder mscoco --processes_count 16 --thread_count 64 --image_size 256\
-             --enable_wandb True
+             --enable_wandb True\
+              --user_agent_token img2dataset  --disallowed_header_directives '["noai", "noindex"]'
 ```
 
 ### Benchmark

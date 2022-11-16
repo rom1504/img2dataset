@@ -23,7 +23,9 @@ img2dataset --url_list laion-high-resolution --input_format "parquet"\
          --url_col "URL" --caption_col "TEXT" --output_format webdataset\
            --output_folder laion-high-resolution-output --processes_count 16 --thread_count 64 --image_size 1024\
             --resize_only_if_bigger=True --resize_mode="keep_ratio" --skip_reencode=True \
-             --save_additional_columns '["similarity","hash","punsafe","pwatermark","LANGUAGE"]' --enable_wandb True
+             --save_additional_columns '["similarity","hash","punsafe","pwatermark","LANGUAGE"]' --enable_wandb True\
+              --user_agent_token img2dataset --disallowed_header_directives '["noai", "noindex"]'
+
 ```
 
 ### Benchmark

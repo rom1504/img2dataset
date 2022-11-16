@@ -15,16 +15,22 @@ def setup_fixtures(count=5, disallowed=0):
     for i in range(count):
         item = random.randint(0, len(image_paths) - 1)
         test_list.append(
-            (f"caption {i}" if i != 0 else "", image_paths[item].replace(test_folder, f"http://localhost:{port}/allowed"))
+            (
+                f"caption {i}" if i != 0 else "",
+                image_paths[item].replace(test_folder, f"http://localhost:{port}/allowed"),
+            )
         )
     test_list = test_list[:count]
 
     for i in range(disallowed):
         item = random.randint(0, len(image_paths) - 1)
         test_list.append(
-            (f"caption {i}" if i != 0 else "", image_paths[item].replace(test_folder, f"http://localhost:{port}/disallowed"))
+            (
+                f"caption {i}" if i != 0 else "",
+                image_paths[item].replace(test_folder, f"http://localhost:{port}/disallowed"),
+            )
         )
-    test_list = test_list[:count+disallowed]
+    test_list = test_list[: count + disallowed]
 
     return test_list
 

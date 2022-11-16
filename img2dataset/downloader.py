@@ -17,19 +17,15 @@ from .logger import CappedCounter
 from .logger import write_stats
 
 
-DISALLOWED_DIRECTIVES = ("noindex", "noimageindex", "noai", "noimageai")
-USER_AGENT_TOKEN = "img2dataset"
-
-
-def is_disallowed(headers):
+def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage"""
     for values in headers.get_all("X-Robots-Tag", []):
         try:
             uatoken_directives = values.split(":", 1)
             directives = [x.strip().lower() for x in uatoken_directives[-1].split(",")]
             ua_token = uatoken_directives[0].lower() if len(uatoken_directives) == 2 else None
-            if (ua_token is None or ua_token == USER_AGENT_TOKEN) and any(
-                x in DISALLOWED_DIRECTIVES for x in directives
+            if (ua_token is None or ua_token == user_agent_token) and any(
+                x in disallowed_header_directives for x in directives
             ):
                 return True
         except Exception as err:  # pylint: disable=broad-except
@@ -38,20 +34,21 @@ def is_disallowed(headers):
     return False
 
 
-def download_image(row, timeout):
+def download_image(row, timeout, user_agent_token, disallowed_header_directives):
     """Download an image with urllib"""
     key, url = row
     img_stream = None
+    user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
+    if user_agent_token:
+        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
-        request = urllib.request.Request(
-            url,
-            data=None,
-            headers={
-                "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0 (compatible; img2dataset; +https://github.com/rom1504/img2dataset)"
-            },
-        )
+        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         with urllib.request.urlopen(request, timeout=timeout) as r:
-            if is_disallowed(r.headers):
+            if disallowed_header_directives and is_disallowed(
+                r.headers,
+                user_agent_token,
+                disallowed_header_directives,
+            ):
                 return key, None, "Use of image disallowed by X-Robots-Tag directive"
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
@@ -61,9 +58,9 @@ def download_image(row, timeout):
         return key, None, str(err)
 
 
-def download_image_with_retry(row, timeout, retries):
+def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):
     for _ in range(retries + 1):
-        key, img_stream, err = download_image(row, timeout)
+        key, img_stream, err = download_image(row, timeout, user_agent_token, disallowed_header_directives)
         if img_stream is not None:
             return key, img_stream, err
     return key, None, err
@@ -96,6 +93,8 @@ class Downloader:
         compute_md5,
         encode_format,
         retries,
+        user_agent_token,
+        disallowed_header_directives,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -110,6 +109,12 @@ class Downloader:
         self.compute_md5 = compute_md5
         self.encode_format = encode_format
         self.retries = retries
+        self.user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
+        self.disallowed_header_directives = (
+            None
+            if disallowed_header_directives is None
+            else {directive.strip().lower() for directive in disallowed_header_directives}
+        )
 
     def __call__(
         self,
@@ -189,7 +194,13 @@ class Downloader:
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
-                lambda x: download_image_with_retry(x, timeout=self.timeout, retries=self.retries),
+                lambda x: download_image_with_retry(
+                    x,
+                    timeout=self.timeout,
+                    retries=self.retries,
+                    user_agent_token=self.user_agent_token,
+                    disallowed_header_directives=self.disallowed_header_directives,
+                ),
                 loader,
             ):
                 try:

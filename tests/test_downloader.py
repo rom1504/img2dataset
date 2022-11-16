@@ -36,6 +36,8 @@ def test_unique_md5(tmp_path):
         compute_md5=True,
         encode_format="jpg",
         retries=0,
+        user_agent_token="img2dataset",
+        disallowed_header_directives=["noai", "noindex"],
     )
 
     tmp_file = os.path.join(test_folder, "test_list.feather")
@@ -84,6 +86,8 @@ def test_downloader(tmp_path):
         compute_md5=True,
         encode_format="jpg",
         retries=0,
+        user_agent_token="img2dataset",
+        disallowed_header_directives=["noai", "noindex"],
     )
 
     tmp_file = os.path.join(test_folder, "test_list.feather")

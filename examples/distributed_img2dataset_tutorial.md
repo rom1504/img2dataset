@@ -277,6 +277,8 @@ download(
     enable_wandb=False,
     number_sample_per_shard=10000,
     distributor="pyspark",
-    save_additional_columns=["NSFW","similarity","LICENSE"]
+    save_additional_columns=["NSFW","similarity","LICENSE"],
+    user_agent_token="img2dataset",
+    disallowed_header_directives=["noai", "noindex"],
 )
 ```

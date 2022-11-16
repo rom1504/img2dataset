@@ -4,7 +4,7 @@
 [![Try it on gitpod](https://img.shields.io/badge/try-on%20gitpod-brightgreen.svg)](https://gitpod.io/#https://github.com/rom1504/img2dataset)
 [![Chat on discord](https://img.shields.io/discord/823813159592001537?color=5865F2&logo=discord&logoColor=white)](https://discord.gg/eq3cAMZtCC)
 
-Easily turn large sets of image urls to an image dataset.
+Easily turn large sets of image urls to an image dataset while respecting creators' usage directives.
 Can download, resize and package 100M urls in 20h on one machine.
 
 Also supports saving captions for url+caption datasets.
@@ -146,6 +146,8 @@ This module exposes a single function `download` which takes the same arguments 
 * **max_aspect_ratio** maximum aspect ratio of the image to download (default *inf*)
 * **incremental_mode** Can be "incremental" or "overwrite". For "incremental", img2dataset will download all the shards that were not downloaded, for "overwrite" img2dataset will delete recursively the output folder then start from zero (default *incremental*)
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
+* **user_agent_token** Additional identifying token that will be added to the User-Agent header sent with HTTP requests to download images. Suggested: "img2downloader". (default *None*)
+* **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset.  Suggested: '["noai", "noindex"]' (default *None*)
 
 ## Incremental mode
 
