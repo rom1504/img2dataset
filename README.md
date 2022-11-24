@@ -25,6 +25,7 @@ Example of datasets to download with example commands are available in the [data
 * [laion5B](dataset_examples/laion5B.md) 5B image/text pairs that can be downloaded in 7 days using 10 nodes
 * [laion-aesthetic](dataset_examples/laion-aesthetic.md) Laion aesthetic is a 120M laion5B subset with aesthetic > 7 pwatermark < 0.8 punsafe < 0.5
 * [laion-art](dataset_examples/laion-art.md) Laion aesthetic is a 8M laion5B subset with aesthetic > 8 pwatermark < 0.8 punsafe < 0.5
+* [laion-art-noai](dataset_examples/laion-art-noai.md) As above, but respecting requests made by artists to exclude their work from generative AI training sets.
 * [laion-high-resolution](dataset_examples/laion-high-resolution.md) Laion high resolution is a 170M resolution >= 1024x1024 subset of laion5B
 * [laion-face](dataset_examples/laion-face.md) Laion face is the human face subset of LAION-400M for large-scale face pretraining. It has 50M image-text pairs.
 * [coyo-700m](dataset_examples/coyo-700m.md) COYO is a large-scale dataset that contains 747M image-text pairs as well as many other meta-attributes to increase the usability to train various models.
@@ -147,6 +148,8 @@ This module exposes a single function `download` which takes the same arguments 
 * **max_aspect_ratio** maximum aspect ratio of the image to download (default *inf*)
 * **incremental_mode** Can be "incremental" or "overwrite". For "incremental", img2dataset will download all the shards that were not downloaded, for "overwrite" img2dataset will delete recursively the output folder then start from zero (default *incremental*)
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
+* **user_agent_token** Additional identifying token that will be added to the User-Agent header sent with HTTP requests to download images; for example: "img2downloader". (default *None*)
+* **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset; for example: '["noai", "noindex"]' (default *None*)
 
 ## Incremental mode
 
@@ -191,6 +194,13 @@ If needed, you can use:
 * --max_aspect_ratio RATIO : to filter out images with an aspect ratio greater than RATIO
 
 When filtering data, it is recommended to pre-shuffle your dataset to limit the impact on shard size distribution.
+
+## Respecting opt-out directives
+
+Copyright holders can communicate image usage restrictions by sending `X-Robots-Tag: noai` or `X-Robots-Tag: noindex` HTTP header directives when images are downloaded.
+
+To respect such directives, you can use:
+* --disallowed_header_directives '["noai", "noindex"]' : to filter out images with these directives
 
 ## How to tweak the options
 

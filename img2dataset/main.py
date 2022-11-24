@@ -56,6 +56,8 @@ def download(
     max_aspect_ratio: float = float("inf"),
     incremental_mode: str = "incremental",
     max_shard_retry: int = 1,
+    user_agent_token: Optional[str] = None,
+    disallowed_header_directives: Optional[List[str]] = None,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
@@ -166,6 +168,8 @@ def download(
         compute_md5=compute_md5,
         encode_format=encode_format,
         retries=retries,
+        user_agent_token=user_agent_token,
+        disallowed_header_directives=disallowed_header_directives,
     )
 
     print("Starting the downloading of this file")
