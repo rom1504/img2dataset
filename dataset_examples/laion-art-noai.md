@@ -5,7 +5,7 @@ See [full description](https://github.com/LAION-AI/laion-datasets/blob/main/laio
 
 It is available at https://huggingface.co/datasets/laion/laion-art
 
-A good use case is to train an image generation model. However, concerns have been raised about how to ethically source training data at scale for such purposes, especially where creator consent may not have been expressed in advance of dataset construction. One solution is to allow artists to opt their images out of such usage by sending [HTTP header directives](https://www.deviantart.com/team/journal/UPDATE-All-Deviations-Are-Opted-Out-of-AI-Datasets-934500371) when image content is downloaded. img2dataset can be configured to automatically respect such directives.
+A good use case is to train an image generation model. However, concerns have been raised about how to ethically source training data at scale for such purposes, especially where creator consent may not have been expressed in advance of dataset construction. One solution is to allow artists to opt their images out of such usage by sending HTTP header directives when image content is downloaded. img2dataset can be configured to automatically respect such directives.
 
 ### Download the metadata
 
