@@ -17,8 +17,7 @@ Run this command. It will download the cc3m dataset as resized images in the web
 img2dataset --url_list cc3m.tsv --input_format "tsv"\
          --url_col "url" --caption_col "caption" --output_format webdataset\
            --output_folder cc3m --processes_count 16 --thread_count 64 --image_size 256\
-             --enable_wandb True\
-              --user_agent_token img2dataset --disallowed_header_directives '["noai", "noindex"]'
+             --enable_wandb True
 ```
 
 ### Benchmark

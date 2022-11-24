@@ -149,8 +149,6 @@ download(
     distributor="pyspark",
     save_additional_columns=["NSFW","similarity","LICENSE"],
     oom_shard_count=6,
-    user_agent_token="img2dataset",
-    disallowed_header_directives=["noai", "noindex"],
 )
 ```
 

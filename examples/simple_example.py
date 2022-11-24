@@ -20,8 +20,6 @@ download(
     enable_wandb=True,
     number_sample_per_shard=1000,
     distributor="multiprocessing",
-    user_agent_token="img2dataset",
-    disallowed_header_directives=["noai", "noindex"],
 )
 
 # rm -rf bench

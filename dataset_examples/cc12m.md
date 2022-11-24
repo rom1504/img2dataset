@@ -18,8 +18,7 @@ Run this command. It will download the cc12m dataset as resized images in the we
 img2dataset --url_list cc12m.tsv --input_format "tsv"\
          --url_col "url" --caption_col "caption" --output_format webdataset\
            --output_folder cc12m --processes_count 16 --thread_count 64 --image_size 256\
-             --enable_wandb True\
-              --user_agent_token img2dataset --disallowed_header_directives '["noai", "noindex"]'
+             --enable_wandb True
 ```
 
 ### Benchmark
