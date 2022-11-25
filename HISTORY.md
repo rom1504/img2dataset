@@ -1,6 +1,13 @@
+## 1.34.0
+
+* Add argument validator in main.
+* Respect noai and noimageai directives when downloading image files (thanks @raincoastchris)
+* add list of int, float feature in TFRecordSampleWriter (thanks @justHungryMan)
+
+
 ## 1.33.0
 
-* feat: support pyspark < 3 when distributing image-to-dataset job
+* feat: support pyspark < 3 when distributing image-to-dataset job (thanks @nateagr)
 
 ## 1.32.0
 
