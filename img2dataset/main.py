@@ -23,6 +23,34 @@ import os
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
 
+def arguments_validator(params):
+    """Validate the arguments"""
+    if params["save_additional_columns"] is not None:
+        save_additional_columns_set = set(params["save_additional_columns"])
+
+        forbidden_columns = set(
+            [
+                "key",
+                "caption",
+                "url",
+                "width",
+                "height",
+                "original_width",
+                "original_height",
+                "status",
+                "error_message",
+                "exif",
+                "md5",
+            ]
+        )
+        intersection = save_additional_columns_set.intersection(forbidden_columns)
+        if intersection:
+            raise ValueError(
+                f"You cannot use in save_additional_columns the following columns: {intersection}."
+                + "img2dataset reserves these columns for its own use. Please remove them from save_additional_columns."
+            )
+
+
 def download(
     url_list: str,
     image_size: int = 256,
@@ -61,6 +89,7 @@ def download(
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
+    arguments_validator(config_parameters)
 
     def make_path_absolute(path):
         fs, p = fsspec.core.url_to_fs(path)
