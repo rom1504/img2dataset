@@ -238,8 +238,8 @@ def create_spark_session():
         .config("spark.submit.deployMode", "client") \
         #.config("spark.files", pex_file) \ # you may choose to uncomment this option if you want spark to automatically download the pex file, but it may be slow
         .config("spark.executorEnv.PEX_ROOT", "./.pex")
-        #.config("spark.executor.cores", "2")
-        #.config("spark.cores.max", "200") # you can reduce this number if you want to use only some cores ; if you're using yarn the option name is different, check spark doc
+        #.config("spark.executor.cores", "2") # this can be set to the number of cores of the machine
+        #.config("spark.cores.max", "200") # total number of cores to use over the whole spark cluster
         .config("spark.driver.port", "5678")
         .config("spark.driver.blockManager.port", "6678")
         .config("spark.driver.host", "master_node")
@@ -261,7 +261,7 @@ spark = create_spark_session()
 url_list = "some_file.parquet"
 
 download(
-    processes_count=1,
+    processes_count=1, # this is not used with spark, instead one task for each core will be started (nb executor * nb core per executor)
     thread_count=32,
     retries=0,
     url_list = url_list,
