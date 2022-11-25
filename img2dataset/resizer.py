@@ -90,6 +90,7 @@ class Resizer:
         skip_reencode=False,
         disable_all_reencoding=False,
         min_image_size=0,
+        max_image_area=float("inf"),
         max_aspect_ratio=float("inf"),
     ):
         self.image_size = image_size
@@ -118,6 +119,7 @@ class Resizer:
         self.skip_reencode = skip_reencode
         self.disable_all_reencoding = disable_all_reencoding
         self.min_image_size = min_image_size
+        self.max_image_area = max_image_area
         self.max_aspect_ratio = max_aspect_ratio
 
     def __call__(self, img_stream):
@@ -147,6 +149,8 @@ class Resizer:
                 # check if image is too small
                 if min(original_height, original_width) < self.min_image_size:
                     return None, None, None, None, None, "image too small"
+                if original_height * original_width > self.max_image_area:
+                    return None, None, None, None, None, "image area too large"
                 # check if wrong aspect ratio
                 if max(original_height, original_width) / min(original_height, original_width) > self.max_aspect_ratio:
                     return None, None, None, None, None, "aspect ratio too large"

@@ -53,6 +53,7 @@ def download(
     retries: int = 0,
     disable_all_reencoding: bool = False,
     min_image_size: int = 0,
+    max_image_area: float = float("inf"),
     max_aspect_ratio: float = float("inf"),
     incremental_mode: str = "incremental",
     max_shard_retry: int = 1,
@@ -151,6 +152,7 @@ def download(
         skip_reencode=skip_reencode,
         disable_all_reencoding=disable_all_reencoding,
         min_image_size=min_image_size,
+        max_image_area=max_image_area,
         max_aspect_ratio=max_aspect_ratio,
     )
 
