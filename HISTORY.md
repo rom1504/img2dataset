@@ -1,9 +1,12 @@
+## 1.35.0
+
+* added max_image_area flag (thanks @sagadre)
+
 ## 1.34.0
 
 * Add argument validator in main.
 * Respect noai and noimageai directives when downloading image files (thanks @raincoastchris)
 * add list of int, float feature in TFRecordSampleWriter (thanks @justHungryMan)
-
 
 ## 1.33.0
 
