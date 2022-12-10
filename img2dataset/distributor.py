@@ -77,7 +77,7 @@ def _spark_session(processes_count: int):
     if spark_major_version >= 3:
         spark = SparkSession.getActiveSession()
     else:
-        spark = pyspark.sql.SparkSession._instantiatedSession  # pylint: disable=protected-access
+        spark = pyspark.sql.SparkSession._instantiatedSession  # type: ignore  # pylint: disable=protected-access
 
     if spark is None:
         print("No pyspark session found, creating a new one!")
