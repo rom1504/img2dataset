@@ -93,6 +93,14 @@ class Resizer:
         max_image_area=float("inf"),
         max_aspect_ratio=float("inf"),
     ):
+        if encode_format not in ["jpg", "png", "webp"]:
+            raise ValueError(f"Invalid encode format {encode_format}")
+        if encode_format == "png":
+            if encode_quality < 0 or encode_quality > 9:
+                raise ValueError(
+                    "For png, encode quality represents compression which"
+                    f"must be between 0 and 9, got {encode_quality}"
+                )
         self.image_size = image_size
         if isinstance(resize_mode, str):
             if resize_mode not in ResizeMode.__members__:  # pylint: disable=unsupported-membership-test
