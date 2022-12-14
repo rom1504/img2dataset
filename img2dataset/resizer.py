@@ -165,13 +165,6 @@ class Resizer:
                 if max(original_height, original_width) / min(original_height, original_width) > self.max_aspect_ratio:
                     return None, None, None, None, None, "aspect ratio too large"
 
-                # blur parts of the image if needed
-                if blurring_bbox_list is not None:
-                    # check if blurrer has been defined
-                    if self.blurrer is None:
-                        return None, None, None, None, None, "blurrer not defined"
-                    img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
-
                 # resizing in following conditions
                 if self.resize_mode in (ResizeMode.keep_ratio, ResizeMode.center_crop):
                     downscale = min(original_width, original_height) > self.image_size
@@ -194,6 +187,14 @@ class Resizer:
                             value=[255, 255, 255],
                         )
                         encode_needed = True
+
+                # blur parts of the image if needed
+                if blurring_bbox_list is not None:
+                    # check if blurrer has been defined
+                    if self.blurrer is None:
+                        return None, None, None, None, None, "blurrer not defined"
+                    img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
+
                 height, width = img.shape[:2]
                 if encode_needed:
                     img_str = cv2.imencode(f".{self.encode_format}", img, params=self.encode_params)[1].tobytes()
