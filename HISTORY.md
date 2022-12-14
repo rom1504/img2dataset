@@ -1,3 +1,7 @@
+## 1.36.0
+
+* bumping webdataset version to 0.2.5+
+
 ## 1.35.0
 
 * added max_image_area flag (thanks @sagadre)

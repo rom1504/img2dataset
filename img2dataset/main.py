@@ -171,13 +171,6 @@ def download(
     else:
         raise ValueError(f"Invalid output format {output_format}")
 
-    if encode_format not in ["jpg", "png", "webp"]:
-        raise ValueError(f"Invalid encode format {encode_format}")
-    if encode_format == "png":
-        if encode_quality < 0 or encode_quality > 9:
-            raise ValueError(
-                f"For png, encode quality represents compression which must be between 0 and 9, got {encode_quality}"
-            )
 
     if bbox_col is not None:
         blurrer = BoundingBoxBlurrer(bbox_format=bbox_format)

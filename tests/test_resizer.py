@@ -80,9 +80,7 @@ def test_resizer_filter():
     for expected_error, count in expected_errors:
         assert count == errors.count(expected_error)
 
-    resizer =  Resizer(
-        image_size=256, resize_mode="no", resize_only_if_bigger=True, max_image_area=60000
-    )
+    resizer = Resizer(image_size=256, resize_mode="no", resize_only_if_bigger=True, max_image_area=60000)
     errors = []
     for image_path in image_paths:
         with open(image_path, "rb") as f:
