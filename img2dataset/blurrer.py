@@ -77,7 +77,7 @@ class BoundingBoxBlurrer:
             adjusted_bbox[2] = np.clip(adjusted_bbox[2], 0, width - 1)
             adjusted_bbox[3] = np.clip(adjusted_bbox[3], 0, height - 1)
 
-            mask[adjusted_bbox[1] : adjusted_bbox[3], adjusted_bbox[0] : adjusted_bbox[2], :] = 1
+            mask[adjusted_bbox[1] : adjusted_bbox[3], adjusted_bbox[0] : adjusted_bbox[2], ...] = 1
 
         sigma = 0.1 * max_diagonal
         ksize = int(2 * np.ceil(4 * sigma)) + 1
