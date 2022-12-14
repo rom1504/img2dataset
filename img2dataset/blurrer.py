@@ -3,9 +3,14 @@
 import numpy as np
 
 import albumentations as A
-import functools
 
 class BoundingBoxBlurrer:
+    """class used to blur images based on a bounding box.
+    
+    Attributes:
+        bbox_format: The format of the bounding boxes expected. Can be
+            "albumentations" [x0, y0, x1, y1] or "coco" [x0, y0, w, h].
+    """
 
     def __init__(
         self,
@@ -19,7 +24,7 @@ class BoundingBoxBlurrer:
         Args:
             img: The image to blur.
             bbox_list: The list of bboxes to blur.
-        
+
         Returns:
             The image with bboxes blurred.
         """
@@ -27,7 +32,7 @@ class BoundingBoxBlurrer:
         # Skip if there are no boxes to blur.
         if len(bbox_list) == 0:
             return img
-    
+
         height, width = img.shape[:2]
 
         # Convert to float temporarily
@@ -60,15 +65,15 @@ class BoundingBoxBlurrer:
             diagonal = max(adjusted_bbox[2] - adjusted_bbox[0], adjusted_bbox[3]-adjusted_bbox[1])
             max_diagonal = max(max_diagonal, diagonal)
 
-            adjusted_bbox[0] = int(adjusted_bbox[0] - 0.1 * diagonal) 
-            adjusted_bbox[1] = int(adjusted_bbox[1] - 0.1 * diagonal) 
-            adjusted_bbox[2] = int(adjusted_bbox[2] + 0.1 * diagonal) 
-            adjusted_bbox[3] = int(adjusted_bbox[3] + 0.1 * diagonal) 
+            adjusted_bbox[0] = int(adjusted_bbox[0] - 0.1 * diagonal)
+            adjusted_bbox[1] = int(adjusted_bbox[1] - 0.1 * diagonal)
+            adjusted_bbox[2] = int(adjusted_bbox[2] + 0.1 * diagonal)
+            adjusted_bbox[3] = int(adjusted_bbox[3] + 0.1 * diagonal)
 
             mask[adjusted_bbox[1]:adjusted_bbox[3], adjusted_bbox[0]:adjusted_bbox[2], :] = 1
-        
+
         sigma = 0.1*max_diagonal
-        ksize = int(2*np.ceil(sigma))+1
+        ksize = int(2*np.ceil(4*sigma))+1
         blurred_img = A.augmentations.gaussian_blur(img, ksize=ksize, sigma=sigma)
         blurred_mask = A.augmentations.gaussian_blur(mask, ksize=ksize, sigma=sigma)
 
@@ -78,3 +83,4 @@ class BoundingBoxBlurrer:
         result = (result * 255.0).astype(np.uint8)
 
         return result
+    
