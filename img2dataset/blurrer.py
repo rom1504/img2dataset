@@ -6,7 +6,7 @@ import albumentations as A
 
 class BoundingBoxBlurrer:
     """class used to blur images based on a bounding box.
-    
+
     Attributes:
         bbox_format: The format of the bounding boxes expected. Can be
             "albumentations" [x0, y0, x1, y1] or "coco" [x0, y0, w, h].
@@ -83,4 +83,3 @@ class BoundingBoxBlurrer:
         result = (result * 255.0).astype(np.uint8)
 
         return result
-    
