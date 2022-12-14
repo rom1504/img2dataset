@@ -95,6 +95,7 @@ class Downloader:
         retries,
         user_agent_token,
         disallowed_header_directives,
+        blurring_bbox_col,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -115,6 +116,7 @@ class Downloader:
             if disallowed_header_directives is None
             else {directive.strip().lower() for directive in disallowed_header_directives}
         )
+        self.blurring_bbox_col = blurring_bbox_col
 
     def __call__(
         self,
@@ -169,6 +171,7 @@ class Downloader:
         failed_to_resize = 0
         url_indice = self.column_list.index("url")
         caption_indice = self.column_list.index("caption") if "caption" in self.column_list else None
+        bbox_indice = self.column_list.index(self.blurring_bbox_col) if self.blurring_bbox_col is not None else None
         key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
@@ -234,6 +237,7 @@ class Downloader:
                         semaphore.release()
                         continue
                     img_stream.seek(0)
+                    bbox_list = sample_data[bbox_indice] if bbox_indice is not None else None
                     (
                         img,
                         width,
@@ -241,7 +245,7 @@ class Downloader:
                         original_width,
                         original_height,
                         error_message,
-                    ) = self.resizer(img_stream)
+                    ) = self.resizer(img_stream, bbox_list)
                     if error_message is not None:
                         failed_to_resize += 1
                         status = "failed_to_resize"

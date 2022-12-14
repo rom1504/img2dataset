@@ -5,6 +5,7 @@ import fire
 import logging
 from .logger import LoggerProcess
 from .resizer import Resizer
+from .blurrer import BoundingBoxBlurrer
 from .writer import (
     WebDatasetSampleWriter,
     FilesSampleWriter,
@@ -67,6 +68,8 @@ def download(
     input_format: str = "txt",
     url_col: str = "url",
     caption_col: Optional[str] = None,
+    bbox_col: Optional[str] = None,
+    bbox_format: str = "albumentations",
     thread_count: int = 256,
     number_sample_per_shard: int = 10000,
     extract_exif: bool = True,
@@ -138,6 +141,12 @@ def download(
     logger_process.done_shards = done_shards
     logger_process.start()
 
+    if bbox_col is not None:
+        if save_additional_columns is None:
+            save_additional_columns = [bbox_col]
+        else:
+            save_additional_columns.append(bbox_col)
+
     reader = Reader(
         url_list,
         input_format,
@@ -170,6 +179,11 @@ def download(
                 f"For png, encode quality represents compression which must be between 0 and 9, got {encode_quality}"
             )
 
+    if bbox_col is not None:
+        blurrer = BoundingBoxBlurrer(bbox_format=bbox_format)
+    else:
+        blurrer = None
+
     resizer = Resizer(
         image_size=image_size,
         resize_mode=resize_mode,
@@ -183,6 +197,7 @@ def download(
         min_image_size=min_image_size,
         max_image_area=max_image_area,
         max_aspect_ratio=max_aspect_ratio,
+        blurrer=blurrer,
     )
 
     downloader = Downloader(
@@ -201,6 +216,7 @@ def download(
         retries=retries,
         user_agent_token=user_agent_token,
         disallowed_header_directives=disallowed_header_directives,
+        blurring_bbox_col=bbox_col,
     )
 
     print("Starting the downloading of this file")
