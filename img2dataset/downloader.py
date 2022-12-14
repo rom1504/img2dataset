@@ -95,7 +95,7 @@ class Downloader:
         retries,
         user_agent_token,
         disallowed_header_directives,
-        blurring_bbox_col = None,
+        blurring_bbox_col=None,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer

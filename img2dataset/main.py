@@ -171,7 +171,6 @@ def download(
     else:
         raise ValueError(f"Invalid output format {output_format}")
 
-
     if bbox_col is not None:
         blurrer = BoundingBoxBlurrer(bbox_format=bbox_format)
     else:

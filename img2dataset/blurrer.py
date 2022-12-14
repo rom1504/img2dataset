@@ -4,6 +4,7 @@ import numpy as np
 
 import albumentations as A
 
+
 class BoundingBoxBlurrer:
     """class used to blur images based on a bounding box.
 
@@ -56,13 +57,13 @@ class BoundingBoxBlurrer:
                 adjusted_bbox = [
                     int(bbox[0] * width),
                     int(bbox[1] * height),
-                    int((bbox[0]+bbox[2]) * width),
-                    int((bbox[1]+bbox[3]) * height),
+                    int((bbox[0] + bbox[2]) * width),
+                    int((bbox[1] + bbox[3]) * height),
                 ]
             else:
                 raise ValueError("bounding box format not recognised")
 
-            diagonal = max(adjusted_bbox[2] - adjusted_bbox[0], adjusted_bbox[3]-adjusted_bbox[1])
+            diagonal = max(adjusted_bbox[2] - adjusted_bbox[0], adjusted_bbox[3] - adjusted_bbox[1])
             max_diagonal = max(max_diagonal, diagonal)
 
             adjusted_bbox[0] = int(adjusted_bbox[0] - 0.1 * diagonal)
@@ -70,14 +71,20 @@ class BoundingBoxBlurrer:
             adjusted_bbox[2] = int(adjusted_bbox[2] + 0.1 * diagonal)
             adjusted_bbox[3] = int(adjusted_bbox[3] + 0.1 * diagonal)
 
-            mask[adjusted_bbox[1]:adjusted_bbox[3], adjusted_bbox[0]:adjusted_bbox[2], :] = 1
+            # Clipping for indexing.
+            adjusted_bbox[0] = np.clip(adjusted_bbox[0], 0, width - 1)
+            adjusted_bbox[1] = np.clip(adjusted_bbox[1], 0, height - 1)
+            adjusted_bbox[2] = np.clip(adjusted_bbox[2], 0, width - 1)
+            adjusted_bbox[3] = np.clip(adjusted_bbox[3], 0, height - 1)
 
-        sigma = 0.1*max_diagonal
-        ksize = int(2*np.ceil(4*sigma))+1
+            mask[adjusted_bbox[1] : adjusted_bbox[3], adjusted_bbox[0] : adjusted_bbox[2], :] = 1
+
+        sigma = 0.1 * max_diagonal
+        ksize = int(2 * np.ceil(4 * sigma)) + 1
         blurred_img = A.augmentations.gaussian_blur(img, ksize=ksize, sigma=sigma)
         blurred_mask = A.augmentations.gaussian_blur(mask, ksize=ksize, sigma=sigma)
 
-        result = img * (1-blurred_mask) + blurred_img * blurred_mask
+        result = img * (1 - blurred_mask) + blurred_img * blurred_mask
 
         # Convert back to uint8
         result = (result * 255.0).astype(np.uint8)
