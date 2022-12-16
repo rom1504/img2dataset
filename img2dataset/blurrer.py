@@ -1,5 +1,7 @@
 """blurrer module to blur parts of the image"""
 
+from typing import Optional
+
 import numpy as np
 
 import albumentations as A
@@ -18,7 +20,7 @@ class BoundingBoxBlurrer:
 
     def __init__(
         self,
-        bbox_format: str = "albumentations",
+        bbox_format: Optional[str],
     ) -> None:
         self.bbox_format = bbox_format
 
