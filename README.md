@@ -132,7 +132,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
 * **bbox_col** the name of the bounding box column (default *None*)
-* **bbox_format** if set to *albumentations*, the bounding box has format ```[x_min, y_min, x_max, y_max]```. If set to *coco*, the bounding box has format ```[x_min, y_min, width, height]```. All are floats, relative to the height and width of the image (default *albumentations*)
+* **bbox_format** the format of bounding boxes in the bounding box column. If set to *albumentations*, the bounding box has format ```[x_min, y_min, x_max, y_max]```. If set to *coco*, the bounding box has format ```[x_min, y_min, width, height]```. All are floats, relative to the height and width of the image. If *bbox_col* is not *None*, then this must also not be *None* (default *None*).
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
 * **extract_exif** if true, extract the exif information of the images and save it to the metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)

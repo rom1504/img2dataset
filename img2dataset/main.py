@@ -5,7 +5,7 @@ import fire
 import logging
 from .logger import LoggerProcess
 from .resizer import Resizer
-from .blurrer import BoundingBoxBlurrer
+from .blurrer import BoundingBoxBlurrer, VALID_BBOX_FORMATS
 from .writer import (
     WebDatasetSampleWriter,
     FilesSampleWriter,
@@ -26,6 +26,12 @@ logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
 def arguments_validator(params):
     """Validate the arguments"""
+    if params["bbox_col"] is not None and params["bbox_format"] not in VALID_BBOX_FORMATS:
+        raise ValueError(
+            f"If bbox_col is set, bbox_format must be one of {VALID_BBOX_FORMATS}."
+            + " See the docs for bbox_format for an explanation of each format."
+        )
+
     if params["save_additional_columns"] is not None:
         save_additional_columns_set = set(params["save_additional_columns"])
 
@@ -69,7 +75,7 @@ def download(
     url_col: str = "url",
     caption_col: Optional[str] = None,
     bbox_col: Optional[str] = None,
-    bbox_format: str = "albumentations",
+    bbox_format: Optional[str] = None,
     thread_count: int = 256,
     number_sample_per_shard: int = 10000,
     extract_exif: bool = True,

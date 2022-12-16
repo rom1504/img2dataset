@@ -5,6 +5,9 @@ import numpy as np
 import albumentations as A
 
 
+VALID_BBOX_FORMATS = ["albumentations", "coco"]
+
+
 class BoundingBoxBlurrer:
     """class used to blur images based on a bounding box.
 
@@ -61,7 +64,7 @@ class BoundingBoxBlurrer:
                     int((bbox[1] + bbox[3]) * height),
                 ]
             else:
-                raise ValueError("bounding box format not recognised")
+                raise ValueError(f"Bounding box format must be one of {VALID_BBOX_FORMATS}")
 
             diagonal = max(adjusted_bbox[2] - adjusted_bbox[0], adjusted_bbox[3] - adjusted_bbox[1])
             max_diagonal = max(max_diagonal, diagonal)
