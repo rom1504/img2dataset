@@ -7,16 +7,15 @@ import cv2
 import numpy as np
 
 
-@pytest.mark.parametrize("bbox_format", ["albumentations", "coco"])
-def test_blurrer(bbox_format):
+def test_blurrer():
     """Test whether blurrer works properly."""
     current_folder = os.path.dirname(__file__)
     test_folder = os.path.join(current_folder, "blur_test_files")
     orig_image_path = os.path.join(test_folder, "original.png")
     blur_image_path = os.path.join(test_folder, "blurred.png")
-    bbox_path = os.path.join(test_folder, f"{bbox_format}_bbox.npy")
+    bbox_path = os.path.join(test_folder, "bbox.npy")
 
-    blurrer = BoundingBoxBlurrer(bbox_format=bbox_format)
+    blurrer = BoundingBoxBlurrer()
     orig_image = cv2.imread(orig_image_path)
     blur_image = cv2.imread(blur_image_path)
     with open(bbox_path, "rb") as f:

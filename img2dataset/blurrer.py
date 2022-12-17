@@ -1,28 +1,20 @@
 """blurrer module to blur parts of the image"""
 
-from typing import Optional
-
 import numpy as np
 
 import albumentations as A
 
 
-VALID_BBOX_FORMATS = ["albumentations", "coco"]
-
-
 class BoundingBoxBlurrer:
-    """class used to blur images based on a bounding box.
+    """blur images based on a bounding box.
 
-    Attributes:
-        bbox_format: The format of the bounding boxes expected. Can be
-            "albumentations" [x0, y0, x1, y1] or "coco" [x0, y0, w, h].
+    The bounding box used is assumed to have format [x_min, y_min, x_max, y_max]
+    (with elements being floats in [0,1], relative to the original shape of the
+    image).
     """
 
-    def __init__(
-        self,
-        bbox_format: Optional[str],
-    ) -> None:
-        self.bbox_format = bbox_format
+    def __init__(self) -> None:
+        pass
 
     def __call__(self, img, bbox_list):
         """Apply blurring to bboxes of an image.
@@ -50,27 +42,18 @@ class BoundingBoxBlurrer:
         max_diagonal = 0
 
         for bbox in bbox_list:
-
-            if self.bbox_format == "albumentations":
-                adjusted_bbox = [
-                    int(bbox[0] * width),
-                    int(bbox[1] * height),
-                    int(bbox[2] * width),
-                    int(bbox[3] * height),
-                ]
-            elif self.bbox_format == "coco":
-                adjusted_bbox = [
-                    int(bbox[0] * width),
-                    int(bbox[1] * height),
-                    int((bbox[0] + bbox[2]) * width),
-                    int((bbox[1] + bbox[3]) * height),
-                ]
-            else:
-                raise ValueError(f"Bounding box format must be one of {VALID_BBOX_FORMATS}")
+            adjusted_bbox = [
+                int(bbox[0] * width),
+                int(bbox[1] * height),
+                int(bbox[2] * width),
+                int(bbox[3] * height),
+            ]
 
             diagonal = max(adjusted_bbox[2] - adjusted_bbox[0], adjusted_bbox[3] - adjusted_bbox[1])
             max_diagonal = max(max_diagonal, diagonal)
 
+            # Adjusting bbox as in:
+            # https://github.com/princetonvisualai/imagenet-face-obfuscation
             adjusted_bbox[0] = int(adjusted_bbox[0] - 0.1 * diagonal)
             adjusted_bbox[1] = int(adjusted_bbox[1] - 0.1 * diagonal)
             adjusted_bbox[2] = int(adjusted_bbox[2] + 0.1 * diagonal)
