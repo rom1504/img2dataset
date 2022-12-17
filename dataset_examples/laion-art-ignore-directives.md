@@ -5,9 +5,9 @@ See [full description](https://github.com/LAION-AI/laion-datasets/blob/main/laio
 
 It is available at https://huggingface.co/datasets/laion/laion-art
 
-Artists have raised ethical issues regarding the downloading of mass ammounts of image date for AI training without consent, so img2dataset respects emerging AI image header directives by default. However if you want to ignore these headers, you can pass in an empty list to the argument "dissalowed_header_directives".
+Artists have raised ethical issues regarding the downloading of mass ammounts of image date for AI training without consent, so img2dataset respects emerging AI image header directives by default. However if you want to ignore these headers, you can pass in an empty list to the argument "disallowed_header_directives".
 
-Be warned that websites like ArtStation have recently added terms to their Terms of Service that dissalow image downloads for purpose of ML Training if an image has the "noai" header directive. Turning this off can lead to potential legal risk, and img2dataset accepts no legal liability for such decisions. 
+Be warned that websites like ArtStation have recently added terms to their Terms of Service that disallow image downloads for purpose of ML Training if an image has the "noai" header directive.
 
 ### Download the metadata
 
