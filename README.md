@@ -132,6 +132,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
+* **bbox_col** the name of the bounding box column. Bounding boxes are assumed to have format ```[x_min, y_min, x_max, y_max]```, with all elements being floats in *[0,1]* (relative to the size of the image). If *None*, then no bounding box blurring is performed (default *None*)
 * **number_sample_per_shard** the number of sample that will be downloaded in one shard (default *10000*)
 * **extract_exif** if true, extract the exif information of the images and save it to the metadata (default *True*)
 * **save_additional_columns** list of additional columns to take from the csv/parquet files and save in metadata files (default *None*)

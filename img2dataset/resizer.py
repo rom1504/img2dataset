@@ -93,6 +93,7 @@ class Resizer:
         min_image_size=0,
         max_image_area=float("inf"),
         max_aspect_ratio=float("inf"),
+        blurrer=None,
     ):
         if encode_format not in ["jpg", "png", "webp"]:
             raise ValueError(f"Invalid encode format {encode_format}")
@@ -131,10 +132,11 @@ class Resizer:
         self.min_image_size = min_image_size
         self.max_image_area = max_image_area
         self.max_aspect_ratio = max_aspect_ratio
+        self.blurrer = blurrer
 
-    def __call__(self, img_stream):
+    def __call__(self, img_stream, blurring_bbox_list=None):
         """
-        input: an image stream
+        input: an image stream, optionally a list of bounding boxes to blur.
         output: img_str, width, height, original_width, original_height, err
         """
         try:
@@ -188,6 +190,14 @@ class Resizer:
                                 value=[255, 255, 255],
                             )
                         encode_needed = True
+
+                # blur parts of the image if needed
+                if blurring_bbox_list is not None:
+                    # check if blurrer has been defined
+                    if self.blurrer is None:
+                        return None, None, None, None, None, "blurrer not defined"
+                    img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
+
                 height, width = img.shape[:2]
                 if encode_needed:
                     img_str = cv2.imencode(f".{self.encode_format}", img, params=self.encode_params)[1].tobytes()
