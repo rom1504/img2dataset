@@ -111,11 +111,7 @@ class Downloader:
         self.encode_format = encode_format
         self.retries = retries
         self.user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
-        self.disallowed_header_directives = (
-            None
-            if disallowed_header_directives is None
-            else {directive.strip().lower() for directive in disallowed_header_directives}
-        )
+        self.disallowed_header_directives = {directive.strip().lower() for directive in disallowed_header_directives}
         self.blurring_bbox_col = blurring_bbox_col
 
     def __call__(

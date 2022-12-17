@@ -88,7 +88,7 @@ def download(
     incremental_mode: str = "incremental",
     max_shard_retry: int = 1,
     user_agent_token: Optional[str] = None,
-    disallowed_header_directives: Optional[List[str]] = None,
+    disallowed_header_directives: List[str] = ["noai", "noimageai", "noindex", "noimageindex"],
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     config_parameters = dict(locals())
