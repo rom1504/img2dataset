@@ -1,3 +1,7 @@
+## 1.37.0
+
+* Add support for resizing with fixed aspect ratio while fixing the largest image dimension (thanks @gabrielilharco)
+
 ## 1.36.0
 
 * bumping webdataset version to 0.2.5+
