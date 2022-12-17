@@ -24,6 +24,7 @@ class ResizeMode(Enum):
     keep_ratio = 1  # pylint: disable=invalid-name
     center_crop = 2  # pylint: disable=invalid-name
     border = 3  # pylint: disable=invalid-name
+    keep_ratio_largest = 4  # pylint: disable=invalid-name
 
 
 # thanks https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
@@ -101,6 +102,7 @@ class Resizer:
                     "For png, encode quality represents compression which"
                     f"must be between 0 and 9, got {encode_quality}"
                 )
+
         self.image_size = image_size
         if isinstance(resize_mode, str):
             if resize_mode not in ResizeMode.__members__:  # pylint: disable=unsupported-membership-test
@@ -172,18 +174,19 @@ class Resizer:
                         if self.resize_mode == ResizeMode.center_crop:
                             img = A.center_crop(img, self.image_size, self.image_size)
                         encode_needed = True
-                elif self.resize_mode == ResizeMode.border:
+                elif self.resize_mode in (ResizeMode.border, ResizeMode.keep_ratio_largest):
                     downscale = max(original_width, original_height) > self.image_size
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
                         img = A.longest_max_size(img, self.image_size, interpolation=interpolation)
-                        img = A.pad(
-                            img,
-                            self.image_size,
-                            self.image_size,
-                            border_mode=cv2.BORDER_CONSTANT,
-                            value=[255, 255, 255],
-                        )
+                        if self.resize_mode == ResizeMode.border:
+                            img = A.pad(
+                                img,
+                                self.image_size,
+                                self.image_size,
+                                border_mode=cv2.BORDER_CONSTANT,
+                                value=[255, 255, 255],
+                            )
                         encode_needed = True
                 height, width = img.shape[:2]
                 if encode_needed:

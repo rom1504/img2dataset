@@ -106,6 +106,7 @@ This module exposes a single function `download` which takes the same arguments 
   * **no** doesn't resize at all
   * **border** will make the image image_size x image_size and add a border
   * **keep_ratio** will keep the ratio and make the smallest side of the picture image_size
+  * **keep_ratio_largest** will keep the ratio and make the largest side of the picture image_size
   * **center_crop** will keep the ratio and center crop the largest side so the picture is squared
 * **resize_only_if_bigger** resize pictures only if bigger that the image_size (default *False*)
 * **upscale_interpolation** kind of upscale interpolation used for resizing (default *"lanczos"*)
