@@ -1,3 +1,7 @@
+## 1.38.0
+
+* Incorporate face blurring with bounding boxes. (thanks @GeorgiosSmyrnis)
+
 ## 1.37.0
 
 * Add support for resizing with fixed aspect ratio while fixing the largest image dimension (thanks @gabrielilharco)
