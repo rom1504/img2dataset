@@ -175,6 +175,9 @@ def download(
     else:
         blurrer = None
 
+    if disallowed_header_directives is None:
+        disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]
+
     resizer = Resizer(
         image_size=image_size,
         resize_mode=resize_mode,
