@@ -14,7 +14,7 @@ testdata = [
     ("keep_ratio", False, False),
     ("keep_ratio", True, False),
     ("keep_ratio", True, True),
-    ("keep_ratio_longest", False, False),
+    ("keep_ratio_largest", False, False),
     ("keep_ratio_largest", True, False),
     ("keep_ratio_largest", True, True),
     ("center_crop", False, False),
