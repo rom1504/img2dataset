@@ -5,7 +5,9 @@ See [full description](https://github.com/LAION-AI/laion-datasets/blob/main/laio
 
 It is available at https://huggingface.co/datasets/laion/laion-art
 
-A good use case is to train an image generation model. However, concerns have been raised about how to ethically source training data at scale for such purposes, especially where creator consent may not have been expressed in advance of dataset construction. One solution is to allow artists to opt their images out of such usage by sending HTTP header directives when image content is downloaded. img2dataset can be configured to automatically respect such directives.
+Artists have raised ethical issues regarding the downloading of mass ammounts of image date for AI training without consent, so img2dataset respects emerging AI image header directives by default. However if you want to ignore these headers, you can pass in an empty list to the argument "dissalowed_header_directives".
+
+Be warned that websites like ArtStation have recently added terms to their Terms of Service that dissalow image downloads for purpose of ML Training if an image has the "noai" header directive. Turning this off can lead to potential legal risk, and img2dataset accepts no legal liability for such decisions. 
 
 ### Download the metadata
 
@@ -25,7 +27,7 @@ img2dataset --url_list laion-art --input_format "parquet"\
            --output_folder laion-high-resolution --processes_count 16 --thread_count 64 --image_size 384\
             --resize_only_if_bigger=True --resize_mode="keep_ratio" --skip_reencode=True \
              --save_additional_columns '["similarity","hash","punsafe","pwatermark","aesthetic","LANGUAGE"]' --enable_wandb True \
-              --user_agent_token img2dataset --disallowed_header_directives '["noai", "noindex"]'
+              --user_agent_token img2dataset --disallowed_header_directives '[]'
 ```
 
 ### Benchmark
