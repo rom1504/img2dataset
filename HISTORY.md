@@ -1,3 +1,7 @@
+## 1.39.0
+
+* Make opt out the default, add warning about ethical issues with slowing down democratization of skills and art.
+
 ## 1.38.0
 
 * Incorporate face blurring with bounding boxes. (thanks @GeorgiosSmyrnis)
