@@ -15,6 +15,8 @@ Also supports saving captions for url+caption datasets.
 pip install img2dataset
 ```
 
+For better performance, it's highly recommended to set up a fast dns resolver, see [this section](https://github.com/rom1504/img2dataset#setting-up-a-high-performance-dns-resolver)
+
 ## Examples
 
 Example of datasets to download with example commands are available in the [dataset_examples](dataset_examples) folder. In particular:
