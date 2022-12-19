@@ -205,8 +205,6 @@ class Resizer:
                 # blur parts of the image if needed
                 if maybe_blur_later and blurring_bbox_list is not None and self.blurrer is not None:
                     img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
-                        
-                    
 
                 height, width = img.shape[:2]
                 if encode_needed:
