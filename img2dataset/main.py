@@ -91,6 +91,11 @@ def download(
     disallowed_header_directives: Optional[List[str]] = None,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
+    if disallowed_header_directives is None:
+        disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]
+    if len(disallowed_header_directives) == 0:
+        disallowed_header_directives = None
+
     config_parameters = dict(locals())
     arguments_validator(config_parameters)
 
@@ -174,9 +179,6 @@ def download(
         blurrer = BoundingBoxBlurrer()
     else:
         blurrer = None
-
-    if disallowed_header_directives is None:
-        disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]
 
     resizer = Resizer(
         image_size=image_size,

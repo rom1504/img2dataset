@@ -17,6 +17,15 @@ pip install img2dataset
 
 For better performance, it's highly recommended to set up a fast dns resolver, see [this section](https://github.com/rom1504/img2dataset#setting-up-a-high-performance-dns-resolver)
 
+## Opt-out directives
+
+Websites can pass the http headers `X-Robots-Tag: noai`, `X-Robots-Tag: noindex` , `X-Robots-Tag: noimageai` and `X-Robots-Tag: noimageindex`
+By default img2dataset will ignore images with such headers.
+
+To disable this behavior and download all images, you may pass --disallowed_header_directives '[]'
+
+See [AI use impact](#ai-use-impact) to understand better why you may decide to enable or disable this feature.
+
 ## Examples
 
 Example of datasets to download with example commands are available in the [dataset_examples](dataset_examples) folder. In particular:
@@ -28,7 +37,6 @@ Example of datasets to download with example commands are available in the [data
 * [laion5B](dataset_examples/laion5B.md) 5B image/text pairs that can be downloaded in 7 days using 10 nodes
 * [laion-aesthetic](dataset_examples/laion-aesthetic.md) Laion aesthetic is a 120M laion5B subset with aesthetic > 7 pwatermark < 0.8 punsafe < 0.5
 * [laion-art](dataset_examples/laion-art.md) Laion aesthetic is a 8M laion5B subset with aesthetic > 8 pwatermark < 0.8 punsafe < 0.5
-* [laion-art-ignore-directives](dataset_examples/laion-art-ignore-directives.md) As above, but ignoring requests made by artists to exclude their work from generative AI training sets.
 * [laion-high-resolution](dataset_examples/laion-high-resolution.md) Laion high resolution is a 170M resolution >= 1024x1024 subset of laion5B
 * [laion-face](dataset_examples/laion-face.md) Laion face is the human face subset of LAION-400M for large-scale face pretraining. It has 50M image-text pairs.
 * [coyo-700m](dataset_examples/coyo-700m.md) COYO is a large-scale dataset that contains 747M image-text pairs as well as many other meta-attributes to increase the usability to train various models.
@@ -155,7 +163,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **incremental_mode** Can be "incremental" or "overwrite". For "incremental", img2dataset will download all the shards that were not downloaded, for "overwrite" img2dataset will delete recursively the output folder then start from zero (default *incremental*)
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
 * **user_agent_token** Additional identifying token that will be added to the User-Agent header sent with HTTP requests to download images; for example: "img2downloader". (default *None*)
-* **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset; for example: '["noai", "noimageai"]'. To ignore x-robots-tags, pass an empty list. (default '["noai", "noimageai", "noindex", "noimageindex"]')
+* **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset. To ignore x-robots-tags, pass '[]'. (default '["noai", "noimageai", "noindex", "noimageindex"]')
 
 ## Incremental mode
 
@@ -201,13 +209,6 @@ If needed, you can use:
 * --max_aspect_ratio RATIO : to filter out images with an aspect ratio greater than RATIO
 
 When filtering data, it is recommended to pre-shuffle your dataset to limit the impact on shard size distribution.
-
-## Respecting opt-out directives
-
-Copyright holders can communicate image usage restrictions by sending `X-Robots-Tag: noai` or `X-Robots-Tag: noindex` HTTP header directives when images are downloaded.
-
-To respect such directives, you can use:
-* --disallowed_header_directives '["noai", "noindex"]' : to filter out images with these directives
 
 ## How to tweak the options
 
@@ -380,6 +381,24 @@ nameserver 127.0.0.1
 ```
 This will make it possible to keep an high success rate while doing thousands of dns queries.
 You may also want to [setup bind9 logging](https://nsrc.org/activities/agendas/en/dnssec-3-days/dns/materials/labs/en/dns-bind-logging.html) in order to check that few dns errors happen.
+
+
+## AI use impact
+
+img2dataset is used to retrieve images from the web and make them easily available for ML use cases. Use cases involve:
+* doing inference and indexing to better understand what is in the web (https://rom1504.github.io/clip-retrieval/ is an example of this)
+* training models
+
+Models that can be trained using image/text datasets include:
+* CLIP: an image understanding model that allow for example to know whether an image is safe, aesthetic, what animal it contains, ...
+* text to image models: generating images based on text
+
+There is a lot of discussions regarding the consequences of text to image models. Some opinions include:
+* AI art is democratizing art and letting hundred of millions of people express themselves through art. Making art much more prevalent and unique
+* AI models should not be trained on images that creator do not want to share
+
+The opt out directive try to let creators that do not want to share their art not be used for indexing and for training.
+
 
 ## For development
 
