@@ -15,5 +15,13 @@ tar -xvzf sbu-captions-all.tar.gz
 
 ```
 img2dataset --url_list sbu-captions-all.json --input_format "json" --url_col "image_urls" --caption_col "captions" --output_format webdataset --output_folder sbucaptions --processes_count 16 --thread_count 64 --image_size 256
-
 ```
+
+### Benchmark
+
+https://wandb.ai/rom1504/img2dataset/runs/2nhepsmf
+
+1000 sample/s using 16 cores
+Average bandwidth 500Mb/s ; cpu usage 100% on all cores
+Write speed on disk : about 20MB/s average
+
