@@ -1,0 +1,1 @@
+https://raw.githubusercontent.com/rom1504/img2dataset/main/tests/blur_test_files/original.png
