@@ -47,7 +47,7 @@ def arguments_validator(params):
                 "exif",
                 "md5",
                 "sha256",
-                "sha512"
+                "sha512",
             ]
         )
         intersection = save_additional_columns_set.intersection(forbidden_columns)
