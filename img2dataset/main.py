@@ -26,6 +26,10 @@ logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
 
 def arguments_validator(params):
     """Validate the arguments"""
+    if params["compute_hash"] not in [None, "md5", "sha256", "sha512"]:
+        hash_type = params["compute_hash"]
+        raise ValueError(f"Unsupported hash to compute: {hash_type}")
+
     if params["save_additional_columns"] is not None:
         save_additional_columns_set = set(params["save_additional_columns"])
 
@@ -42,6 +46,8 @@ def arguments_validator(params):
                 "error_message",
                 "exif",
                 "md5",
+                "sha256",
+                "sha512"
             ]
         )
         intersection = save_additional_columns_set.intersection(forbidden_columns)
@@ -77,7 +83,7 @@ def download(
     enable_wandb: bool = False,
     wandb_project: str = "img2dataset",
     oom_shard_count: int = 5,
-    compute_md5: bool = True,
+    compute_hash: Optional[str] = "sha256",
     distributor: str = "multiprocessing",
     subjob_size: int = 1000,
     retries: int = 0,
@@ -207,7 +213,7 @@ def download(
         timeout=timeout,
         number_sample_per_shard=number_sample_per_shard,
         oom_shard_count=oom_shard_count,
-        compute_md5=compute_md5,
+        compute_hash=compute_hash,
         encode_format=encode_format,
         retries=retries,
         user_agent_token=user_agent_token,
