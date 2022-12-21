@@ -19,6 +19,8 @@ class Reader:
     - input_format: the format of the input file
     - url_col: the column name of the url
     - caption_col: the column name of the caption
+    - verify_hash_col: the column containing the hash to verify.
+    - verify_hash_type: the type of hash to verify.
     - save_additional_columns: the list of additional columns to save
     - number_sample_per_shard: the number of samples per shard
     - done_shards: a set of already done shards
@@ -30,6 +32,8 @@ class Reader:
         input_format,
         url_col,
         caption_col,
+        verify_hash_col,
+        verify_hash_type,
         save_additional_columns,
         number_sample_per_shard,
         done_shards,
@@ -38,6 +42,8 @@ class Reader:
         self.input_format = input_format
         self.url_col = url_col
         self.caption_col = caption_col
+        self.verify_hash_col = verify_hash_col
+        self.verify_hash_type = verify_hash_type
         self.save_additional_columns = save_additional_columns
         self.number_sample_per_shard = number_sample_per_shard
         self.done_shards = done_shards
@@ -58,9 +64,13 @@ class Reader:
         elif self.input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
             self.column_list = self.save_additional_columns if self.save_additional_columns is not None else []
             if self.caption_col is not None:
-                self.column_list = self.column_list + ["caption", "url"]
-            else:
-                self.column_list = self.column_list + ["url"]
+                self.column_list = self.column_list + ["caption"]
+            if self.verify_hash_col is not None:
+                if self.verify_hash_type in ["md5", "sha256", "sha512"]:
+                    self.column_list = self.column_list + [self.verify_hash_type]
+                else:
+                    raise ValueError(f"Invalid hash type {self.verify_hash_type}")
+            self.column_list = self.column_list + ["url"]
         else:
             raise ValueError(f"Invalid input format {self.input_format}")
 
@@ -86,6 +96,8 @@ class Reader:
                 columns_to_read = [self.url_col]
                 if self.caption_col is not None:
                     columns_to_read += [self.caption_col]
+                if self.verify_hash_col is not None:
+                    columns_to_read += [self.verify_hash_col]
                 if self.save_additional_columns is not None:
                     columns_to_read += self.save_additional_columns
                 df = pq.read_table(file, columns=columns_to_read)
@@ -95,6 +107,10 @@ class Reader:
         column_names = df.column_names
         if self.caption_col is not None:
             column_names = [c if c != self.caption_col else "caption" for c in column_names]
+        
+        if self.verify_hash_col is not None:
+            column_names = [c if c != self.verify_hash_col else self.verify_hash_type for c in column_names]
+
         column_names = [c if c != self.url_col else "url" for c in column_names]
 
         df = df.rename_columns(column_names)

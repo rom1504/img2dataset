@@ -91,6 +91,7 @@ class Downloader:
         number_sample_per_shard,
         oom_shard_count,
         compute_hash,
+        verify_hash_type,
         encode_format,
         retries,
         user_agent_token,
@@ -108,6 +109,7 @@ class Downloader:
         self.number_sample_per_shard = number_sample_per_shard
         self.oom_shard_count = oom_shard_count
         self.compute_hash = compute_hash
+        self.verify_hash_type = verify_hash_type
         self.encode_format = encode_format
         self.retries = retries
         self.user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
@@ -171,6 +173,7 @@ class Downloader:
         failed_to_resize = 0
         url_indice = self.column_list.index("url")
         caption_indice = self.column_list.index("caption") if "caption" in self.column_list else None
+        hash_indice = self.column_list.index(self.verify_hash_type) if self.verify_hash_type in self.column_list else None
         bbox_indice = self.column_list.index(self.blurring_bbox_col) if self.blurring_bbox_col is not None else None
         key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
@@ -210,7 +213,8 @@ class Downloader:
                     _, sample_data = shard_to_dl[key]
                     str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
                     meta = {
-                        **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list))},
+                        # Skip columsn containing a the verification hash and only save the compute hash
+                        **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list)) if (hash_indice is None or i != hash_indice)},
                         "key": str_key,
                         "status": None,
                         "error_message": error_message,
@@ -221,8 +225,10 @@ class Downloader:
                     }
                     if self.extract_exif:
                         meta["exif"] = None
-                    if self.compute_hash is not None:
+
+                    if self.compute_hash is not None: 
                         meta[self.compute_hash] = None
+
                     if error_message is not None:
                         failed_to_download += 1
                         status = "failed_to_download"
@@ -279,6 +285,12 @@ class Downloader:
                         except Exception as _:  # pylint: disable=broad-except
                             exif = None
                         meta["exif"] = exif
+
+                    if hash_indice is not None:
+                        img_stream.seek(0)
+                        test_hash = getattr(hashlib, self.verify_hash_type)(img_stream.read()).hexdigest()
+                        if test_hash != sample_data[hash_indice]:
+                            raise ValueError("Hash doesn't match.")
 
                     if self.compute_hash is not None:
                         img_stream.seek(0)
