@@ -447,3 +447,25 @@ def test_blur_and_resize(resize_mode, resize_only_if_bigger, tmp_path):
     output_img = cv2.imread(output_img_path)
     desired_img = cv2.imread(desired_output_img_path)
     assert np.array_equal(output_img, desired_img)    
+
+
+def test_verify_hash(tmp_path):
+    test_folder = str(tmp_path)
+    output_folder = os.path.join(test_folder, "images")
+
+    current_folder = os.path.dirname(__file__)
+    input_parquet = os.path.join(current_folder, "test_files", "sample_image.parquet")
+
+    download(
+        input_parquet,
+        input_format="parquet",
+        image_size=224,
+        output_folder=output_folder,
+        output_format="files",
+        thread_count=32,
+        verify_hash=["sha256hash", "sha256"]
+    )
+
+    df = pd.read_parquet(os.path.join(output_folder, "00000.parquet"))
+
+    assert np.array_equal(df["sha256"].isna().to_numpy(), np.array([True, False]))
