@@ -90,7 +90,7 @@ class Downloader:
         timeout,
         number_sample_per_shard,
         oom_shard_count,
-        compute_md5,
+        compute_hash,
         encode_format,
         retries,
         user_agent_token,
@@ -107,7 +107,7 @@ class Downloader:
         self.timeout = timeout
         self.number_sample_per_shard = number_sample_per_shard
         self.oom_shard_count = oom_shard_count
-        self.compute_md5 = compute_md5
+        self.compute_hash = compute_hash
         self.encode_format = encode_format
         self.retries = retries
         self.user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
@@ -155,8 +155,8 @@ class Downloader:
         if self.extract_exif:
             schema = schema.append(pa.field("exif", pa.string()))
 
-        if self.compute_md5:
-            schema = schema.append(pa.field("md5", pa.string()))
+        if self.compute_hash is not None:
+            schema = schema.append(pa.field(self.compute_hash, pa.string()))
 
         pydict = df.select(self.column_list).to_pydict()
         shard_to_dl = list(enumerate(zip(*(pydict[col] for col in self.column_list))))
@@ -221,8 +221,8 @@ class Downloader:
                     }
                     if self.extract_exif:
                         meta["exif"] = None
-                    if self.compute_md5:
-                        meta["md5"] = None
+                    if self.compute_hash is not None:
+                        meta[self.compute_hash] = None
                     if error_message is not None:
                         failed_to_download += 1
                         status = "failed_to_download"
@@ -280,9 +280,9 @@ class Downloader:
                             exif = None
                         meta["exif"] = exif
 
-                    if self.compute_md5:
+                    if self.compute_hash is not None:
                         img_stream.seek(0)
-                        meta["md5"] = hashlib.md5(img_stream.read()).hexdigest()
+                        meta[self.compute_hash] = getattr(hashlib, self.compute_hash)(img_stream.read()).hexdigest()
 
                     meta["status"] = status
                     meta["width"] = width

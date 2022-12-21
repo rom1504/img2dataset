@@ -109,6 +109,7 @@ def test_download_input_format(input_format, output_format, tmp_path):
         output_format=output_format,
         url_col="url",
         caption_col="caption",
+        compute_hash="md5"
     )
 
     if output_format != "dummy":
