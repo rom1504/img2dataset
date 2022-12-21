@@ -167,20 +167,32 @@ class Resizer:
                 if max(original_height, original_width) / min(original_height, original_width) > self.max_aspect_ratio:
                     return None, None, None, None, None, "aspect ratio too large"
 
+                # check if resizer was defined during init if needed
+                if blurring_bbox_list is not None and self.blurrer is None:
+                    return None, None, None, None, None, "blurrer not defined"
+
+                # Flag to check if blurring is still needed.
+                maybe_blur_still_needed = True
+
                 # resizing in following conditions
                 if self.resize_mode in (ResizeMode.keep_ratio, ResizeMode.center_crop):
                     downscale = min(original_width, original_height) > self.image_size
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
                         img = A.smallest_max_size(img, self.image_size, interpolation=interpolation)
+                        if blurring_bbox_list is not None and self.blurrer is not None:
+                            img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
                         if self.resize_mode == ResizeMode.center_crop:
                             img = A.center_crop(img, self.image_size, self.image_size)
                         encode_needed = True
+                        maybe_blur_still_needed = False
                 elif self.resize_mode in (ResizeMode.border, ResizeMode.keep_ratio_largest):
                     downscale = max(original_width, original_height) > self.image_size
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
                         img = A.longest_max_size(img, self.image_size, interpolation=interpolation)
+                        if blurring_bbox_list is not None and self.blurrer is not None:
+                            img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
                         if self.resize_mode == ResizeMode.border:
                             img = A.pad(
                                 img,
@@ -190,12 +202,10 @@ class Resizer:
                                 value=[255, 255, 255],
                             )
                         encode_needed = True
+                        maybe_blur_still_needed = False
 
                 # blur parts of the image if needed
-                if blurring_bbox_list is not None:
-                    # check if blurrer has been defined
-                    if self.blurrer is None:
-                        return None, None, None, None, None, "blurrer not defined"
+                if maybe_blur_still_needed and blurring_bbox_list is not None and self.blurrer is not None:
                     img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
 
                 height, width = img.shape[:2]

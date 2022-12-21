@@ -3,7 +3,9 @@ import os
 import shutil
 import pytest
 import glob
+import numpy as np
 import pandas as pd
+import cv2
 import time
 import tarfile
 from fixtures import (
@@ -399,3 +401,48 @@ def test_benchmark(output_format, tmp_path):
 
     if took > 100:
         raise Exception("Very slow, took " + str(took))
+
+
+@pytest.mark.parametrize(
+    "resize_mode, resize_only_if_bigger",
+    [
+        ["no", False],
+        ["border", False],
+        ["keep_ratio", False],
+        ["keep_ratio_largest", False],
+        ["center_crop", False],
+        ["no", True],
+        ["border", True],
+        ["keep_ratio", True],
+        ["keep_ratio_largest", True],
+        ["center_crop", True],
+    ],
+)
+def test_blur_and_resize(resize_mode, resize_only_if_bigger, tmp_path):
+    test_folder = str(tmp_path)
+    output_folder = os.path.join(test_folder, "images")
+
+    current_folder = os.path.dirname(__file__)
+    input_parquet = os.path.join(current_folder, "blur_test_files", "test_bbox.parquet")
+
+    download(
+        input_parquet,
+        input_format="parquet",
+        image_size=600,
+        output_folder=output_folder,
+        output_format="files",
+        thread_count=32,
+        resize_mode=resize_mode,
+        resize_only_if_bigger=resize_only_if_bigger,
+        bbox_col="bboxes"
+    )
+
+    output_img_path = get_all_files(output_folder, "jpg")[0]
+    if resize_only_if_bigger:
+        desired_output_img_path = os.path.join(current_folder,  "blur_test_files", "resize_no.jpg")  # Original image is smaller
+    else:
+        desired_output_img_path = os.path.join(current_folder,  "blur_test_files", f"resize_{resize_mode}.jpg")
+    
+    output_img = cv2.imread(output_img_path)
+    desired_img = cv2.imread(desired_output_img_path)
+    assert np.array_equal(output_img, desired_img)    
