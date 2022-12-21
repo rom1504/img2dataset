@@ -43,6 +43,8 @@ def test_reader(input_format, tmp_path):
         input_format=input_format,
         url_col="url",
         caption_col=None if input_format == "txt" else "caption",
+        verify_hash_col=None,
+        verify_hash_type=None,
         save_additional_columns=None,
         number_sample_per_shard=batch_size,
         done_shards=done_shards,

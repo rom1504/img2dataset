@@ -36,6 +36,7 @@ def test_valid_hash(compute_hash, tmp_path):
         number_sample_per_shard=10,
         oom_shard_count=5,
         compute_hash=compute_hash,
+        verify_hash_type=None,
         encode_format="jpg",
         retries=0,
         user_agent_token="img2dataset",
