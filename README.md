@@ -151,6 +151,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **wandb_project** name of W&B project used (default *img2dataset*)
 * **oom_shard_count** the order of magnitude of the number of shards, used only to decide what zero padding to use to name the shard files (default *5*)
 * **compute_hash** the hash of raw images to compute and store in the metadata, one of *None*, *md5*, *sha256*, *sha512* (default *sha256*)
+* **verify_hash** if not *None*, then this is a list of two elements that will be used to verify hashes based on the provided input. The first element of this list is the label of the column containing the hashes in the input file, while the second one is the type of the hash that is being checked (default *None*)
 * **distributor** choose how to distribute the downloading (default *multiprocessing*)
   * **multiprocessing** use a multiprocessing pool to spawn processes
   * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
