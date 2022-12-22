@@ -468,4 +468,4 @@ def test_verify_hash(tmp_path):
 
     df = pd.read_parquet(os.path.join(output_folder, "00000.parquet"))
 
-    assert np.array_equal(df["sha256"].isna().to_numpy(), np.array([True, False]))
+    assert df["sha256"].isna().to_numpy().sum() == 1
