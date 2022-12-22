@@ -161,7 +161,8 @@ def download(
     if verify_hash is not None:
         verify_hash_col, verify_hash_type = verify_hash
     else:
-        verify_hash_col = verify_hash_type = None
+        verify_hash_col = None
+        verify_hash_type = None
 
     reader = Reader(
         url_list,

@@ -107,7 +107,7 @@ class Reader:
         column_names = df.column_names
         if self.caption_col is not None:
             column_names = [c if c != self.caption_col else "caption" for c in column_names]
-        
+
         if self.verify_hash_col is not None:
             column_names = [c if c != self.verify_hash_col else self.verify_hash_type for c in column_names]
 

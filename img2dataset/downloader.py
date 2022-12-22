@@ -157,7 +157,7 @@ class Downloader:
         if self.extract_exif:
             schema = schema.append(pa.field("exif", pa.string()))
 
-        if self.compute_hash is not None:
+        if self.compute_hash is not None and self.compute_hash not in schema.names:
             schema = schema.append(pa.field(self.compute_hash, pa.string()))
 
         pydict = df.select(self.column_list).to_pydict()
@@ -173,7 +173,9 @@ class Downloader:
         failed_to_resize = 0
         url_indice = self.column_list.index("url")
         caption_indice = self.column_list.index("caption") if "caption" in self.column_list else None
-        hash_indice = self.column_list.index(self.verify_hash_type) if self.verify_hash_type in self.column_list else None
+        hash_indice = (
+            self.column_list.index(self.verify_hash_type) if self.verify_hash_type in self.column_list else None
+        )
         bbox_indice = self.column_list.index(self.blurring_bbox_col) if self.blurring_bbox_col is not None else None
         key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
@@ -214,7 +216,11 @@ class Downloader:
                     str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
                     meta = {
                         # Skip columsn containing a the verification hash and only save the compute hash
-                        **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list)) if (hash_indice is None or i != hash_indice)},
+                        **{
+                            self.column_list[i]: sample_data[i]
+                            for i in range(len(self.column_list))
+                            if (hash_indice is None or i != hash_indice)
+                        },
                         "key": str_key,
                         "status": None,
                         "error_message": error_message,
@@ -226,7 +232,7 @@ class Downloader:
                     if self.extract_exif:
                         meta["exif"] = None
 
-                    if self.compute_hash is not None: 
+                    if self.compute_hash is not None:
                         meta[self.compute_hash] = None
 
                     if error_message is not None:
@@ -242,6 +248,27 @@ class Downloader:
                         )
                         semaphore.release()
                         continue
+
+                    if hash_indice is not None:
+                        img_stream.seek(0)
+                        test_hash = getattr(hashlib, self.verify_hash_type)(img_stream.read()).hexdigest()
+                        if test_hash != sample_data[hash_indice]:
+                            failed_to_download += 1
+                            status = "failed_to_download"
+                            status_dict.increment("hash mismatch")
+                            meta["status"] = status
+                            meta["error_message"] = "hash mismatch"
+                            sample_writer.write(
+                                None,
+                                str_key,
+                                sample_data[caption_indice] if caption_indice is not None else None,
+                                meta,
+                            )
+                            img_stream.close()
+                            del img_stream
+                            semaphore.release()
+                            continue
+
                     img_stream.seek(0)
                     bbox_list = sample_data[bbox_indice] if bbox_indice is not None else None
                     (
@@ -285,12 +312,6 @@ class Downloader:
                         except Exception as _:  # pylint: disable=broad-except
                             exif = None
                         meta["exif"] = exif
-
-                    if hash_indice is not None:
-                        img_stream.seek(0)
-                        test_hash = getattr(hashlib, self.verify_hash_type)(img_stream.read()).hexdigest()
-                        if test_hash != sample_data[hash_indice]:
-                            raise ValueError("Hash doesn't match.")
 
                     if self.compute_hash is not None:
                         img_stream.seek(0)
