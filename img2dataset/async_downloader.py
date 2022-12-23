@@ -192,7 +192,8 @@ class AsyncDownloader:
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         
-        semaphore = asyncio.Semaphore(self.thread_count*2)
+        # this prevents execute too many download task at the same time
+        download_semaphore = asyncio.Semaphore(self.thread_count)
         data_queue = asyncio.Queue()
         async def download_task():
             timeout = ClientTimeout(total=self.timeout)
@@ -200,7 +201,7 @@ class AsyncDownloader:
                 all_task = [
                     download_image_with_retry(
                         x,
-                        semaphore=semaphore,
+                        semaphore=download_semaphore,
                         session=session,
                         queue=data_queue,
                         retries=self.retries,
