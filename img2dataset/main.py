@@ -15,6 +15,7 @@ from .writer import (
 )
 from .reader import Reader
 from .downloader import Downloader
+from .async_downloader import AsyncDownloader
 from .distributor import multiprocessing_distributor, pyspark_distributor
 import fsspec
 import sys
@@ -202,7 +203,7 @@ def download(
         blurrer=blurrer,
     )
 
-    downloader = Downloader(
+    downloader = AsyncDownloader(
         sample_writer_class=sample_writer_class,
         resizer=resizer,
         thread_count=thread_count,
