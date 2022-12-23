@@ -60,7 +60,6 @@ async def download_image(row, session: ClientSession, user_agent_token, disallow
             img_stream = io.BytesIO(await resp.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
-        print(str(err))
         if img_stream is not None:
             img_stream.close()
         return key, None, str(err)
