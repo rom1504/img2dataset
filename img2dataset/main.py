@@ -1,6 +1,6 @@
 """Img2dataset"""
 
-from typing import List, Optional
+from typing import List, Optional, Type
 import fire
 import logging
 from .logger import LoggerProcess
@@ -205,11 +205,11 @@ def download(
     )
 
     if downloader == "normal":
-        downloader_type = Downloader
+        downloader_type: Type = Downloader
     elif downloader == "async":
         downloader_type = AsyncDownloader
     else:
-        raise ValueError(f"Downloader {distributor} not supported")
+        raise ValueError(f"Downloader {downloader} not supported")
 
     downloader_fn = downloader_type(
         sample_writer_class=sample_writer_class,
