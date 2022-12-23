@@ -1,9 +1,6 @@
 """the downloader module handles the downloading"""
 
-from multiprocessing.pool import ThreadPool
-from threading import Semaphore
 import asyncio
-import urllib.request
 from aiohttp import ClientSession, ClientTimeout
 import io
 import math
