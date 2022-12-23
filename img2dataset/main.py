@@ -205,9 +205,9 @@ def download(
     )
 
     if downloader=='normal':
-        downloader_type = AsyncDownloader
-    elif downloader=='async':
         downloader_type = Downloader
+    elif downloader=='async':
+        downloader_type = AsyncDownloader
     else:
         raise ValueError(f"Downloader {distributor} not supported")
     
