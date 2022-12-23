@@ -54,7 +54,6 @@ def test_valid_hash(compute_hash, tmp_path):
     with open(desired_output_file, "r") as f:
         hashes_dict = json.load(f)
 
-    print(df.to_string())
     assert df[compute_hash][0] == hashes_dict[compute_hash]
 
 
