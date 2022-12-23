@@ -40,11 +40,11 @@ def make_headers(user_agent_token):
     user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
-    
-    return {'User-Agent': user_agent_string}
+
+    return {"User-Agent": user_agent_string}
 
 
-async def download_image(row, session: ClientSession, user_agent_token, disallowed_header_directives):
+async def download_image(row, session, user_agent_token, disallowed_header_directives):
     """Download an image with urllib"""
     key, url = row
     img_stream = None
@@ -65,7 +65,9 @@ async def download_image(row, session: ClientSession, user_agent_token, disallow
         return key, None, str(err)
 
 
-async def download_image_with_retry(row, semaphore, session, queue: asyncio.Queue, retries, user_agent_token, disallowed_header_directives):
+async def download_image_with_retry(
+    row, semaphore, session, queue, retries, user_agent_token, disallowed_header_directives
+):
     async with semaphore:
         for _ in range(retries + 1):
             key, img_stream, err = await download_image(row, session, user_agent_token, disallowed_header_directives)
@@ -84,7 +86,8 @@ def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
 
 
 class AsyncDownloader:
-    """The downloader class gets calls with shards, download them then call the writer to write them down"""
+    """Asyncio version of Downloader"""
+
     def __init__(
         self,
         sample_writer_class,
@@ -191,10 +194,11 @@ class AsyncDownloader:
             self.encode_format,
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
-        
+
         # this prevents execute too many download task at the same time
         download_semaphore = asyncio.Semaphore(self.thread_count)
         data_queue = asyncio.Queue()
+
         async def download_task():
             timeout = ClientTimeout(total=self.timeout)
             async with ClientSession(timeout=timeout, headers=make_headers(self.user_agent_token)) as session:
@@ -207,17 +211,18 @@ class AsyncDownloader:
                         retries=self.retries,
                         user_agent_token=self.user_agent_token,
                         disallowed_header_directives=self.disallowed_header_directives,
-                    ) for x in key_url_list
+                    )
+                    for x in key_url_list
                 ]
                 await asyncio.gather(*all_task)
-            await data_queue.put(('finish', 'finish', 'finish'))
+            await data_queue.put(("finish", "finish", "finish"))
             await data_queue.join()
-        
+
         async def save_task():
             nonlocal successes, failed_to_resize, failed_to_download
             while True:
                 key, img_stream, error_message = await data_queue.get()
-                if key==img_stream==error_message=='finish':
+                if key == img_stream == error_message == "finish":
                     break
                 try:
                     _, sample_data = shard_to_dl[key]
@@ -314,12 +319,13 @@ class AsyncDownloader:
                     print(f"Sample {key} failed to download: {err}")
                 finally:
                     data_queue.task_done()
-        
-        async def start():
+
+        async def run():
             asyncio.ensure_future(download_task())
             await save_task()
-        asyncio.run(start())
-        
+
+        asyncio.run(run())
+
         end_time = time.time()
         write_stats(
             self.output_folder,

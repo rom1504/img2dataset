@@ -204,13 +204,13 @@ def download(
         blurrer=blurrer,
     )
 
-    if downloader=='normal':
+    if downloader == "normal":
         downloader_type = Downloader
-    elif downloader=='async':
+    elif downloader == "async":
         downloader_type = AsyncDownloader
     else:
         raise ValueError(f"Downloader {distributor} not supported")
-    
+
     downloader_fn = downloader_type(
         sample_writer_class=sample_writer_class,
         resizer=resizer,
