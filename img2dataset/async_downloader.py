@@ -194,9 +194,8 @@ class AsyncDownloader:
 
         # this prevents execute too many download task at the same time
         download_semaphore = asyncio.Semaphore(self.thread_count)
-        data_queue = asyncio.Queue()
 
-        async def download_task():
+        async def download_task(data_queue):
             timeout = ClientTimeout(total=self.timeout)
             async with ClientSession(timeout=timeout, headers=make_headers(self.user_agent_token)) as session:
                 all_task = [
@@ -215,7 +214,7 @@ class AsyncDownloader:
             await data_queue.put(("finish", "finish", "finish"))
             await data_queue.join()
 
-        async def save_task():
+        async def save_task(data_queue):
             nonlocal successes, failed_to_resize, failed_to_download
             while True:
                 key, img_stream, error_message = await data_queue.get()
@@ -318,8 +317,9 @@ class AsyncDownloader:
                     data_queue.task_done()
 
         async def run():
-            asyncio.ensure_future(download_task())
-            await save_task()
+            data_queue = asyncio.Queue()
+            asyncio.ensure_future(download_task(data_queue))
+            await save_task(data_queue)
             sample_writer.close()
 
         asyncio.run(run())
