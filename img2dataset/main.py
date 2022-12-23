@@ -210,6 +210,7 @@ def download(
         downloader_type = AsyncDownloader
     else:
         raise ValueError(f"Downloader {downloader} not supported")
+    print(f"Use {downloader} downloader.")
 
     downloader_fn = downloader_type(
         sample_writer_class=sample_writer_class,
