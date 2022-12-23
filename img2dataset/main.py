@@ -86,6 +86,7 @@ def download(
     oom_shard_count: int = 5,
     compute_hash: Optional[str] = "sha256",
     distributor: str = "multiprocessing",
+    downloader: str = "normal",
     subjob_size: int = 1000,
     retries: int = 0,
     disable_all_reencoding: bool = False,
@@ -203,7 +204,14 @@ def download(
         blurrer=blurrer,
     )
 
-    downloader = AsyncDownloader(
+    if downloader=='normal':
+        downloader_type = AsyncDownloader
+    elif downloader=='async':
+        downloader_type = Downloader
+    else:
+        raise ValueError(f"Downloader {distributor} not supported")
+    
+    downloader_fn = downloader_type(
         sample_writer_class=sample_writer_class,
         resizer=resizer,
         thread_count=thread_count,
@@ -232,7 +240,7 @@ def download(
 
     distributor_fn(
         processes_count,
-        downloader,
+        downloader_fn,
         reader,
         subjob_size,
         max_shard_retry,
