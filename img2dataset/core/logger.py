@@ -160,8 +160,7 @@ class StatusTableLogger(Logger):
 
 
 def write_stats(
-    output_folder,
-    shard_id,
+    output_file_prefix,
     count,
     successes,
     failed_to_download,
@@ -169,7 +168,6 @@ def write_stats(
     start_time,
     end_time,
     status_dict,
-    oom_shard_count,
 ):
     """Write stats to disk"""
     stats = {
@@ -182,12 +180,8 @@ def write_stats(
         "end_time": end_time,
         "status_dict": status_dict.dump(),
     }
-    fs, output_path = fsspec.core.url_to_fs(output_folder)
-    shard_name = "{shard_id:0{oom_shard_count}d}".format(  # pylint: disable=consider-using-f-string
-        shard_id=shard_id, oom_shard_count=oom_shard_count
-    )
-    json_file = f"{output_path}/{shard_name}_stats.json"
-    with fs.open(json_file, "w") as f:
+    fs, output_path = fsspec.core.url_to_fs(f"{output_file_prefix}_stats.json")
+    with fs.open(output_path, "w") as f:
         json.dump(stats, f, indent=4)
 
 

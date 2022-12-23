@@ -171,9 +171,19 @@ class Reader:
                 "your cpu (with htop), and your disk usage (with iotop)!"
             )
 
-            for shard_id, arrow_file in shards:
+            for shard_id, input_file in shards:
                 yield (
                     shard_id,
-                    arrow_file,
+                    input_file,
                 )
             start_shard_id += number_shards
+
+    def prepare(self, nb):
+        """
+        Prepare the dataset by downloading the files and sharding them
+        """
+        start_shard_id = 0
+        for i, input_file in list(enumerate(self.input_files))[:nb]:
+            print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
+
+            self._save_to_arrow(input_file, start_shard_id)

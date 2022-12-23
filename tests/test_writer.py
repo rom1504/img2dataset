@@ -1,4 +1,4 @@
-from img2dataset.writer import (
+from img2dataset.core.writer import (
     FilesSampleWriter,
     WebDatasetSampleWriter,
     ParquetSampleWriter,

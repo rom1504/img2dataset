@@ -1,4 +1,4 @@
-from img2dataset.resizer import Resizer
+from img2dataset.core.resizer import Resizer
 import os
 import glob
 import pytest

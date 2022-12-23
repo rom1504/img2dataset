@@ -11,6 +11,7 @@ import time
 import hashlib
 import pyarrow as pa
 import traceback
+import uuid
 
 import fsspec
 from .logger import CappedCounter
@@ -66,14 +67,6 @@ def download_image_with_retry(row, timeout, retries, user_agent_token, disallowe
     return key, None, err
 
 
-def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
-    true_key = (10**oom_sample_per_shard) * shard_id + key
-    key_format = oom_sample_per_shard + oom_shard_count
-    str_key = "{true_key:0{key_format}d}".format(  # pylint: disable=consider-using-f-string
-        key_format=key_format, true_key=true_key
-    )
-    return str_key
-
 
 class Downloader:
     """The downloader class gets calls with shards, download them then call the writer to write them down"""
@@ -85,27 +78,24 @@ class Downloader:
         thread_count,
         save_caption,
         extract_exif,
-        output_folder,
         column_list,
         timeout,
         number_sample_per_shard,
-        oom_shard_count,
         compute_md5,
         encode_format,
         retries,
         user_agent_token,
         disallowed_header_directives,
+        delete_input_shard,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
         self.thread_count = thread_count
         self.save_caption = save_caption
         self.extract_exif = extract_exif
-        self.output_folder = output_folder
         self.column_list = column_list
         self.timeout = timeout
         self.number_sample_per_shard = number_sample_per_shard
-        self.oom_shard_count = oom_shard_count
         self.compute_md5 = compute_md5
         self.encode_format = encode_format
         self.retries = retries
@@ -115,6 +105,7 @@ class Downloader:
             if disallowed_header_directives is None
             else {directive.strip().lower() for directive in disallowed_header_directives}
         )
+        self.delete_input_shard = delete_input_shard
 
     def __call__(
         self,
@@ -134,10 +125,10 @@ class Downloader:
     ):
         """Function to start an image downloading in one process"""
 
-        shard_id, shard_file = row
+        input_file, output_file_prefix = row
         start_time = time.time()
 
-        fs, shard_path = fsspec.core.url_to_fs(shard_file)
+        fs, shard_path = fsspec.core.url_to_fs(input_file)
         with fs.open(shard_path, "rb") as f:
             df = pa.ipc.open_file(f).read_all()
         schema = df.schema
@@ -184,14 +175,11 @@ class Downloader:
 
         # give schema to writer
         sample_writer = self.sample_writer_class(
-            shard_id,
-            self.output_folder,
+            output_file_prefix,
             self.save_caption,
-            self.oom_shard_count,
             schema,
             self.encode_format,
         )
-        oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
                 lambda x: download_image_with_retry(
@@ -205,7 +193,7 @@ class Downloader:
             ):
                 try:
                     _, sample_data = shard_to_dl[key]
-                    str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
+                    str_key = str(uuid.uuid4())
                     meta = {
                         **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list))},
                         "key": str_key,
@@ -306,8 +294,7 @@ class Downloader:
 
         end_time = time.time()
         write_stats(
-            self.output_folder,
-            shard_id,
+            output_file_prefix,
             count,
             successes,
             failed_to_download,
@@ -315,6 +302,6 @@ class Downloader:
             start_time,
             end_time,
             status_dict,
-            self.oom_shard_count,
         )
-        fs.rm(shard_path)
+        if self.delete_input_shard:
+            fs.rm(shard_path)

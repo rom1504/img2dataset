@@ -3,9 +3,14 @@
 from contextlib import contextmanager
 from multiprocessing import get_context
 from itertools import islice, chain
+from ..core.worker import download_worker
 
 from tqdm import tqdm
+from functools import partial
 
+
+def rrun(d):
+    download_worker(**d)
 
 def retrier(runf, failed_shards, max_shard_retry):
     # retry failed shards max_shard_retry times
@@ -20,20 +25,19 @@ def retrier(runf, failed_shards, max_shard_retry):
             "still failed. You may restart the same command to retry again."
         )
 
-
-def multiprocessing_distributor(processes_count, downloader, reader, _, max_shard_retry):
+def multiprocessing_distributor(processes_count, worker_config_generator, _, max_shard_retry):
     """Distribute the work to the processes using multiprocessing"""
     ctx = get_context("spawn")
     with ctx.Pool(processes_count, maxtasksperchild=5) as process_pool:
 
         def run(gen):
             failed_shards = []
-            for (status, row) in tqdm(process_pool.imap_unordered(downloader, gen)):
+            for (status, row) in tqdm(process_pool.imap_unordered(rrun, gen)):
                 if status is False:
                     failed_shards.append(row)
             return failed_shards
 
-        failed_shards = run(reader)
+        failed_shards = run(worker_config_generator)
 
         retrier(run, failed_shards, max_shard_retry)
 
@@ -42,7 +46,7 @@ def multiprocessing_distributor(processes_count, downloader, reader, _, max_shar
         del process_pool
 
 
-def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_shard_retry):
+def pyspark_distributor(processes_count, worker_config_generator, subjob_size, max_shard_retry):
     """Distribute the work to the processes using pyspark"""
 
     with _spark_session(processes_count) as spark:
@@ -56,12 +60,12 @@ def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_sh
             failed_shards = []
             for batch in batcher(gen, subjob_size):
                 rdd = spark.sparkContext.parallelize(batch, len(batch))
-                for (status, row) in rdd.map(downloader).collect():
+                for (status, row) in rdd.map(rrun).collect():
                     if status is False:
                         failed_shards.append(row)
             return failed_shards
 
-        failed_shards = run(reader)
+        failed_shards = run(worker_config_generator)
 
         retrier(run, failed_shards, max_shard_retry)
 

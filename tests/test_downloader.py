@@ -1,8 +1,8 @@
 import shutil
 from fixtures import setup_fixtures
-from img2dataset.resizer import Resizer
-from img2dataset.writer import FilesSampleWriter
-from img2dataset.downloader import Downloader
+from img2dataset.core.resizer import Resizer
+from img2dataset.core.writer import FilesSampleWriter
+from img2dataset.core.downloader import Downloader
 
 import os
 import pandas as pd
