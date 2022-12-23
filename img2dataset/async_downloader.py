@@ -323,6 +323,7 @@ class AsyncDownloader:
         async def run():
             asyncio.ensure_future(download_task())
             await save_task()
+            sample_writer.close()
 
         asyncio.run(run())
 
