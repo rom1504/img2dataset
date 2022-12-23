@@ -192,10 +192,7 @@ class AsyncDownloader:
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
 
-        # this prevents execute too many download task at the same time
-        download_semaphore = asyncio.Semaphore(self.thread_count)
-
-        async def download_task(data_queue):
+        async def download_task(data_queue, download_semaphore):
             timeout = ClientTimeout(total=self.timeout)
             async with ClientSession(timeout=timeout, headers=make_headers(self.user_agent_token)) as session:
                 all_task = [
@@ -317,8 +314,10 @@ class AsyncDownloader:
                     data_queue.task_done()
 
         async def run():
+            # this prevents execute too many download task at the same time
+            download_semaphore = asyncio.Semaphore(self.thread_count)
             data_queue = asyncio.Queue()
-            asyncio.ensure_future(download_task(data_queue))
+            asyncio.ensure_future(download_task(data_queue, download_semaphore))
             await save_task(data_queue)
             sample_writer.close()
 
