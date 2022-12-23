@@ -24,13 +24,13 @@ class ServiceClient:
     def is_available(self):
         return self.available
 
-    async def download(self, input_file, output_file_prefix):
+    async def download(self, params):
         self.available = False
         # call the service on /download with input_file and output_file_prefix using requests
         
-        print(f"service {self.service_url} is downloading {input_file} to {output_file_prefix}")
+        print(f"service {self.service_url} is downloading {params}")
         async with aiohttp.ClientSession() as session:
-            async with session.get(self.service_url+"/download", params={"input_file": input_file, "output_file_prefix": output_file_prefix}) as resp:
+            async with session.post(self.service_url+"/download", json=params) as resp:
                 print(resp.status)
                 print(await resp.text())
         self.available = True
@@ -49,10 +49,11 @@ class LoadBalancer:
     def add_service(self, service_url):
         self.services.append(ServiceClient(service_url))
 
-    async def download(self, input_path, output_path):
+    async def download(self, params):
         # add to queue then wait for the output_path to be available
-        self.queue.append((input_path, output_path))
-        while output_path not in self.done_shard:
+        self.queue.append(params)
+        output_file_prefix = params["output_file_prefix"]
+        while output_file_prefix not in self.done_shard:
             await asyncio.sleep(1)
         return True
 
@@ -62,18 +63,18 @@ class LoadBalancer:
             if len(self.queue) == 0:
                 await asyncio.sleep(1)
                 continue
-            input_path, output_path = self.queue.popleft()
+            params = self.queue.popleft()
             executed = False
             for service in self.services:
                 if service.is_available():
                     async def f():
-                        await service.download(input_path, output_path)
-                        self.done_shard[output_path] = True
+                        await service.download(params)
+                        self.done_shard[params["output_file_prefix"]] = True
                     loop.create_task(f())
                     executed = True
                     break
             if not executed:
-                self.queue.appendleft((input_path, output_path))
+                self.queue.appendleft(params)
                 await asyncio.sleep(1)
 
 def load_balancer(url_output_path: str = "/tmp/load_balancer"):
@@ -87,9 +88,9 @@ def load_balancer(url_output_path: str = "/tmp/load_balancer"):
     def get():
         return "hi"
 
-    @app.get("/download")
-    async def download(input_file, output_file_prefix):
-        return await load_balancer.download(input_file, output_file_prefix)
+    @app.post("/download")
+    async def download(params: dict):
+        return await load_balancer.download(params)
 
     @app.get("/add_service")
     def add_service(service_url):

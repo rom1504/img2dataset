@@ -14,14 +14,10 @@ import asyncio
 from threading import Semaphore
 
 
-
 def service(
     load_balancer_url: Optional[str] = None,
-    **kwargs,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
-    kwargs["load_balancer_url"] = load_balancer_url
-    config_parameters = kwargs
 
 
     semaphore = Semaphore(1)
@@ -33,15 +29,12 @@ def service(
     def get():
         return "hi"
 
-    @app.get("/download")
-    def download(input_file, output_file_prefix):
+    # make it better
+    @app.post("/download")
+    def download(config_args: dict):
         semaphore.acquire()
-        config_args = deepcopy(config_parameters)
         print(config_args)
-        config_args["input_file"] = input_file
-        config_args["output_file_prefix"] = output_file_prefix
         config_args["delete_input_shard"] = False
-        del config_args["load_balancer_url"]
         r = download_worker(**config_args)
         semaphore.release()
         return r

@@ -16,7 +16,7 @@ import uuid
 import os
 
 
-def multiprocessing_launcher(processes_count, config_args, tmp_file_name):
+def multiprocessing_launcher(processes_count, tmp_file_name):
     """Start N workers"""
     ctx = get_context("spawn")
     if tmp_file_name is None:
@@ -34,8 +34,7 @@ def multiprocessing_launcher(processes_count, config_args, tmp_file_name):
 
     processes = []
     for _ in range(processes_count):
-        config_args["load_balancer_url"] = load_balancer_url
-        p = ctx.Process(target=service, kwargs=config_args)
+        p = ctx.Process(target=service, kwargs={"load_balancer_url": load_balancer_url})
         p.start()
         processes.append(p)
     
@@ -47,11 +46,9 @@ def multiprocessing_launcher(processes_count, config_args, tmp_file_name):
 def launcher(
     processes_count: int = 1,
     tmp_file_name : str = None,
-    **kwargs,
     ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
-    config_parameters = kwargs
-    multiprocessing_launcher(processes_count, config_parameters, tmp_file_name)
+    multiprocessing_launcher(processes_count, tmp_file_name)
 
 
 def main():
