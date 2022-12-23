@@ -4,7 +4,7 @@
 from fastapi import FastAPI
 import fire
 from copy import deepcopy
-from ..core.worker import download_worker
+from ..core.downloader import download_shard
 import uvicorn
 import requests
 from typing import List, Optional
@@ -35,7 +35,7 @@ def service(
         semaphore.acquire()
         print(config_args)
         config_args["delete_input_shard"] = False
-        r = download_worker(**config_args)
+        r = download_shard(**config_args)
         semaphore.release()
         return r
     

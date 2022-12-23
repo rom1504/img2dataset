@@ -3,14 +3,14 @@
 from contextlib import contextmanager
 from multiprocessing import get_context
 from itertools import islice, chain
-from ..core.worker import download_worker
+from ..core.downloader import download_shard
 
 from tqdm import tqdm
 from functools import partial
 
 
 def rrun(d):
-    download_worker(**d)
+    download_shard(**d)
 
 def retrier(runf, failed_shards, max_shard_retry):
     # retry failed shards max_shard_retry times
