@@ -8,6 +8,12 @@ import json
 import multiprocessing
 import queue
 import traceback
+from pydantic import BaseModel
+
+
+class LoggerOptions(BaseModel):
+    enable_wandb: bool = False
+    wandb_project: str = "img2dataset"
 
 
 class CappedCounter:

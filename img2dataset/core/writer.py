@@ -8,7 +8,12 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 import webdataset as wds
+from pydantic import BaseModel
 
+class WriterOptions(BaseModel):
+    output_folder: str = "images"
+    output_format: str = "files"
+    oom_shard_count: int = 7
 
 class BufferedParquetWriter:
     """Write samples to parquet files incrementally with a buffer"""

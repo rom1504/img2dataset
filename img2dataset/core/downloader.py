@@ -26,8 +26,40 @@ from .writer import (
     TFRecordSampleWriter,
     DummySampleWriter,
 )
+from pydantic import BaseModel
+import pydantic
+
 
 logging.getLogger("exifread").setLevel(level=logging.CRITICAL)
+
+
+class DownloaderOptions(BaseModel):
+    thread_count: int = 256
+    extract_exif: bool = True
+    timeout: int = 10
+    compute_md5: bool = True
+    retries: int = 0
+    user_agent_token: Optional[str] = None
+    disallowed_header_directives: Optional[List[str]] = None
+    delete_input_shard: bool = True
+
+class DownloaderWorkerSpecificOptions(BaseModel):
+    input_file: str
+    output_file_prefix: str
+    caption_col: Optional[str] = None
+    input_format: str = "txt"
+    save_additional_columns: Optional[List[str]] = None
+
+
+from ..core.writer import WriterOptions
+from ..core.downloader import DownloaderOptions
+from ..core.resizer import ResizingOptions
+
+DownloaderWorkerOptions = pydantic.create_model("DownloaderWorkerOptions", __base__=(
+    WriterOptions,
+    DownloaderOptions,
+    ResizingOptions,
+    DownloaderWorkerSpecificOptions,))
 
 
 def is_disallowed(headers, user_agent_token, disallowed_header_directives):
@@ -78,120 +110,63 @@ def download_image_with_retry(row, timeout, retries, user_agent_token, disallowe
             return key, img_stream, err
     return key, None, err
 
-
-def arguments_validator(params):
-    """Validate the arguments"""
-    if params["save_additional_columns"] is not None:
-        save_additional_columns_set = set(params["save_additional_columns"])
-
-        forbidden_columns = set(
-            [
-                "key",
-                "caption",
-                "url",
-                "width",
-                "height",
-                "original_width",
-                "original_height",
-                "status",
-                "error_message",
-                "exif",
-                "md5",
-            ]
-        )
-        intersection = save_additional_columns_set.intersection(forbidden_columns)
-        if intersection:
-            raise ValueError(
-                f"You cannot use in save_additional_columns the following columns: {intersection}."
-                + "img2dataset reserves these columns for its own use. Please remove them from save_additional_columns."
-            )
-
-
-def download_shard(
-    input_file: str,
-    output_file_prefix: str,
-    image_size: int = 256,
-    resize_mode: str = "border",
-    resize_only_if_bigger: bool = False,
-    upscale_interpolation: str = "lanczos",
-    downscale_interpolation: str = "area",
-    encode_quality: int = 95,
-    encode_format: str = "jpg",
-    skip_reencode: bool = False,
-    output_format: str = "files",
-    input_format: str = "txt",
-    caption_col: Optional[str] = None,
-    thread_count: int = 256,
-    extract_exif: bool = True,
-    save_additional_columns: Optional[List[str]] = None,
-    timeout: int = 10,
-    compute_md5: bool = True,
-    retries: int = 0,
-    disable_all_reencoding: bool = False,
-    min_image_size: int = 0,
-    max_image_area: float = float("inf"),
-    max_aspect_ratio: float = float("inf"),
-    user_agent_token: Optional[str] = None,
-    disallowed_header_directives: Optional[List[str]] = None,
-    delete_input_shard: bool = True,
-):
+def download_shard(**kwargs):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
-    config_parameters = dict(locals())
-    arguments_validator(config_parameters)
+    opts = DownloaderWorkerOptions(**kwargs)
 
-    save_caption = caption_col is not None
+    save_caption = opts.caption_col is not None
 
 
-    if output_format == "webdataset":
+    if opts.output_format == "webdataset":
         sample_writer_class = WebDatasetSampleWriter
-    elif output_format == "parquet":
+    elif opts.output_format == "parquet":
         sample_writer_class = ParquetSampleWriter  # type: ignore
-    elif output_format == "files":
+    elif opts.output_format == "files":
         sample_writer_class = FilesSampleWriter  # type: ignore
-    elif output_format == "tfrecord":
+    elif opts.output_format == "tfrecord":
         sample_writer_class = TFRecordSampleWriter  # type: ignore
-    elif output_format == "dummy":
+    elif opts.output_format == "dummy":
         sample_writer_class = DummySampleWriter  # type: ignore
     else:
-        raise ValueError(f"Invalid output format {output_format}")
+        raise ValueError(f"Invalid output format {opts.output_format}")
 
     resizer = Resizer(
-        image_size=image_size,
-        resize_mode=resize_mode,
-        resize_only_if_bigger=resize_only_if_bigger,
-        upscale_interpolation=upscale_interpolation,
-        downscale_interpolation=downscale_interpolation,
-        encode_quality=encode_quality,
-        encode_format=encode_format,
-        skip_reencode=skip_reencode,
-        disable_all_reencoding=disable_all_reencoding,
-        min_image_size=min_image_size,
-        max_image_area=max_image_area,
-        max_aspect_ratio=max_aspect_ratio,
+        image_size=opts.image_size,
+        resize_mode=opts.resize_mode,
+        resize_only_if_bigger=opts.resize_only_if_bigger,
+        upscale_interpolation=opts.upscale_interpolation,
+        downscale_interpolation=opts.downscale_interpolation,
+        encode_quality=opts.encode_quality,
+        encode_format=opts.encode_format,
+        skip_reencode=opts.skip_reencode,
+        disable_all_reencoding=opts.disable_all_reencoding,
+        min_image_size=opts.min_image_size,
+        max_image_area=opts.max_image_area,
+        max_aspect_ratio=opts.max_aspect_ratio,
     )
 
-    if input_format == "txt":
+    if opts.input_format == "txt":
         column_list = ["url"]
-    elif input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
-        column_list = save_additional_columns if save_additional_columns is not None else []
-        if caption_col is not None:
+    elif opts.input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
+        column_list = opts.save_additional_columns if opts.save_additional_columns is not None else []
+        if opts.caption_col is not None:
             column_list = column_list + ["caption", "url"]
         else:
             column_list = column_list + ["url"]
     else:
-        raise ValueError(f"Invalid input format {input_format}")
+        raise ValueError(f"Invalid input format {opts.input_format}")
 
-    disallowed_header_directives = (
+    opts.disallowed_header_directives = (
         None
-        if disallowed_header_directives is None
-        else {directive.strip().lower() for directive in disallowed_header_directives}
+        if opts.disallowed_header_directives is None
+        else {directive.strip().lower() for directive in opts.disallowed_header_directives}
     )
-    user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
+    opts.user_agent_token = None if opts.user_agent_token is None else opts.user_agent_token.strip().lower()
 
     try:
         start_time = time.time()
 
-        fs, shard_path = fsspec.core.url_to_fs(input_file)
+        fs, shard_path = fsspec.core.url_to_fs(opts.input_file)
         with fs.open(shard_path, "rb") as f:
             df = pa.ipc.open_file(f).read_all()
         schema = df.schema
@@ -204,10 +179,10 @@ def download_shard(
             .append(pa.field("original_width", pa.int32()))
             .append(pa.field("original_height", pa.int32()))
         )
-        if extract_exif:
+        if opts.extract_exif:
             schema = schema.append(pa.field("exif", pa.string()))
 
-        if compute_md5:
+        if opts.compute_md5:
             schema = schema.append(pa.field("md5", pa.string()))
 
         pydict = df.select(column_list).to_pydict()
@@ -227,7 +202,7 @@ def download_shard(
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
         # limit the memory usage
-        semaphore = Semaphore(thread_count * 2)
+        semaphore = Semaphore(opts.thread_count * 2)
 
         def data_generator():
             for e in key_url_list:
@@ -238,19 +213,19 @@ def download_shard(
 
         # give schema to writer
         sample_writer = sample_writer_class(
-            output_file_prefix,
+            opts.output_file_prefix,
             save_caption,
             schema,
-            encode_format,
+            opts.encode_format,
         )
-        with ThreadPool(thread_count) as thread_pool:
+        with ThreadPool(opts.thread_count) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
                 lambda x: download_image_with_retry(
                     x,
-                    timeout=timeout,
-                    retries=retries,
-                    user_agent_token=user_agent_token,
-                    disallowed_header_directives=disallowed_header_directives,
+                    timeout=opts.timeout,
+                    retries=opts.retries,
+                    user_agent_token=opts.user_agent_token,
+                    disallowed_header_directives=opts.disallowed_header_directives,
                 ),
                 loader,
             ):
@@ -267,9 +242,9 @@ def download_shard(
                         "original_width": None,
                         "original_height": None,
                     }
-                    if extract_exif:
+                    if opts.extract_exif:
                         meta["exif"] = None
-                    if compute_md5:
+                    if opts.compute_md5:
                         meta["md5"] = None
                     if error_message is not None:
                         failed_to_download += 1
@@ -313,7 +288,7 @@ def download_shard(
                     status = "success"
                     status_dict.increment(status)
 
-                    if extract_exif:
+                    if opts.extract_exif:
                         try:
                             img_stream.seek(0)
                             exif = json.dumps(
@@ -327,7 +302,7 @@ def download_shard(
                             exif = None
                         meta["exif"] = exif
 
-                    if compute_md5:
+                    if opts.compute_md5:
                         img_stream.seek(0)
                         meta["md5"] = hashlib.md5(img_stream.read()).hexdigest()
 
@@ -357,7 +332,7 @@ def download_shard(
 
         end_time = time.time()
         write_stats(
-            output_file_prefix,
+            opts.output_file_prefix,
             count,
             successes,
             failed_to_download,
@@ -366,13 +341,13 @@ def download_shard(
             end_time,
             status_dict,
         )
-        if delete_input_shard:
+        if opts.delete_input_shard:
             fs.rm(shard_path)
-        return (True, (input_file, output_file_prefix))
+        return (True, (opts.input_file, opts.output_file_prefix))
     except Exception as err:  # pylint: disable=broad-except
         traceback.print_exc()
-        print(f"shard {input_file} failed with error {err}")
-        return (False, (input_file, output_file_prefix))
+        print(f"shard {opts.input_file} failed with error {err}")
+        return (False, (opts.input_file, opts.output_file_prefix))
 
 
 def main():

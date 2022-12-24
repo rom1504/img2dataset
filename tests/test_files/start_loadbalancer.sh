@@ -1,1 +1,1 @@
-python -m img2dataset.loadbalancer 
+python -m img2dataset.service.loadbalancer 

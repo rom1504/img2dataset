@@ -7,10 +7,18 @@ from ..core.downloader import download_shard
 
 from tqdm import tqdm
 from functools import partial
+from pydantic import BaseModel
+
+
+class DistributorOptions(BaseModel):
+    distributor: str = "multiprocessing"
+    subjob_size: int = 1000
+    max_shard_retry: int = 1
+    processes_count : int = 1
 
 
 def rrun(d):
-    download_shard(**d)
+    return download_shard(**d)
 
 def retrier(runf, failed_shards, max_shard_retry):
     # retry failed shards max_shard_retry times

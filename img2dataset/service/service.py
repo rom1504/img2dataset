@@ -7,8 +7,10 @@ from copy import deepcopy
 from ..core.downloader import download_shard
 import uvicorn
 import requests
+from fastapi import Body
 from typing import List, Optional
 import asyncio
+from ..core.downloader import DownloaderWorkerOptions
 
 
 from threading import Semaphore
@@ -31,11 +33,17 @@ def service(
 
     # make it better
     @app.post("/download")
-    def download(config_args: dict):
+    def download(config_args: DownloaderWorkerOptions= Body(
+        default=DownloaderWorkerOptions(input_file="", output_file_prefix=""),
+        example={
+               "input_file": "file.arrow",
+                "output_file_prefix": "output",
+        },
+    ),):
         semaphore.acquire()
         print(config_args)
-        config_args["delete_input_shard"] = False
-        r = download_shard(**config_args)
+        config_args.delete_input_shard = False
+        r = download_shard(**config_args.dict())
         semaphore.release()
         return r
     

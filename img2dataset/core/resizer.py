@@ -6,6 +6,23 @@ import numpy as np
 from enum import Enum
 import imghdr
 import os
+from pydantic import BaseModel
+from typing import Optional
+
+
+class ResizingOptions(BaseModel):
+    disable_all_reencoding: bool = False
+    image_size: int = 256
+    resize_mode: str = "border"
+    resize_only_if_bigger: bool = False
+    upscale_interpolation: str = "lanczos"
+    downscale_interpolation: str = "area"
+    encode_quality: int = 95
+    encode_format: str = "jpg"
+    skip_reencode: bool = False
+    min_image_size: int = 0
+    max_image_area: Optional[float] = None
+    max_aspect_ratio: Optional[float] = None
 
 _INTER_STR_TO_CV2 = dict(
     nearest=cv2.INTER_NEAREST,
@@ -90,9 +107,13 @@ class Resizer:
         skip_reencode=False,
         disable_all_reencoding=False,
         min_image_size=0,
-        max_image_area=float("inf"),
-        max_aspect_ratio=float("inf"),
+        max_image_area=None,
+        max_aspect_ratio=None,
     ):
+        if max_image_area is None:
+            max_image_area = float("inf")
+        if max_aspect_ratio is None:
+            max_aspect_ratio = float("inf")
         if encode_format not in ["jpg", "png", "webp"]:
             raise ValueError(f"Invalid encode format {encode_format}")
         if encode_format == "png":

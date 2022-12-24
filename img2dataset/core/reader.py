@@ -8,7 +8,17 @@ import pyarrow.parquet as pq
 import pyarrow.csv as csv_pq
 import pyarrow as pa
 import pandas as pd
+from pydantic import BaseModel
+from typing import Optional, List 
 
+class ReaderOptions(BaseModel):
+    url_list: str
+    input_format: str = "txt"
+    url_col: str = "url"
+    caption_col: Optional[str] = None
+    save_additional_columns: Optional[List[str]] = None
+    number_sample_per_shard: int = 10000
+    incremental_mode: str = "incremental"
 
 class Reader:
     """

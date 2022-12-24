@@ -10,7 +10,9 @@ import time
 import collections
 import requests
 import fire
+from fastapi import Body
 import aiohttp
+from ..core.downloader import DownloaderWorkerOptions
 
 import threading
 import asyncio
@@ -24,13 +26,13 @@ class ServiceClient:
     def is_available(self):
         return self.available
 
-    async def download(self, params):
+    async def download(self, params: DownloaderWorkerOptions):
         self.available = False
         # call the service on /download with input_file and output_file_prefix using requests
         
-        print(f"service {self.service_url} is downloading {params}")
+        print(f"service {self.service_url} is downloading {params.dict()}")
         async with aiohttp.ClientSession() as session:
-            async with session.post(self.service_url+"/download", json=params) as resp:
+            async with session.post(self.service_url+"/download", json=params.dict()) as resp:
                 print(resp.status)
                 print(await resp.text())
         self.available = True
@@ -52,7 +54,7 @@ class LoadBalancer:
     async def download(self, params):
         # add to queue then wait for the output_path to be available
         self.queue.append(params)
-        output_file_prefix = params["output_file_prefix"]
+        output_file_prefix = params.output_file_prefix
         while output_file_prefix not in self.done_shard:
             await asyncio.sleep(1)
         return True
@@ -69,7 +71,7 @@ class LoadBalancer:
                 if service.is_available():
                     async def f():
                         await service.download(params)
-                        self.done_shard[params["output_file_prefix"]] = True
+                        self.done_shard[params.output_file_prefix] = True
                     loop.create_task(f())
                     executed = True
                     break
@@ -89,7 +91,12 @@ def load_balancer(url_output_path: str = "/tmp/load_balancer"):
         return "hi"
 
     @app.post("/download")
-    async def download(params: dict):
+    async def download(params: DownloaderWorkerOptions= Body(
+        default=DownloaderWorkerOptions(input_file="", output_file_prefix=""),
+        example={
+               "input_file": "file.arrow",
+                "output_file_prefix": "output",
+        },)):
         return await load_balancer.download(params)
 
     @app.get("/add_service")
