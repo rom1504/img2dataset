@@ -19,16 +19,17 @@ def retrier(runf, failed_shards, max_shard_retry):
             f"Retried {max_shard_retry} times, but {len(failed_shards)} shards "
             "still failed. You may restart the same command to retry again."
         )
-
+import time
 
 def multiprocessing_distributor(processes_count, downloader, reader, _, max_shard_retry):
     """Distribute the work to the processes using multiprocessing"""
     ctx = get_context("spawn")
-    with ctx.Pool(processes_count, maxtasksperchild=5) as process_pool:
+    with ctx.Pool(processes_count, maxtasksperchild=1) as process_pool:
 
         def run(gen):
             failed_shards = []
             for (status, row) in tqdm(process_pool.imap_unordered(downloader, gen)):
+                print(f"really done {row} {time.time()}")
                 if status is False:
                     failed_shards.append(row)
             return failed_shards

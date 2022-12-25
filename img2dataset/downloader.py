@@ -13,6 +13,8 @@ import pyarrow as pa
 import traceback
 
 import fsspec
+
+from img2dataset.good_bad_pool import GoodBadPool
 from .logger import CappedCounter
 from .logger import write_stats
 
@@ -138,6 +140,7 @@ class Downloader:
 
         shard_id, shard_file = row
         start_time = time.time()
+        print(f"{row} started at {start_time}")
 
         fs, shard_path = fsspec.core.url_to_fs(shard_file)
         with fs.open(shard_path, "rb") as f:
@@ -176,7 +179,7 @@ class Downloader:
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
         # limit the memory usage
-        semaphore = Semaphore(self.thread_count * 2)
+        semaphore = Semaphore(self.thread_count * 20)
 
         def data_generator():
             for e in key_url_list:
@@ -195,118 +198,114 @@ class Downloader:
             self.encode_format,
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
-        with ThreadPool(self.thread_count) as thread_pool:
-            for key, img_stream, error_message in thread_pool.imap_unordered(
-                lambda x: download_image_with_retry(
+        d = lambda x: download_image_with_retry(
                     x,
                     timeout=self.timeout,
                     retries=self.retries,
                     user_agent_token=self.user_agent_token,
                     disallowed_header_directives=self.disallowed_header_directives,
-                ),
-                loader,
-            ):
-                try:
-                    _, sample_data = shard_to_dl[key]
-                    str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
-                    meta = {
-                        **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list))},
-                        "key": str_key,
-                        "status": None,
-                        "error_message": error_message,
-                        "width": None,
-                        "height": None,
-                        "original_width": None,
-                        "original_height": None,
-                    }
-                    if self.extract_exif:
-                        meta["exif"] = None
-                    if self.compute_hash is not None:
-                        meta[self.compute_hash] = None
-                    if error_message is not None:
-                        failed_to_download += 1
-                        status = "failed_to_download"
-                        status_dict.increment(error_message)
-                        meta["status"] = status
-                        sample_writer.write(
-                            None,
-                            str_key,
-                            sample_data[caption_indice] if caption_indice is not None else None,
-                            meta,
-                        )
-                        semaphore.release()
-                        continue
-                    img_stream.seek(0)
-                    bbox_list = sample_data[bbox_indice] if bbox_indice is not None else None
-                    (
-                        img,
-                        width,
-                        height,
-                        original_width,
-                        original_height,
-                        error_message,
-                    ) = self.resizer(img_stream, bbox_list)
-                    if error_message is not None:
-                        failed_to_resize += 1
-                        status = "failed_to_resize"
-                        status_dict.increment(error_message)
-                        meta["status"] = status
-                        meta["error_message"] = error_message
-                        sample_writer.write(
-                            None,
-                            str_key,
-                            sample_data[caption_indice] if caption_indice is not None else None,
-                            meta,
-                        )
-                        img_stream.close()
-                        del img_stream
-                        semaphore.release()
-                        continue
-                    successes += 1
-                    status = "success"
-                    status_dict.increment(status)
-
-                    if self.extract_exif:
-                        try:
-                            img_stream.seek(0)
-                            exif = json.dumps(
-                                {
-                                    k: str(v).strip()
-                                    for k, v in exifread.process_file(img_stream, details=False).items()
-                                    if v is not None
-                                }
-                            )
-                        except Exception as _:  # pylint: disable=broad-except
-                            exif = None
-                        meta["exif"] = exif
-
-                    if self.compute_hash is not None:
-                        img_stream.seek(0)
-                        meta[self.compute_hash] = getattr(hashlib, self.compute_hash)(img_stream.read()).hexdigest()
-
+                )
+        good_bad_pool = GoodBadPool(generator=loader, runner=d, timeout=self.timeout, pool_size=self.thread_count, out_queue_max=self.thread_count*20)
+        for key, img_stream, error_message in good_bad_pool.run():
+            try:
+                _, sample_data = shard_to_dl[key]
+                str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
+                meta = {
+                    **{self.column_list[i]: sample_data[i] for i in range(len(self.column_list))},
+                    "key": str_key,
+                    "status": None,
+                    "error_message": error_message,
+                    "width": None,
+                    "height": None,
+                    "original_width": None,
+                    "original_height": None,
+                }
+                if self.extract_exif:
+                    meta["exif"] = None
+                if self.compute_hash is not None:
+                    meta[self.compute_hash] = None
+                if error_message is not None:
+                    failed_to_download += 1
+                    status = "failed_to_download"
+                    status_dict.increment(error_message)
                     meta["status"] = status
-                    meta["width"] = width
-                    meta["height"] = height
-                    meta["original_width"] = original_width
-                    meta["original_height"] = original_height
-                    img_stream.close()
-                    del img_stream
-
                     sample_writer.write(
-                        img,
+                        None,
                         str_key,
                         sample_data[caption_indice] if caption_indice is not None else None,
                         meta,
                     )
-                except Exception as err:  # pylint: disable=broad-except
-                    traceback.print_exc()
-                    print(f"Sample {key} failed to download: {err}")
-                semaphore.release()
+                    semaphore.release()
+                    continue
+                img_stream.seek(0)
+                bbox_list = sample_data[bbox_indice] if bbox_indice is not None else None
+                (
+                    img,
+                    width,
+                    height,
+                    original_width,
+                    original_height,
+                    error_message,
+                ) = self.resizer(img_stream, bbox_list)
+                if error_message is not None:
+                    failed_to_resize += 1
+                    status = "failed_to_resize"
+                    status_dict.increment(error_message)
+                    meta["status"] = status
+                    meta["error_message"] = error_message
+                    sample_writer.write(
+                        None,
+                        str_key,
+                        sample_data[caption_indice] if caption_indice is not None else None,
+                        meta,
+                    )
+                    img_stream.close()
+                    del img_stream
+                    semaphore.release()
+                    continue
+                successes += 1
+                status = "success"
+                status_dict.increment(status)
 
-            sample_writer.close()
-            thread_pool.terminate()
-            thread_pool.join()
-            del thread_pool
+                if self.extract_exif:
+                    try:
+                        img_stream.seek(0)
+                        exif = json.dumps(
+                            {
+                                k: str(v).strip()
+                                for k, v in exifread.process_file(img_stream, details=False).items()
+                                if v is not None
+                            }
+                        )
+                    except Exception as _:  # pylint: disable=broad-except
+                        exif = None
+                    meta["exif"] = exif
+
+                if self.compute_hash is not None:
+                    img_stream.seek(0)
+                    meta[self.compute_hash] = getattr(hashlib, self.compute_hash)(img_stream.read()).hexdigest()
+
+                meta["status"] = status
+                meta["width"] = width
+                meta["height"] = height
+                meta["original_width"] = original_width
+                meta["original_height"] = original_height
+                img_stream.close()
+                del img_stream
+
+                sample_writer.write(
+                    img,
+                    str_key,
+                    sample_data[caption_indice] if caption_indice is not None else None,
+                    meta,
+                )
+            except Exception as err:  # pylint: disable=broad-except
+                traceback.print_exc()
+                print(f"Sample {key} failed to download: {err}")
+            semaphore.release()
+
+        print(f"done lol {row} {time.time()}")
+        sample_writer.close()
 
         end_time = time.time()
         write_stats(
