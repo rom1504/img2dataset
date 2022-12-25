@@ -17,6 +17,7 @@ from .logger import CappedCounter
 from .logger import write_stats
 
 
+
 def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage"""
     for values in headers.get_all("X-Robots-Tag", []):
@@ -34,28 +35,30 @@ def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     return False
 
 
-def download_image(row, timeout, user_agent_token, disallowed_header_directives):
+
+from pycurl import Curl
+import pycurl
+from io import BytesIO
+import time
+
+def download_image(row, timeout, a, b):
     """Download an image with urllib"""
     key, url = row
-    img_stream = None
     user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
-    if user_agent_token:
-        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
+
     try:
-        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
-        with urllib.request.urlopen(request, timeout=timeout) as r:
-            if disallowed_header_directives and is_disallowed(
-                r.headers,
-                user_agent_token,
-                disallowed_header_directives,
-            ):
-                return key, None, "Use of image disallowed by X-Robots-Tag directive"
-            img_stream = io.BytesIO(r.read())
-        return key, img_stream, None
-    except Exception as err:  # pylint: disable=broad-except
-        if img_stream is not None:
-            img_stream.close()
-        return key, None, str(err)
+        mycurl=Curl()
+        mycurl.setopt(pycurl.SSL_VERIFYPEER, 0)
+        mycurl.setopt(pycurl.SSL_VERIFYHOST, 0)
+        mycurl.setopt(pycurl.TIMEOUT, timeout)
+        mycurl.setopt(pycurl.URL, url)
+        body = BytesIO()
+        mycurl.setopt(pycurl.WRITEFUNCTION, body.write)
+        mycurl.setopt(pycurl.USERAGENT, user_agent_string)
+        mycurl.perform()
+        return key, body, None
+    except Exception as e:
+        return key, None, str(e)
 
 
 def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):

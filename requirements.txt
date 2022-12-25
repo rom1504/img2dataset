@@ -9,3 +9,4 @@ albumentations>=1.1.0,<2
 dataclasses>=0.6,<1.0.0
 wandb>=0.12.10,<0.13
 fsspec==2022.11.0
+pycurl
