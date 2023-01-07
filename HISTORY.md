@@ -1,3 +1,8 @@
+## 1.41.0
+
+* Verify hashes during download. (thanks @GeorgiosSmyrnis and @carlini)
+* opencv-python => opencv-python-headless (thanks @shionhonda)
+
 ## 1.40.0
 
 * Add SBU captions benchmark
