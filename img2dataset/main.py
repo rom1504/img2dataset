@@ -30,6 +30,14 @@ def arguments_validator(params):
         hash_type = params["compute_hash"]
         raise ValueError(f"Unsupported hash to compute: {hash_type}")
 
+    if params["verify_hash"] is not None:
+        _, verify_hash_type = params["verify_hash"]
+        if verify_hash_type != params["compute_hash"]:
+            raise ValueError(
+                "verify_hash and compute_hash must be the same "
+                f"but got {verify_hash_type} and {params['compute_hash']}"
+            )
+
     if params["save_additional_columns"] is not None:
         save_additional_columns_set = set(params["save_additional_columns"])
 

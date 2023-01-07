@@ -109,7 +109,7 @@ def test_download_input_format(input_format, output_format, tmp_path):
         output_format=output_format,
         url_col="url",
         caption_col="caption",
-        compute_hash="md5"
+        compute_hash="md5",
     )
 
     if output_format != "dummy":
@@ -435,18 +435,20 @@ def test_blur_and_resize(resize_mode, resize_only_if_bigger, tmp_path):
         thread_count=32,
         resize_mode=resize_mode,
         resize_only_if_bigger=resize_only_if_bigger,
-        bbox_col="bboxes"
+        bbox_col="bboxes",
     )
 
     output_img_path = get_all_files(output_folder, "jpg")[0]
     if resize_only_if_bigger:
-        desired_output_img_path = os.path.join(current_folder,  "blur_test_files", "resize_no.jpg")  # Original image is smaller
+        desired_output_img_path = os.path.join(
+            current_folder, "blur_test_files", "resize_no.jpg"
+        )  # Original image is smaller
     else:
-        desired_output_img_path = os.path.join(current_folder,  "blur_test_files", f"resize_{resize_mode}.jpg")
-    
+        desired_output_img_path = os.path.join(current_folder, "blur_test_files", f"resize_{resize_mode}.jpg")
+
     output_img = cv2.imread(output_img_path)
     desired_img = cv2.imread(desired_output_img_path)
-    assert np.array_equal(output_img, desired_img)    
+    assert np.array_equal(output_img, desired_img)
 
 
 def test_verify_hash(tmp_path):
@@ -463,7 +465,7 @@ def test_verify_hash(tmp_path):
         output_folder=output_folder,
         output_format="files",
         thread_count=32,
-        verify_hash=["sha256hash", "sha256"]
+        verify_hash=["sha256hash", "sha256"],
     )
 
     df = pd.read_parquet(os.path.join(output_folder, "00000.parquet"))
