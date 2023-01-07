@@ -211,6 +211,14 @@ If needed, you can use:
 
 When filtering data, it is recommended to pre-shuffle your dataset to limit the impact on shard size distribution.
 
+## Hashes and security
+
+Some dataset (for example laion5B) expose hashes of original images.
+
+If you want to be extra safe, you may automatically drop out the images that do not match theses hashes.
+In that case you can use `--compute_hash "md5" --verify_hash '["md5","md5"]'` 
+Some of those images are actually still good but have been slightly changed by the websites.
+
 ## How to tweak the options
 
 The default values should be good enough for small sized dataset. For larger ones, these tips may help you get the best performance:
