@@ -1,3 +1,10 @@
+## 1.40.0
+
+* Add SBU captions benchmark
+* Bump ffspec version
+* Fix face blurring when padding/cropping
+* Add support for other hash functions
+
 ## 1.39.0
 
 * Make opt out the default, add warning about ethical issues with slowing down democratization of skills and art.
