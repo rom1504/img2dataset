@@ -30,6 +30,14 @@ def arguments_validator(params):
         hash_type = params["compute_hash"]
         raise ValueError(f"Unsupported hash to compute: {hash_type}")
 
+    if params["verify_hash"] is not None:
+        _, verify_hash_type = params["verify_hash"]
+        if verify_hash_type != params["compute_hash"]:
+            raise ValueError(
+                "verify_hash and compute_hash must be the same "
+                f"but got {verify_hash_type} and {params['compute_hash']}"
+            )
+
     if params["save_additional_columns"] is not None:
         save_additional_columns_set = set(params["save_additional_columns"])
 
@@ -84,6 +92,7 @@ def download(
     wandb_project: str = "img2dataset",
     oom_shard_count: int = 5,
     compute_hash: Optional[str] = "sha256",
+    verify_hash: Optional[List[str]] = None,
     distributor: str = "multiprocessing",
     subjob_size: int = 1000,
     retries: int = 0,
@@ -157,11 +166,19 @@ def download(
         else:
             save_additional_columns.append(bbox_col)
 
+    if verify_hash is not None:
+        verify_hash_col, verify_hash_type = verify_hash
+    else:
+        verify_hash_col = None
+        verify_hash_type = None
+
     reader = Reader(
         url_list,
         input_format,
         url_col,
         caption_col,
+        verify_hash_col,
+        verify_hash_type,
         save_additional_columns,
         number_sample_per_shard,
         done_shards,
@@ -214,6 +231,7 @@ def download(
         number_sample_per_shard=number_sample_per_shard,
         oom_shard_count=oom_shard_count,
         compute_hash=compute_hash,
+        verify_hash_type=verify_hash_type,
         encode_format=encode_format,
         retries=retries,
         user_agent_token=user_agent_token,

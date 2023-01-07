@@ -151,6 +151,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **wandb_project** name of W&B project used (default *img2dataset*)
 * **oom_shard_count** the order of magnitude of the number of shards, used only to decide what zero padding to use to name the shard files (default *5*)
 * **compute_hash** the hash of raw images to compute and store in the metadata, one of *None*, *md5*, *sha256*, *sha512* (default *sha256*)
+* **verify_hash** if not *None*, then this is a list of two elements that will be used to verify hashes based on the provided input. The first element of this list is the label of the column containing the hashes in the input file, while the second one is the type of the hash that is being checked (default *None*)
 * **distributor** choose how to distribute the downloading (default *multiprocessing*)
   * **multiprocessing** use a multiprocessing pool to spawn processes
   * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
@@ -209,6 +210,14 @@ If needed, you can use:
 * --max_aspect_ratio RATIO : to filter out images with an aspect ratio greater than RATIO
 
 When filtering data, it is recommended to pre-shuffle your dataset to limit the impact on shard size distribution.
+
+## Hashes and security
+
+Some dataset (for example laion5B) expose hashes of original images.
+
+If you want to be extra safe, you may automatically drop out the images that do not match theses hashes.
+In that case you can use `--compute_hash "md5" --verify_hash '["md5","md5"]'` 
+Some of those images are actually still good but have been slightly changed by the websites.
 
 ## How to tweak the options
 
