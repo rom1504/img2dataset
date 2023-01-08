@@ -49,6 +49,21 @@ mkdir laion1B-nolang && cd laion1B-nolang
 for i in {00000..00127}; do wget https://huggingface.co/datasets/laion/laion1B-nolang-joined/resolve/main/part-$i-4852663c-9585-44b0-9a45-f95c2b89c792-c000.snappy.parquet; done
 ```
 
+#### With md5 hashes in addition
+
+If you want to be extra safe, you may use the collection that contain the md5 hash of the images from a download in may 2022.
+
+In that case you can use `--compute_hash "md5" --verify_hash '["md5","md5"]'` to automatically drop out the images that do not match theses hashes.
+
+As of january 2023, that means dropping about 15% of the dataset. Some of those images are actually still good but have been slightly changed by the websites.
+
+https://huggingface.co/datasets/laion/laion2B-en-md5
+
+https://huggingface.co/datasets/laion/laion2B-multi-md5
+
+https://huggingface.co/datasets/laion/laion1B-nolang-md5
+
+
 #### Saving to aws
 
 If instead of saving to a local folder you prefer saving on eg aws, you may use commands like this:
