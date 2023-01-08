@@ -42,7 +42,7 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
-        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
+        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string}, method="HEAD")
         with urllib.request.urlopen(request, timeout=timeout) as r:
             if disallowed_header_directives and is_disallowed(
                 r.headers,
@@ -50,7 +50,7 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
                 disallowed_header_directives,
             ):
                 return key, None, "Use of image disallowed by X-Robots-Tag directive"
-            img_stream = io.BytesIO(r.read())
+            img_stream = io.BytesIO(str(r.status).encode('utf8'))
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
@@ -59,11 +59,12 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
 
 
 def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):
+    t = time.time()
     for _ in range(retries + 1):
         key, img_stream, err = download_image(row, timeout, user_agent_token, disallowed_header_directives)
         if img_stream is not None:
-            return key, img_stream, err
-    return key, None, err
+            return key, img_stream, err, time.time() - t
+    return key, None, err, time.time() - t
 
 
 def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
@@ -153,6 +154,7 @@ class Downloader:
             .append(pa.field("height", pa.int32()))
             .append(pa.field("original_width", pa.int32()))
             .append(pa.field("original_height", pa.int32()))
+            .append(pa.field("duration", pa.float32()))
         )
         if self.extract_exif:
             schema = schema.append(pa.field("exif", pa.string()))
@@ -201,7 +203,7 @@ class Downloader:
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
         with ThreadPool(self.thread_count) as thread_pool:
-            for key, img_stream, error_message in thread_pool.imap_unordered(
+            for key, img_stream, error_message, duration in thread_pool.imap_unordered(
                 lambda x: download_image_with_retry(
                     x,
                     timeout=self.timeout,
@@ -228,6 +230,7 @@ class Downloader:
                         "height": None,
                         "original_width": None,
                         "original_height": None,
+                        "duration": duration,
                     }
                     if self.extract_exif:
                         meta["exif"] = None
