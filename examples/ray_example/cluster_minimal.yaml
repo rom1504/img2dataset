@@ -1,0 +1,67 @@
+# An unique identifier for the head node and workers of this cluster.
+cluster_name: minimal
+min_workers: 0
+max_workers: 10
+upscaling_speed: 1.0
+available_node_types:
+    ray.head.default:
+        resources: {}
+        node_config:
+            ImageId: ami-0ea1c7db66fee3098
+            InstanceType: m5.24xlarge
+            # if you have  an IamInstanceProfile fill it out here...
+            #IamInstanceProfile: 
+            #    Arn: <instance_profile_arn>
+    ray.worker.default:
+        min_workers: 0
+        max_workers: 500
+        node_config:
+            ImageId: ami-0ea1c7db66fee3098
+            InstanceType: m5.24xlarge
+            InstanceMarketOptions:
+                MarketType: spot
+            # if you have  an IamInstanceProfile fill it out here...
+            #IamInstanceProfile: 
+            #    Arn: <instance_profile_arn>
+
+# Cloud-provider specific configuration.
+provider:
+    type: aws
+    region: us-east-1
+
+initialization_commands:
+    - wget https://secure.nic.cz/files/knot-resolver/knot-resolver-release.deb 
+    - sudo dpkg -i knot-resolver-release.deb
+    - sudo apt update
+    - sudo apt install -y knot-resolver
+    - sudo sh -c 'echo `hostname -I` `hostname` >> /etc/hosts'
+    - sudo sh -c 'echo nameserver 127.0.0.1 > /etc/resolv.conf'
+    - sudo systemctl stop systemd-resolved
+    - sudo systemctl start kresd@1.service
+    - sudo systemctl start kresd@2.service
+    - sudo systemctl start kresd@3.service
+    - sudo systemctl start kresd@4.service
+    - sudo systemctl start kresd@5.service
+    - sudo systemctl start kresd@6.service
+    - sudo systemctl start kresd@7.service
+    - sudo systemctl start kresd@8.service
+    - sudo apt-get install ffmpeg libsm6 libxext6  -y
+
+setup_commands:
+    - wget https://repo.anaconda.com/miniconda/Miniconda3-py39_22.11.1-1-Linux-x86_64.sh -O miniconda.sh
+    - bash ~/miniconda.sh -f -b -p miniconda3/
+    - echo 'export PATH="$HOME/miniconda3/bin/:$PATH"' >> ~/.bashrc
+    # if you have AWS CREDS fill them out here
+    #- echo 'export AWS_ACCESS_KEY_ID=<AWS_KEY>'  >> ~/.bashrc
+    #- echo 'export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_KEY>' >> ~/.bashrc
+    - pip install --upgrade pip setuptools wheel
+    - pip install ray
+    - pip uninstall -y img2dataset
+    - pip install git+https://github.com/vaishaal/img2dataset.git@7aadba42f8008106bd38475e06e78e79dfe4bbeb
+    - pip install opencv-python --upgrade 
+    - wandb login ead6ddc201a45d8e0d9b6e76220e4faf18178820
+    - pip install s3fs==2022.11.0 
+    - pip install botocore==1.27.59
+
+head_setup_commands: []
+

@@ -7,6 +7,7 @@ from itertools import islice, chain
 from tqdm import tqdm
 
 
+
 def retrier(runf, failed_shards, max_shard_retry):
     # retry failed shards max_shard_retry times
     for i in range(max_shard_retry):
@@ -64,6 +65,28 @@ def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_sh
         failed_shards = run(reader)
 
         retrier(run, failed_shards, max_shard_retry)
+
+try:
+    import ray  #pylint: disable=import-outside-toplevel
+
+    @ray.remote
+    def ray_download(downloader, shards):
+        status, row = downloader(ray.get(shards))
+        return status, row
+
+
+    def ray_distributor(processes_count, downloader, reader, _, __): # type: ignore
+        ret = []
+        count = 0
+        for task in reader:
+            count += 1
+            ret.append(ray_download.remote(downloader, task))
+        ray.get(ret)
+
+except ModuleNotFoundError as e:
+    def ray_distributor(processes_count, downloader, reader, subjob_size, max_shard_retry): # type: ignore
+        return None
+
 
 
 @contextmanager

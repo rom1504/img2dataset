@@ -15,7 +15,7 @@ from .writer import (
 )
 from .reader import Reader
 from .downloader import Downloader
-from .distributor import multiprocessing_distributor, pyspark_distributor
+from .distributor import multiprocessing_distributor, pyspark_distributor, ray_distributor
 import fsspec
 import sys
 import signal
@@ -244,6 +244,8 @@ def download(
         distributor_fn = multiprocessing_distributor
     elif distributor == "pyspark":
         distributor_fn = pyspark_distributor
+    elif distributor == "ray":
+        distributor_fn = ray_distributor
     else:
         raise ValueError(f"Distributor {distributor} not supported")
 
