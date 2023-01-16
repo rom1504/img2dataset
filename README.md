@@ -475,6 +475,7 @@ downloading 5.8B images from the [laion5B dataset](https://laion.ai/laion-5b-a-n
 
 
 ## Citation
+```
 @misc{beaumont-2021-img2dataset,
   author = {Romain Beaumont},
   title = {img2dataset: Easily turn large sets of image urls to an image dataset},
@@ -483,3 +484,4 @@ downloading 5.8B images from the [laion5B dataset](https://laion.ai/laion-5b-a-n
   journal = {GitHub repository},
   howpublished = {\url{https://github.com/rom1504/img2dataset}}
 }
+```
