@@ -463,11 +463,25 @@ It takes 3.7h to download 18M pictures
 downloading 2 parquet files of 18M items (result 936GB) took 7h24
 average of 1345 image/s
 
-## 190M benchmark
+### 190M benchmark
 
 downloading 190M images from the [crawling at home dataset](https://github.com/rom1504/cah-prepro) took 41h (result 5TB)
 average of 1280 image/s
 
-## 5B benchmark
+### 5B benchmark
 
 downloading 5.8B images from the [laion5B dataset](https://laion.ai/laion-5b-a-new-era-of-open-large-scale-multi-modal-datasets/) took 7 days (result 240TB), average of 9500 sample/s on 10 machines, [technical details](https://rom1504.medium.com/semantic-search-at-billions-scale-95f21695689a)
+
+
+
+## Citation
+```
+@misc{beaumont-2021-img2dataset,
+  author = {Romain Beaumont},
+  title = {img2dataset: Easily turn large sets of image urls to an image dataset},
+  year = {2021},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/rom1504/img2dataset}}
+}
+```
