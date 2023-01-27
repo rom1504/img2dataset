@@ -13,6 +13,7 @@ This document will help you setup such a cluster and run img2dataset on it.
 These providers have been tested to work well with img2dataset:
 * aliyun small 2 cores nodes ($4.5/month for 40 sample/s)
 * aws c6i.4xlarge nodes ($0.68/h for 1000 sample/s)
+* Databricks AWS r5.2xlarge nodes ($0.504/h for 1000 sample/s)
 
 Ubuntu 20.04 works well with img2dataset. Centos7 also works.
 Other providers probably work too but haven't been tested.
@@ -280,3 +281,7 @@ download(
     save_additional_columns=["NSFW","similarity","LICENSE"]
 )
 ```
+
+### You have Databricks access
+
+This [notebook](https://smellslike.ml/extras/Download_LAION_with_Databricks.html) by [@smellslikeml](https://github.com/smellslikeml/) shows how to use a Databricks's managed spark cluster. It includes the network optimizations suggested [here](https://github.com/rom1504/img2dataset#setting-up-a-high-performance-dns-resolver).
