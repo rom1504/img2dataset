@@ -5,7 +5,7 @@ import fire
 import logging
 from .logger import LoggerProcess
 from .resizer import Resizer
-from .blurrer import BoundingBoxBlurrer
+from .bbox_processors import BBoxProcessor, BlurProcessor, CropProcessor
 from .writer import (
     WebDatasetSampleWriter,
     FilesSampleWriter,
@@ -83,6 +83,7 @@ def download(
     url_col: str = "url",
     caption_col: Optional[str] = None,
     bbox_col: Optional[str] = None,
+    bbox_operation: Optional[str] = "blur",
     thread_count: int = 256,
     number_sample_per_shard: int = 10000,
     extract_exif: bool = True,
@@ -198,10 +199,17 @@ def download(
     else:
         raise ValueError(f"Invalid output format {output_format}")
 
+    bbox_processor: Optional[BBoxProcessor]
     if bbox_col is not None:
-        blurrer = BoundingBoxBlurrer()
+        if bbox_operation is None:
+            bbox_operation = "blur"
+
+        if bbox_operation.lower() == "blur":
+            bbox_processor = BlurProcessor()
+        elif bbox_operation.lower() == "crop":
+            bbox_processor = CropProcessor()
     else:
-        blurrer = None
+        bbox_processor = None
 
     resizer = Resizer(
         image_size=image_size,
@@ -216,7 +224,7 @@ def download(
         min_image_size=min_image_size,
         max_image_area=max_image_area,
         max_aspect_ratio=max_aspect_ratio,
-        blurrer=blurrer,
+        bbox_processor=bbox_processor,
     )
 
     downloader = Downloader(
@@ -236,7 +244,7 @@ def download(
         retries=retries,
         user_agent_token=user_agent_token,
         disallowed_header_directives=disallowed_header_directives,
-        blurring_bbox_col=bbox_col,
+        bbox_col=bbox_col,
     )
 
     print("Starting the downloading of this file")
