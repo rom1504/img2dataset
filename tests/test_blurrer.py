@@ -1,6 +1,6 @@
 """Tests for the bounding box blurring module."""
 
-from img2dataset.blurrer import BoundingBoxBlurrer
+from img2dataset.bbox_processors import BlurProcessor
 import os
 import pytest
 import cv2
@@ -15,7 +15,7 @@ def test_blurrer():
     blur_image_path = os.path.join(test_folder, "blurred.png")
     bbox_path = os.path.join(test_folder, "bbox.npy")
 
-    blurrer = BoundingBoxBlurrer()
+    blurrer = BlurProcessor()
     orig_image = cv2.imread(orig_image_path)
     blur_image = cv2.imread(blur_image_path)
     with open(bbox_path, "rb") as f:
