@@ -110,6 +110,10 @@ def download(
         disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]
     if len(disallowed_header_directives) == 0:
         disallowed_header_directives = None
+    elif "none" not in disallowed_header_directives and any(
+        x in disallowed_header_directives for x in ("noindex", "nofollow")
+    ):
+        disallowed_header_directives.append("none")
 
     config_parameters = dict(locals())
     arguments_validator(config_parameters)
