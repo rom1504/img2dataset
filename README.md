@@ -197,7 +197,7 @@ Notes:
 
 * jpeg at quality 100 is NOT lossless
 * png format is lossless
-* webp at quality 100 is lossless
+* webp at quality >100 is lossless ([see OpenCV Docs](https://docs.opencv.org/3.4/d8/d6a/group__imgcodecs__flags.html))
 * same quality scale between formats does not mean same image quality
 
 ## Filtering the dataset
