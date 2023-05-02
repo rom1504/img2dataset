@@ -78,7 +78,8 @@ try:
         status, row = downloader(ray.get(shards))
         return status, row
 
-    def ray_distributor(processes_count, downloader, reader, _, __):  # type: ignore
+    def ray_distributor(processes_count, downloader, reader, _, max_shard_retry):  # type: ignore
+        # pylint: disable=unused-argument
         ret = []
         count = 0
         for task in reader:
@@ -88,7 +89,7 @@ try:
 
 except ModuleNotFoundError as e:
 
-    def ray_distributor(processes_count, downloader, reader, subjob_size, max_shard_retry):  # type: ignore
+    def ray_distributor(processes_count, downloader, reader, subjob_size, max_shard_retry):  # type: ignore  # pylint: disable=unused-argument
         return None
 
 
