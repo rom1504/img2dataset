@@ -127,9 +127,7 @@ def download(
     output_folder = make_path_absolute(output_folder)
     url_list = make_path_absolute(url_list)
 
-    logger_process = LoggerProcess(
-        output_folder, enable_wandb, wandb_project, config_parameters
-    )
+    logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters)
 
     tmp_path = output_folder + "/_tmp"
     fs, tmp_dir = fsspec.core.url_to_fs(tmp_path)
@@ -155,10 +153,7 @@ def download(
         done_shards = set()
     else:
         if incremental_mode == "incremental":
-            done_shards = set(
-                int(x.split("/")[-1].split("_")[0])
-                for x in fs.glob(output_path + "/*.json")
-            )
+            done_shards = set(int(x.split("/")[-1].split("_")[0]) for x in fs.glob(output_path + "/*.json"))
         elif incremental_mode == "overwrite":
             fs.rm(output_path, recursive=True)
             fs.mkdir(output_path)
