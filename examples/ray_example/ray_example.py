@@ -41,7 +41,7 @@ if __name__ == "__main__":
 	parser.add_argument("--url_list")
 	parser.add_argument("--out_folder")
 	args = parser.parse_args()
-    ray.init(address="localhost:6379")
+	ray.init(address="localhost:6379")
 	main(args)
 
 
