@@ -71,7 +71,7 @@ try:
 
     @ray.remote
     def ray_download(downloader, shards):
-        status, row = downloader(ray.shards)
+        status, row = downloader(shards)
         return status, row
 
     def ray_distributor(processes_count, downloader, reader, _, max_shard_retry):  # type: ignore
