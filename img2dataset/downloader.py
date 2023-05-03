@@ -2,7 +2,6 @@
 
 from multiprocessing.pool import ThreadPool
 from threading import Semaphore
-import urllib.request
 import io
 import math
 import exifread
@@ -10,6 +9,7 @@ import json
 import time
 import hashlib
 import pyarrow as pa
+import requests
 import traceback
 
 import fsspec
@@ -42,15 +42,19 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
-        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
-        with urllib.request.urlopen(request, timeout=timeout) as r:
+        with requests.get(
+            url,
+            headers={"User-Agent": user_agent_string},
+            timeout=timeout,
+            stream=True,
+        ) as r:
             if disallowed_header_directives and is_disallowed(
                 r.headers,
                 user_agent_token,
                 disallowed_header_directives,
             ):
                 return key, None, "Use of image disallowed by X-Robots-Tag directive"
-            img_stream = io.BytesIO(r.read())
+            img_stream = io.BytesIO(r.content)
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
