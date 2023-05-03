@@ -48,6 +48,7 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
             timeout=timeout,
             stream=True,
         ) as r:
+            r.raise_for_status()
             if disallowed_header_directives and is_disallowed(
                 r.headers,
                 user_agent_token,
