@@ -11,7 +11,7 @@ Also supports saving captions for url+caption datasets.
 
 ## Install
 
-```
+```bash
 pip install img2dataset
 ```
 
@@ -48,7 +48,8 @@ See options below.
 ## Usage
 
 First get some image url list. For example:
-```
+
+```bash
 echo 'https://placekitten.com/200/305' >> myimglist.txt
 echo 'https://placekitten.com/200/304' >> myimglist.txt
 echo 'https://placekitten.com/200/303' >> myimglist.txt
@@ -56,7 +57,7 @@ echo 'https://placekitten.com/200/303' >> myimglist.txt
 
 Then, run the tool:
 
-```
+```bash
 img2dataset --url_list=myimglist.txt --output_folder=output_folder --thread_count=64 --image_size=256
 ```
 
@@ -242,7 +243,8 @@ Some of these file systems require installing an additional package (for example
 See fsspec doc for all the details.
 
 If you need specific configuration for your filesystem, you may handle this problem by using the [fsspec configuration system](https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration) that makes it possible to create a file such as `.config/fsspec/s3.json` and have information in it such as:
-```
+
+```json
 {
   "s3": {
     "client_kwargs": {
@@ -253,6 +255,7 @@ If you need specific configuration for your filesystem, you may handle this prob
   }
 }
 ```
+
 Which may be necessary if using s3 compatible file systems such as [minio](https://min.io/). That kind of configuration also work for all other fsspec-supported file systems.
 
 ## Distribution modes
@@ -344,18 +347,20 @@ To get the best performances with img2dataset, using an efficient dns resolver i
 Follow [the official quick start](https://knot-resolver.readthedocs.io/en/stable/quickstart-install.html) or run this on ubuntu:
 
 install knot with
-```
+
+```bash
 wget https://secure.nic.cz/files/knot-resolver/knot-resolver-release.deb
 sudo dpkg -i knot-resolver-release.deb
 sudo apt update
 sudo apt install -y knot-resolver
 sudo sh -c 'echo `hostname -I` `hostname` >> /etc/hosts'
 sudo sh -c 'echo nameserver 127.0.0.1 > /etc/resolv.conf'
-udo systemctl stop systemd-resolved
+sudo systemctl stop systemd-resolved
 ```
 
 then start 4 instances with
-```
+
+```bash
 sudo systemctl start kresd@1.service
 sudo systemctl start kresd@2.service
 sudo systemctl start kresd@3.service
@@ -363,7 +368,8 @@ sudo systemctl start kresd@4.service
 ```
 
 Check it works with
-```
+
+```bash
 dig @localhost google.com
 ```
 
@@ -371,24 +377,26 @@ dig @localhost google.com
 
 In order to keep the success rate high, it is necessary to use an efficient DNS resolver.
 I tried several options: systemd-resolved, dnsmaskq and bind9 and reached the conclusion that bind9 reaches the best performance for this use case.
-Here is how to set this up on ubuntu:
-```
+Here is how to set this up on Ubuntu:
+
+```bash
 sudo apt install bind9
 sudo vim /etc/bind/named.conf.options
 
-Add this in options:
-        recursive-clients 10000;
-        resolver-query-timeout 30000;
-        max-clients-per-query 10000;
-        max-cache-size 2000m;
+# Add this in options:
+#         recursive-clients 10000;
+#         resolver-query-timeout 30000;
+#         max-clients-per-query 10000;
+#         max-cache-size 2000m;
 
 sudo systemctl restart bind9
 
 sudo vim /etc/resolv.conf
 
-Put this content:
-nameserver 127.0.0.1
+# Put this content:
+# nameserver 127.0.0.1
 ```
+
 This will make it possible to keep an high success rate while doing thousands of dns queries.
 You may also want to [setup bind9 logging](https://nsrc.org/activities/agendas/en/dnssec-3-days/dns/materials/labs/en/dns-bind-logging.html) in order to check that few dns errors happen.
 
@@ -416,18 +424,20 @@ Either locally, or in [gitpod](https://gitpod.io/#https://github.com/rom1504/img
 
 Setup a virtualenv:
 
-```
+```bash
 python3 -m venv .env
 source .env/bin/activate
 pip install -e .
 ```
 
 to run tests:
-```
+
+```bash
 pip install -r requirements-test.txt
 ```
 then
-```
+
+```bash
 make lint
 make test
 ```
@@ -440,7 +450,7 @@ You can use `make black` to reformat the code
 
 ### 10000 image benchmark
 
-```
+```bash
 cd tests/test_files
 bash benchmark.sh
 ```
@@ -450,10 +460,11 @@ bash benchmark.sh
 
 Download crawling at home first part, then:
 
-```
+```bash
 cd tests
 bash large_bench.sh
 ```
+
 It takes 3.7h to download 18M pictures
 
 1350 images/s is the currently observed performance. 4.8M images per hour, 116M images per 24h.
@@ -476,7 +487,8 @@ downloading 5.8B images from the [laion5B dataset](https://laion.ai/laion-5b-a-n
 
 
 ## Citation
-```
+
+```bibtex
 @misc{beaumont-2021-img2dataset,
   author = {Romain Beaumont},
   title = {img2dataset: Easily turn large sets of image urls to an image dataset},
