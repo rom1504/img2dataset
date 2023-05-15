@@ -150,7 +150,6 @@ class Downloader:
 
         status_dict = CappedCounter()
 
-        count = len(shard_to_dl)
         successes = 0
         failed_to_download = 0
         failed_to_resize = 0
@@ -169,6 +168,8 @@ class Downloader:
                 key_url_list = [key_url_list[i] for i, allowed in enumerate(allowed_flags) if allowed]
             except Exception as err:  # pylint: disable=broad-except
                 print(f"Datadiligence preprocessing failed. Allowing all. Reason: {err}")
+
+        count = len(key_url_list)
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
         # limit the memory usage
