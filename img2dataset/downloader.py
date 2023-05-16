@@ -165,7 +165,8 @@ class Downloader:
         # filter key_url_list if optouts are respected
         if self.respect_optouts:
             try:
-                allowed_flags = dd.is_allowed(urls=[entry[1] for entry in key_url_list], user_agent=self.user_agent_token)
+                allowed_flags = dd.is_allowed(urls=[entry[1] for entry in key_url_list],
+                                            user_agent=self.user_agent_token)
                 key_url_list = [key_url_list[i] for i, allowed in enumerate(allowed_flags) if allowed]
             except Exception as err:  # pylint: disable=broad-except
                 print(f"Datadiligence preprocessing failed. Allowing all. Reason: {err}")
