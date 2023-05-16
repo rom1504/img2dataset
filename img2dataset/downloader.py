@@ -31,7 +31,11 @@ def download_image(row, timeout, user_agent_token, respect_optouts):
             if respect_optouts:
                 is_allowed = dd.is_allowed(headers=r.headers, user_agent=user_agent_string)
                 if not is_allowed:
-                    return key, None, "Use of image for generative AI purposes is not permitted"
+                    return (
+                        key,
+                        None,
+                        "Use of image for generative AI purposes is not permitted",
+                    )
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
@@ -96,11 +100,7 @@ class Downloader:
         self.encode_format = encode_format
         self.retries = retries
         self.user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
-        self.disallowed_header_directives = (
-            None
-            if disallowed_header_directives is None
-            else True
-        )
+        self.disallowed_header_directives = None if disallowed_header_directives is None else True
         self.respect_optouts = self.disallowed_header_directives or respect_optouts
         self.blurring_bbox_col = blurring_bbox_col
 
@@ -165,8 +165,10 @@ class Downloader:
         # filter key_url_list if optouts are respected
         if self.respect_optouts:
             try:
-                allowed_flags = dd.is_allowed(urls=[entry[1] for entry in key_url_list],
-                                            user_agent=self.user_agent_token)
+                allowed_flags = dd.is_allowed(
+                    urls=[entry[1] for entry in key_url_list],
+                    user_agent=self.user_agent_token,
+                )
                 key_url_list = [key_url_list[i] for i, allowed in enumerate(allowed_flags) if allowed]
             except Exception as err:  # pylint: disable=broad-except
                 print(f"Datadiligence preprocessing failed. Allowing all. Reason: {err}")
