@@ -28,9 +28,10 @@ def download_image(row, timeout, user_agent_token, respect_optouts):
     try:
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         with urllib.request.urlopen(request, timeout=timeout) as r:
-            is_allowed = dd.is_allowed(headers=r.headers, user_agent=user_agent_string)
-            if respect_optouts and not is_allowed:
-                return key, None, "Use of image for generative AI purposes is not permitted"
+            if respect_optouts:
+                is_allowed = dd.is_allowed(headers=r.headers, user_agent=user_agent_string)
+                if not is_allowed:
+                    return key, None, "Use of image for generative AI purposes is not permitted"
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
