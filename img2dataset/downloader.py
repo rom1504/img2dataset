@@ -29,7 +29,7 @@ def download_image(row, timeout, user_agent_token, respect_optouts):
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         with urllib.request.urlopen(request, timeout=timeout) as r:
             if respect_optouts:
-                is_allowed = dd.is_allowed(headers=r.headers, user_agent=user_agent_string)
+                is_allowed = dd.is_allowed(response=r, user_agent=user_agent_string)
                 if not is_allowed:
                     return (
                         key,
