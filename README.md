@@ -377,24 +377,27 @@ dig @localhost google.com
 
 In order to keep the success rate high, it is necessary to use an efficient DNS resolver.
 I tried several options: systemd-resolved, dnsmaskq and bind9 and reached the conclusion that bind9 reaches the best performance for this use case.
-Here is how to set this up on Ubuntu:
+Here is how to set this up on Ubuntu. Run:
 
 ```bash
 sudo apt install bind9
 sudo vim /etc/bind/named.conf.options
+```
 
-# Add this in options:
-#         recursive-clients 10000;
-#         resolver-query-timeout 30000;
-#         max-clients-per-query 10000;
-#         max-cache-size 2000m;
+And add this in `options`:
 
+```
+	recursive-clients 10000;
+	resolver-query-timeout 30000;
+	max-clients-per-query 10000;
+	max-cache-size 2000m;
+```
+
+Then, run:
+
+```bash
 sudo systemctl restart bind9
-
-sudo vim /etc/resolv.conf
-
-# Put this content:
-# nameserver 127.0.0.1
+echo nameserver 127.0.0.1 | sudo tee -a /etc/resolv.conf
 ```
 
 This will make it possible to keep an high success rate while doing thousands of dns queries.
