@@ -256,7 +256,7 @@ def download(
     )
     logger_process.join()
 
-    if not hasattr(fs, 's3'):
+    if not hasattr(fs, "s3"):
         fs.rm(tmp_dir, recursive=True)
 
 
