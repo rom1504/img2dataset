@@ -255,7 +255,9 @@ def download(
         max_shard_retry,
     )
     logger_process.join()
-    fs.rm(tmp_dir, recursive=True)
+
+    if not hasattr(fs, "s3"):
+        fs.rm(tmp_dir, recursive=True)
 
 
 def main():
