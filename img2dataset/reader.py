@@ -38,6 +38,7 @@ class Reader:
         number_sample_per_shard,
         done_shards,
         tmp_path,
+        newlines_in_captions,
     ) -> None:
         self.input_format = input_format
         self.url_col = url_col
@@ -47,6 +48,7 @@ class Reader:
         self.save_additional_columns = save_additional_columns
         self.number_sample_per_shard = number_sample_per_shard
         self.done_shards = done_shards
+        self.newlines_in_captions = newlines_in_captions
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
         self.fs = fs
@@ -79,13 +81,22 @@ class Reader:
         if self.input_format in ["txt", "json", "csv", "tsv"]:
             with self.fs.open(input_file, mode="rb") as file:
                 if self.input_format == "txt":
-                    df = csv_pq.read_csv(file, read_options=csv_pq.ReadOptions(column_names=["url"]))
+                    df = csv_pq.read_csv(
+                        file,
+                        read_options=csv_pq.ReadOptions(column_names=["url"]),
+                        parse_options=csv_pq.ParseOptions(newlines_in_values=self.newlines_in_captions),
+                    )
                 elif self.input_format == "json":
                     df = pa.Table.from_pandas(pd.read_json(file))
                 elif self.input_format == "csv":
-                    df = csv_pq.read_csv(file)
+                    df = csv_pq.read_csv(
+                        file, parse_options=csv_pq.ParseOptions(newlines_in_values=self.newlines_in_captions)
+                    )
                 elif self.input_format == "tsv":
-                    df = csv_pq.read_csv(file, parse_options=csv_pq.ParseOptions(delimiter="\t"))
+                    df = csv_pq.read_csv(
+                        file,
+                        parse_options=csv_pq.ParseOptions(delimiter="\t", newlines_in_values=self.newlines_in_captions),
+                    )
                 else:
                     raise ValueError(f"Unknown input format {self.input_format}")
         elif self.input_format == "tsv.gz":
