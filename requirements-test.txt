@@ -12,3 +12,4 @@ tensorflow
 tensorflow_io
 types-requests
 types-pkg_resources
+torch

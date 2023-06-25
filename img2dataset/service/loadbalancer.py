@@ -36,6 +36,7 @@ class ServiceClient:
                 print(resp.status)
                 print(await resp.text())
         self.available = True
+        print(f"service {self.service_url} is done downloading {params.dict()}")
         return True
 
 # load balancer has a dict of services, a shared queue, a unqueue thread and an download method
@@ -61,20 +62,26 @@ class LoadBalancer:
 
     async def unqueue(self):
         loop = asyncio.get_event_loop()
+        print(f"I have {len(self.services)} services")
         while True:
+            print(f"I have {len(self.queue)} shards")
             if len(self.queue) == 0:
                 await asyncio.sleep(1)
                 continue
             params = self.queue.popleft()
             executed = False
+            print("salut")
             for service in self.services:
                 if service.is_available():
-                    async def f():
+                    print(f"let's go with {service.service_url}")
+                    service.available = False
+                    async def f(service, params):
                         await service.download(params)
                         self.done_shard[params.output_file_prefix] = True
-                    loop.create_task(f())
+                    loop.create_task(f(service, params))
                     executed = True
                     break
+            print("ok", executed)
             if not executed:
                 self.queue.appendleft(params)
                 await asyncio.sleep(1)

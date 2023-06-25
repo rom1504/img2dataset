@@ -43,6 +43,27 @@ def multiprocessing_launcher(processes_count, tmp_file_name):
     for p in processes:
         p.join()
 
+
+def run(ips_to_run, command):
+    print(ips_to_run)
+    from pssh.clients import ParallelSSHClient
+    client = ParallelSSHClient(ips_to_run)
+    output = list(client.run_command(command, stop_on_errors=True))
+    print(["\n".join(o.stdout) for o in output])
+
+def ssh_launcher(ips_to_run):
+    """Start N workers"""
+    if tmp_file_name is None:
+        tmp_file_name = "/tmp/" + str(uuid.uuid4())
+    run(ips_to_run[0:1], "python -m img2dataset.service.load_balancer --tmp_file_name=" + tmp_file_name)
+    while 1:
+        time.sleep(0.1)
+        if os.path.exists(tmp_file_name):
+            break
+    with open(tmp_file_name, "r", encoding="utf8") as f:
+        load_balancer_url = f.read()
+    run(ips_to_run, f"python -m img2dataset.service.service --load_balancer_url {load_balancer_url}")
+
 def launcher(
     processes_count: int = 1,
     tmp_file_name : str = None,

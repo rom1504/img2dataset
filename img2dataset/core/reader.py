@@ -193,7 +193,12 @@ class Reader:
         Prepare the dataset by downloading the files and sharding them
         """
         start_shard_id = 0
+        all_shards = []
         for i, input_file in list(enumerate(self.input_files))[:nb]:
             print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
 
-            self._save_to_arrow(input_file, start_shard_id)
+            shards, num_shards = self._save_to_arrow(input_file, start_shard_id)
+
+            all_shards.extend(shards)
+
+        return all_shards

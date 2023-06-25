@@ -49,8 +49,13 @@ def preparer(
     number_sample_per_shard: int = 10000,
     save_additional_columns: Optional[List[str]] = None,
     incremental_mode: str = "incremental",
+    number: int = 1,
 ):
     """Prepare the dataset for downloading"""
+
+
+    # move all this to Reader
+
     config_parameters = dict(locals())
     arguments_validator(config_parameters)
 
