@@ -5,7 +5,8 @@ import math
 import fsspec
 import time
 import pyarrow.parquet as pq
-import pyarrow.csv as csv_pq
+import pyarrow.csv as csv_pa
+import pyarrow.json as json_pa
 import pyarrow as pa
 import pandas as pd
 
@@ -59,9 +60,9 @@ class Reader:
         else:
             self.input_files = [url_path]
 
-        if self.input_format == "txt":
+        if self.input_format in ["txt", "txt.gz"]:
             self.column_list = ["url"]
-        elif self.input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
+        elif self.input_format in ["json", "json.gz", "jsonl", "jsonl.gz", "csv", "csv.gz", "tsv", "tsv.gz", "parquet"]:
             self.column_list = self.save_additional_columns if self.save_additional_columns is not None else []
             if self.caption_col is not None:
                 self.column_list = self.column_list + ["caption"]
@@ -76,21 +77,23 @@ class Reader:
 
     def _save_to_arrow(self, input_file, start_shard_id):
         """Read the input file and save to arrow files in a temporary directory"""
-        if self.input_format in ["txt", "json", "csv", "tsv"]:
-            with self.fs.open(input_file, mode="rb") as file:
-                if self.input_format == "txt":
-                    df = csv_pq.read_csv(file, read_options=csv_pq.ReadOptions(column_names=["url"]))
-                elif self.input_format == "json":
+        if self.input_format in ["txt", "txt.gz", "json", "json.gz", "jsonl", "jsonl.gz", "csv", "csv.gz", "tsv", "tsv.gz"]:
+            compression = None
+            if self.input_format.endswith(".gz"):
+                compression = "gzip"
+            with self.fs.open(input_file, encoding="utf-8", mode="rb", compression=compression) as file:
+                if self.input_format in ["txt", "txt.gz"]:
+                    df = csv_pa.read_csv(file, read_options=csv_pa.ReadOptions(column_names=["url"]))
+                elif self.input_format in ["json", "json.gz"]:
                     df = pa.Table.from_pandas(pd.read_json(file))
-                elif self.input_format == "csv":
-                    df = csv_pq.read_csv(file)
-                elif self.input_format == "tsv":
-                    df = csv_pq.read_csv(file, parse_options=csv_pq.ParseOptions(delimiter="\t"))
+                elif self.input_format in ["csv", "csv.gz"]:
+                    df = csv_pa.read_csv(file)
+                elif self.input_format in ["tsv", "tsv.gz"]:
+                    df = csv_pa.read_csv(file, parse_options=csv_pa.ParseOptions(delimiter="\t"))
+                elif self.input_format in ["jsonl", "jsonl.gz"]:
+                    df = json_pa.read_json(file)
                 else:
                     raise ValueError(f"Unknown input format {self.input_format}")
-        elif self.input_format == "tsv.gz":
-            with self.fs.open(input_file, encoding="utf-8", mode="rb", compression="gzip") as file:
-                df = csv_pq.read_csv(file, parse_options=csv_pq.ParseOptions(delimiter="\t"))
         elif self.input_format == "parquet":
             with self.fs.open(input_file, mode="rb") as file:
                 columns_to_read = [self.url_col]

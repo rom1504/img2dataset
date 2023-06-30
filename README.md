@@ -137,10 +137,15 @@ This module exposes a single function `download` which takes the same arguments 
   * **dummy** does not save. Useful for benchmarks
 * **input_format** decides how to load the urls (default *txt*)
   * **txt** loads the urls as a text file of url, one per line
+  * **txt.gz** loads the urls as a compressed (gzip) txt.gz with a list of url, one per line
   * **csv** loads the urls and optional caption as a csv
+  * **csv.gz** loads the urls and optional caption, as a compressed (gzip) csv.gz
   * **tsv** loads the urls and optional caption as a tsv
-  * **tsv.gz** loads the urls and optional caption as a compressed (gzip) tsv.gz
+  * **tsv.gz** loads the urls and optional caption, as a compressed (gzip) tsv.gz
   * **json** loads the urls and optional caption as a json
+  * **json.gz** loads the urls and optional caption, as a compressed (gzip) json.gz
+  * **jsonl** loads the urls and optional caption as a jsonl. see [jsonlines](https://jsonlines.org/) for more
+  * **jsonl.gz** loads the urls and optional caption, as a compressed (gzip) jsonl.gz. see [jsonlines](https://jsonlines.org/) for more
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
