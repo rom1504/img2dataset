@@ -40,7 +40,8 @@ Example of datasets to download with example commands are available in the [data
 * [laion-high-resolution](dataset_examples/laion-high-resolution.md) Laion high resolution is a 170M resolution >= 1024x1024 subset of laion5B
 * [laion-face](dataset_examples/laion-face.md) Laion face is the human face subset of LAION-400M for large-scale face pretraining. It has 50M image-text pairs.
 * [coyo-700m](dataset_examples/coyo-700m.md) COYO is a large-scale dataset that contains 747M image-text pairs as well as many other meta-attributes to increase the usability to train various models.
-* [commonpool](dataset_examples/commonpool.md) CommonPool is a large-scale dataset collected from CommonCrawl containing 12.8B image-text pairs.
+* [commonpool](dataset_examples/common_pool.md) CommonPool is a large-scale dataset collected from CommonCrawl containing 12.8B image-text pairs.
+* [datacomp-1b](dataset_examples/datacomp.md) DataComp-1B is a large-scale dataset with 1.4B image-text pairs filtered from CommonPool.
 
 For all these examples, you may want to tweak the resizing to your preferences. The default is 256x256 with white borders.
 See options below.
