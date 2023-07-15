@@ -75,14 +75,24 @@ def test_download_resize(image_size, resize_mode, resize_only_if_bigger, skip_re
     [
         ["txt", "files"],
         ["txt", "webdataset"],
+        ["txt.gz", "files"],
+        ["txt.gz", "webdataset"],
         ["csv", "files"],
         ["csv", "webdataset"],
+        ["csv.gz", "files"],
+        ["csv.gz", "webdataset"],
         ["tsv", "files"],
         ["tsv", "webdataset"],
         ["tsv.gz", "files"],
         ["tsv.gz", "webdataset"],
         ["json", "files"],
         ["json", "webdataset"],
+        ["json.gz", "files"],
+        ["json.gz", "webdataset"],
+        ["jsonl", "files"],
+        ["jsonl", "webdataset"],
+        ["jsonl.gz", "files"],
+        ["jsonl.gz", "webdataset"],
         ["parquet", "files"],
         ["parquet", "webdataset"],
         ["parquet", "parquet"],
@@ -129,7 +139,7 @@ def test_download_input_format(input_format, output_format, tmp_path):
             "md5",
         ]
 
-        if input_format != "txt":
+        if input_format not in ["txt", "txt.gz"]:
             expected_columns.insert(2, "caption")
 
         if output_format == "parquet":
@@ -159,7 +169,7 @@ def test_download_input_format(input_format, output_format, tmp_path):
 
         assert len(pd.read_parquet(image_folder_name + "/00000.parquet").index) == expected_file_count
     elif output_format == "dummy":
-        l = [x for x in glob.glob(image_folder_name + "/*") if not x.endswith(".json")]
+        l = [x for x in glob.glob(image_folder_name + "/*") if (not x.endswith(".json") and not x.endswith(".jsonl") and not x.endswith(".json.gz") and not x.endswith(".jsonl.gz")) ]
         assert len(l) == 0
     elif output_format == "tfrecord":
         l = glob.glob(image_folder_name + "/*.tfrecord")
@@ -173,14 +183,24 @@ def test_download_input_format(input_format, output_format, tmp_path):
     [
         ["txt", "files"],
         ["txt", "webdataset"],
+        ["txt.gz", "files"],
+        ["txt.gz", "webdataset"],
         ["csv", "files"],
         ["csv", "webdataset"],
+        ["csv.gz", "files"],
+        ["csv.gz", "webdataset"],
         ["tsv", "files"],
         ["tsv", "webdataset"],
         ["tsv.gz", "files"],
         ["tsv.gz", "webdataset"],
         ["json", "files"],
         ["json", "webdataset"],
+        ["json.gz", "files"],
+        ["json.gz", "webdataset"],
+        ["jsonl", "files"],
+        ["jsonl", "webdataset"],
+        ["jsonl.gz", "files"],
+        ["jsonl.gz", "webdataset"],
         ["parquet", "files"],
         ["parquet", "webdataset"],
     ],

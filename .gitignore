@@ -12,3 +12,5 @@ test_folder
 wandb
 *.pex
 .pexing
+build
+.hypothesis
