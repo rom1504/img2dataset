@@ -63,5 +63,7 @@ jobs:
     - name: Unit tests
       run: |
         source .env/bin/activate
+        ray start --disable-usage-stats
+        ray start --address='127.0.0.1:6379'
         make test
 
