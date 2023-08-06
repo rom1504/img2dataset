@@ -365,6 +365,7 @@ def test_relative_path(tmp_path):
     [
         "multiprocessing",
         "pyspark",
+        "ray",
     ],
 )
 def test_distributors(distributor, tmp_path):
