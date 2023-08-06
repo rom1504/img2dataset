@@ -11,7 +11,7 @@ Also supports saving captions for url+caption datasets.
 
 ## Install
 
-```
+```bash
 pip install img2dataset
 ```
 
@@ -40,6 +40,8 @@ Example of datasets to download with example commands are available in the [data
 * [laion-high-resolution](dataset_examples/laion-high-resolution.md) Laion high resolution is a 170M resolution >= 1024x1024 subset of laion5B
 * [laion-face](dataset_examples/laion-face.md) Laion face is the human face subset of LAION-400M for large-scale face pretraining. It has 50M image-text pairs.
 * [coyo-700m](dataset_examples/coyo-700m.md) COYO is a large-scale dataset that contains 747M image-text pairs as well as many other meta-attributes to increase the usability to train various models.
+* [commonpool](dataset_examples/common_pool.md) CommonPool is a large-scale dataset collected from CommonCrawl containing 12.8B image-text pairs.
+* [datacomp-1b](dataset_examples/datacomp.md) DataComp-1B is a large-scale dataset with 1.4B image-text pairs filtered from CommonPool.
 
 For all these examples, you may want to tweak the resizing to your preferences. The default is 256x256 with white borders.
 See options below.
@@ -47,7 +49,8 @@ See options below.
 ## Usage
 
 First get some image url list. For example:
-```
+
+```bash
 echo 'https://placekitten.com/200/305' >> myimglist.txt
 echo 'https://placekitten.com/200/304' >> myimglist.txt
 echo 'https://placekitten.com/200/303' >> myimglist.txt
@@ -55,7 +58,7 @@ echo 'https://placekitten.com/200/303' >> myimglist.txt
 
 Then, run the tool:
 
-```
+```bash
 img2dataset --url_list=myimglist.txt --output_folder=output_folder --thread_count=64 --image_size=256
 ```
 
@@ -135,10 +138,15 @@ This module exposes a single function `download` which takes the same arguments 
   * **dummy** does not save. Useful for benchmarks
 * **input_format** decides how to load the urls (default *txt*)
   * **txt** loads the urls as a text file of url, one per line
+  * **txt.gz** loads the urls as a compressed (gzip) txt.gz with a list of url, one per line
   * **csv** loads the urls and optional caption as a csv
+  * **csv.gz** loads the urls and optional caption, as a compressed (gzip) csv.gz
   * **tsv** loads the urls and optional caption as a tsv
-  * **tsv.gz** loads the urls and optional caption as a compressed (gzip) tsv.gz
+  * **tsv.gz** loads the urls and optional caption, as a compressed (gzip) tsv.gz
   * **json** loads the urls and optional caption as a json
+  * **json.gz** loads the urls and optional caption, as a compressed (gzip) json.gz
+  * **jsonl** loads the urls and optional caption as a jsonl. see [jsonlines](https://jsonlines.org/) for more
+  * **jsonl.gz** loads the urls and optional caption, as a compressed (gzip) jsonl.gz. see [jsonlines](https://jsonlines.org/) for more
   * **parquet** loads the urls and optional caption as a parquet
 * **url_col** the name of the url column for parquet and csv (default *url*)
 * **caption_col** the name of the caption column for parquet and csv (default *None*)
@@ -197,7 +205,7 @@ Notes:
 
 * jpeg at quality 100 is NOT lossless
 * png format is lossless
-* webp at quality 100 is lossless
+* webp at quality >100 is lossless ([see OpenCV Docs](https://docs.opencv.org/3.4/d8/d6a/group__imgcodecs__flags.html))
 * same quality scale between formats does not mean same image quality
 
 ## Filtering the dataset
@@ -241,7 +249,8 @@ Some of these file systems require installing an additional package (for example
 See fsspec doc for all the details.
 
 If you need specific configuration for your filesystem, you may handle this problem by using the [fsspec configuration system](https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration) that makes it possible to create a file such as `.config/fsspec/s3.json` and have information in it such as:
-```
+
+```json
 {
   "s3": {
     "client_kwargs": {
@@ -252,6 +261,7 @@ If you need specific configuration for your filesystem, you may handle this prob
   }
 }
 ```
+
 Which may be necessary if using s3 compatible file systems such as [minio](https://min.io/). That kind of configuration also work for all other fsspec-supported file systems.
 
 ## Distribution modes
@@ -343,18 +353,20 @@ To get the best performances with img2dataset, using an efficient dns resolver i
 Follow [the official quick start](https://knot-resolver.readthedocs.io/en/stable/quickstart-install.html) or run this on ubuntu:
 
 install knot with
-```
+
+```bash
 wget https://secure.nic.cz/files/knot-resolver/knot-resolver-release.deb
 sudo dpkg -i knot-resolver-release.deb
 sudo apt update
 sudo apt install -y knot-resolver
 sudo sh -c 'echo `hostname -I` `hostname` >> /etc/hosts'
 sudo sh -c 'echo nameserver 127.0.0.1 > /etc/resolv.conf'
-udo systemctl stop systemd-resolved
+sudo systemctl stop systemd-resolved
 ```
 
 then start 4 instances with
-```
+
+```bash
 sudo systemctl start kresd@1.service
 sudo systemctl start kresd@2.service
 sudo systemctl start kresd@3.service
@@ -362,7 +374,8 @@ sudo systemctl start kresd@4.service
 ```
 
 Check it works with
-```
+
+```bash
 dig @localhost google.com
 ```
 
@@ -370,24 +383,29 @@ dig @localhost google.com
 
 In order to keep the success rate high, it is necessary to use an efficient DNS resolver.
 I tried several options: systemd-resolved, dnsmaskq and bind9 and reached the conclusion that bind9 reaches the best performance for this use case.
-Here is how to set this up on ubuntu:
-```
+Here is how to set this up on Ubuntu. Run:
+
+```bash
 sudo apt install bind9
 sudo vim /etc/bind/named.conf.options
-
-Add this in options:
-        recursive-clients 10000;
-        resolver-query-timeout 30000;
-        max-clients-per-query 10000;
-        max-cache-size 2000m;
-
-sudo systemctl restart bind9
-
-sudo vim /etc/resolv.conf
-
-Put this content:
-nameserver 127.0.0.1
 ```
+
+And add this in `options`:
+
+```
+	recursive-clients 10000;
+	resolver-query-timeout 30000;
+	max-clients-per-query 10000;
+	max-cache-size 2000m;
+```
+
+Then, run:
+
+```bash
+sudo systemctl restart bind9
+echo nameserver 127.0.0.1 | sudo tee -a /etc/resolv.conf
+```
+
 This will make it possible to keep an high success rate while doing thousands of dns queries.
 You may also want to [setup bind9 logging](https://nsrc.org/activities/agendas/en/dnssec-3-days/dns/materials/labs/en/dns-bind-logging.html) in order to check that few dns errors happen.
 
@@ -415,18 +433,20 @@ Either locally, or in [gitpod](https://gitpod.io/#https://github.com/rom1504/img
 
 Setup a virtualenv:
 
-```
+```bash
 python3 -m venv .env
 source .env/bin/activate
 pip install -e .
 ```
 
 to run tests:
-```
+
+```bash
 pip install -r requirements-test.txt
 ```
 then
-```
+
+```bash
 make lint
 make test
 ```
@@ -439,7 +459,7 @@ You can use `make black` to reformat the code
 
 ### 10000 image benchmark
 
-```
+```bash
 cd tests/test_files
 bash benchmark.sh
 ```
@@ -449,10 +469,11 @@ bash benchmark.sh
 
 Download crawling at home first part, then:
 
-```
+```bash
 cd tests
 bash large_bench.sh
 ```
+
 It takes 3.7h to download 18M pictures
 
 1350 images/s is the currently observed performance. 4.8M images per hour, 116M images per 24h.
@@ -463,11 +484,26 @@ It takes 3.7h to download 18M pictures
 downloading 2 parquet files of 18M items (result 936GB) took 7h24
 average of 1345 image/s
 
-## 190M benchmark
+### 190M benchmark
 
 downloading 190M images from the [crawling at home dataset](https://github.com/rom1504/cah-prepro) took 41h (result 5TB)
 average of 1280 image/s
 
-## 5B benchmark
+### 5B benchmark
 
 downloading 5.8B images from the [laion5B dataset](https://laion.ai/laion-5b-a-new-era-of-open-large-scale-multi-modal-datasets/) took 7 days (result 240TB), average of 9500 sample/s on 10 machines, [technical details](https://rom1504.medium.com/semantic-search-at-billions-scale-95f21695689a)
+
+
+
+## Citation
+
+```bibtex
+@misc{beaumont-2021-img2dataset,
+  author = {Romain Beaumont},
+  title = {img2dataset: Easily turn large sets of image urls to an image dataset},
+  year = {2021},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/rom1504/img2dataset}}
+}
+```

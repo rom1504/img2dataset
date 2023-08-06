@@ -17,10 +17,15 @@ def current_memory_usage():
     "input_format",
     [
         "txt",
+        "txt.gz",
         "csv",
+        "csv.gz",
         "tsv",
         "tsv.gz",
         "json",
+        "json.gz",
+        "jsonl",
+        "jsonl.gz",
         "parquet",
     ],
 )
@@ -42,7 +47,7 @@ def test_reader(input_format, tmp_path):
         url_list=url_list_name,
         input_format=input_format,
         url_col="url",
-        caption_col=None if input_format == "txt" else "caption",
+        caption_col=None if input_format in ["txt", "txt.gz"] else "caption",
         verify_hash_col=None,
         verify_hash_type=None,
         save_additional_columns=None,
@@ -51,7 +56,7 @@ def test_reader(input_format, tmp_path):
         tmp_path=test_folder,
     )
 
-    if input_format == "txt":
+    if input_format in ["txt", "txt.gz"]:
         assert reader.column_list == ["url"]
     else:
         assert reader.column_list == ["caption", "url"]
@@ -75,7 +80,7 @@ def test_reader(input_format, tmp_path):
         end_expected = (incremental_shard_id + 1) * batch_size
 
         expected_shard = list(enumerate(test_list[begin_expected:end_expected]))
-        if input_format == "txt":
+        if input_format in ["txt", "txt.gz"]:
             expected_shard = [(i, (url,)) for i, (_, url) in expected_shard]
         assert shard == expected_shard
         current_usage = current_memory_usage()
