@@ -9,6 +9,8 @@ Can download, resize and package 100M urls in 20h on one machine.
 
 Also supports saving captions for url+caption datasets.
 
+If you believe in making reusable tools to make data easy to use for ML and you would like to contribute, please join the [DataToML](https://discord.gg/ep8yUUtCnp) chat.
+
 ## Install
 
 ```bash
