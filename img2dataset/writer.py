@@ -18,7 +18,6 @@ class BufferedParquetWriter:
         self.schema = schema
         self._initiatlize_buffer()
         fs, output_path = fsspec.core.url_to_fs(output_file)
-
         self.output_fd = fs.open(output_path, "wb")
         self.parquet_writer = pq.ParquetWriter(self.output_fd, schema)
 

@@ -165,6 +165,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **distributor** choose how to distribute the downloading (default *multiprocessing*)
   * **multiprocessing** use a multiprocessing pool to spawn processes
   * **pyspark** use a pyspark session to create workers on a spark cluster (see details below)
+  * **ray** use a ray cluster. See ray example.
 * **subjob_size** the number of shards to download in each subjob supporting it, a subjob can be a pyspark job for example (default *1000*)
 * **retries** number of time a download should be retried (default *0*)
 * **disable_all_reencoding** if set to True, this will keep the image files in their original state with no resizing and no conversion, will not even check if the image is valid. Useful for benchmarks. To use only if you plan to post process the images by another program and you have plenty of storage available. (default *False*)
