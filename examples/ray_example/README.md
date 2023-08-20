@@ -9,4 +9,5 @@ If you are on AWS you can spin up a ray cluster this way:
 Then you can run your job:
 ```ray submit cluster_minmal.yaml ray_example.py -- --url_list <url_list> --out_folder <out_folder>```
 
+You may also setup a ray cluster by following https://docs.ray.io/en/latest/cluster/getting-started.html
 
