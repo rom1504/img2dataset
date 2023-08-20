@@ -1,3 +1,9 @@
+## 1.42.0
+
+* ray distibutor (thanks @Vaishaal)
+* Remove tmp_dir only if the output dir is not in s3 (thanks @ezzarum)
+* support more intput formats (thanks @ldfandian)
+
 ## 1.41.0
 
 * Verify hashes during download. (thanks @GeorgiosSmyrnis and @carlini)
