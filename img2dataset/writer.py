@@ -18,8 +18,7 @@ class BufferedParquetWriter:
         self.schema = schema
         self._initiatlize_buffer()
         fs, output_path = fsspec.core.url_to_fs(output_file)
-        # testing for S3
-        self.output_fd = fs.open(output_path, "wb", blocksize=200000000)
+        self.output_fd = fs.open(output_path, "wb")
         self.parquet_writer = pq.ParquetWriter(self.output_fd, schema)
 
     def _initiatlize_buffer(self):

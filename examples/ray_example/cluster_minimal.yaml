@@ -56,10 +56,9 @@ setup_commands:
     #- echo 'export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_KEY>' >> ~/.bashrc
     - pip install --upgrade pip setuptools wheel
     - pip install ray
-    - pip uninstall -y img2dataset
-    - pip install git+https://github.com/vaishaal/img2dataset.git@7aadba42f8008106bd38475e06e78e79dfe4bbeb
+    - pip install img2dataset
     - pip install opencv-python --upgrade 
-    - wandb login ead6ddc201a45d8e0d9b6e76220e4faf18178820
+    - wandb login KEY
     - pip install s3fs==2022.11.0 
     - pip install botocore==1.27.59
 
