@@ -235,9 +235,10 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
                 # read stats files
                 stats_files = fs.glob(output_path + "/*.json")
 
-                # filter out files that have an id smaller that are already done. (fix int() crash caused by hidden files created in macos "._*" ) 
-                stats_files = [f for f in stats_files if not f.split("/")[-1].startswith("._") and int(f.split("/")[-1].split("_")[0]) not in self.done_shards]
-                
+                # filter out files that have an id smaller that are already done. 
+                stats_files = [f for f in stats_files if not f.split("/")[-1].startswith("._") \
+                                   and int(f.split("/")[-1].split("_")[0]) not in self.done_shards]
+
                 # get new stats files
                 new_stats_files = set(stats_files) - self.stats_files
                 if len(new_stats_files) == 0:
