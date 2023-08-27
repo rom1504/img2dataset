@@ -247,8 +247,8 @@ When both these options are enabled, the only bottlenecks left are network relat
 ## File system support
 
 Thanks to [fsspec](https://filesystem-spec.readthedocs.io/en/latest/), img2dataset supports reading and writing files in [many file systems](https://github.com/fsspec/filesystem_spec/blob/6233f315548b512ec379323f762b70764efeb92c/fsspec/registry.py#L87).
-To use it, simply use the prefix of your filesystem before the path. For example `hdfs://`, `s3://`, `http://`, or `gcs://`.
-Some of these file systems require installing an additional package (for example s3fs for s3, gcsfs for gcs).
+To use it, simply use the prefix of your filesystem before the path. For example `hdfs://`, `s3://`, `http://`, `gcs://` or `ssh://`.
+Some of these file systems require installing an additional package (for example s3fs for s3, gcsfs for gcs, [fsspec/sshfs](https://github.com/fsspec/sshfs) for ssh).
 See fsspec doc for all the details.
 
 If you need specific configuration for your filesystem, you may handle this problem by using the [fsspec configuration system](https://filesystem-spec.readthedocs.io/en/latest/features.html#configuration) that makes it possible to create a file such as `.config/fsspec/s3.json` and have information in it such as:
