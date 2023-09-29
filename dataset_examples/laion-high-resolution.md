@@ -13,8 +13,8 @@ Download from https://huggingface.co/datasets/laion/laion-high-resolution
 ```
 mkdir -p laion-high-resolution && cd laion-high-resolution
 
-for i in $(seq 0 127); do 
-    wget https://huggingface.co/datasets/laion/laion-high-resolution/resolve/main/part-$(printf "%05d" $i)-5d6701c4-b238-4c0a-84e4-fe8e9daea963-c000.snappy.parquet
+for i in {0..127}; do 
+    wget "https://huggingface.co/datasets/laion/laion-high-resolution/resolve/main/part-$(printf "%05d" $i)-5d6701c4-b238-4c0a-84e4-fe8e9daea963-c000.snappy.parquet"
 done
 
 cd ..
