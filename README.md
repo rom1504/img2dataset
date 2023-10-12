@@ -39,6 +39,7 @@ Example of datasets to download with example commands are available in the [data
 * [laion5B](dataset_examples/laion5B.md) 5B image/text pairs that can be downloaded in 7 days using 10 nodes
 * [laion-aesthetic](dataset_examples/laion-aesthetic.md) Laion aesthetic is a 120M laion5B subset with aesthetic > 7 pwatermark < 0.8 punsafe < 0.5
 * [laion-art](dataset_examples/laion-art.md) Laion aesthetic is a 8M laion5B subset with aesthetic > 8 pwatermark < 0.8 punsafe < 0.5
+* [laion-coco](dataset_examples/laion-coco.md) Laion-COCO is a 600M subset of LAION2B-EN, captioned with an ensemble of BLIP L/14 and 2 CLIP versions (L/14 and RN50x64).
 * [laion-high-resolution](dataset_examples/laion-high-resolution.md) Laion high resolution is a 170M resolution >= 1024x1024 subset of laion5B
 * [laion-face](dataset_examples/laion-face.md) Laion face is the human face subset of LAION-400M for large-scale face pretraining. It has 50M image-text pairs.
 * [coyo-700m](dataset_examples/coyo-700m.md) COYO is a large-scale dataset that contains 747M image-text pairs as well as many other meta-attributes to increase the usability to train various models.
