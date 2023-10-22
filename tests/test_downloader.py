@@ -150,3 +150,49 @@ def test_downloader(tmp_path):
     downloader((0, tmp_file))
 
     assert len(os.listdir(image_folder_name + "/00000")) == 3 * n_allowed
+
+
+def test_downloader_datadiligence(tmp_path):
+    test_folder = str(tmp_path)
+    n_allowed = 5
+    n_disallowed = 5
+    test_list = setup_fixtures(count=n_allowed, disallowed=n_disallowed)
+
+    assert len(test_list) == n_allowed + n_disallowed
+
+    image_folder_name = os.path.join(test_folder, "images")
+
+    os.mkdir(image_folder_name)
+
+    resizer = Resizer(256, "border", False)
+    writer = FilesSampleWriter
+
+    downloader = Downloader(
+        writer,
+        resizer,
+        thread_count=32,
+        save_caption=True,
+        extract_exif=True,
+        output_folder=image_folder_name,
+        column_list=["caption", "url"],
+        timeout=10,
+        number_sample_per_shard=10,
+        oom_shard_count=5,
+        compute_hash="md5",
+        verify_hash_type="None",
+        encode_format="jpg",
+        retries=0,
+        user_agent_token="img2dataset",
+        disallowed_header_directives=None,
+        respect_optouts=True,
+    )
+
+    tmp_file = os.path.join(test_folder, "test_list.feather")
+    df = pd.DataFrame(test_list, columns=["caption", "url"])
+    df.to_feather(tmp_file)
+
+    downloader((0, tmp_file))
+
+    assert len(os.listdir(image_folder_name + "/00000")) == 3 * n_allowed
+
+

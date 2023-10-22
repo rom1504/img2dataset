@@ -11,30 +11,14 @@ import time
 import hashlib
 import pyarrow as pa
 import traceback
+import datadiligence as dd
 
 import fsspec
 from .logger import CappedCounter
 from .logger import write_stats
 
 
-def is_disallowed(headers, user_agent_token, disallowed_header_directives):
-    """Check if HTTP headers contain an X-Robots-Tag directive disallowing usage"""
-    for values in headers.get_all("X-Robots-Tag", []):
-        try:
-            uatoken_directives = values.split(":", 1)
-            directives = [x.strip().lower() for x in uatoken_directives[-1].split(",")]
-            ua_token = uatoken_directives[0].lower() if len(uatoken_directives) == 2 else None
-            if (ua_token is None or ua_token == user_agent_token) and any(
-                x in disallowed_header_directives for x in directives
-            ):
-                return True
-        except Exception as err:  # pylint: disable=broad-except
-            traceback.print_exc()
-            print(f"Failed to parse X-Robots-Tag: {values}: {err}")
-    return False
-
-
-def download_image(row, timeout, user_agent_token, disallowed_header_directives):
+def download_image(row, timeout, user_agent_token, respect_optouts):
     """Download an image with urllib"""
     key, url = row
     img_stream = None
@@ -44,12 +28,14 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     try:
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         with urllib.request.urlopen(request, timeout=timeout) as r:
-            if disallowed_header_directives and is_disallowed(
-                r.headers,
-                user_agent_token,
-                disallowed_header_directives,
-            ):
-                return key, None, "Use of image disallowed by X-Robots-Tag directive"
+            if respect_optouts:
+                is_allowed = dd.is_allowed(response=r, user_agent=user_agent_string)
+                if not is_allowed:
+                    return (
+                        key,
+                        None,
+                        "Use of image for generative AI purposes is not permitted",
+                    )
             img_stream = io.BytesIO(r.read())
         return key, img_stream, None
     except Exception as err:  # pylint: disable=broad-except
@@ -58,9 +44,9 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
         return key, None, str(err)
 
 
-def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):
+def download_image_with_retry(row, timeout, retries, user_agent_token, respect_optouts):
     for _ in range(retries + 1):
-        key, img_stream, err = download_image(row, timeout, user_agent_token, disallowed_header_directives)
+        key, img_stream, err = download_image(row, timeout, user_agent_token, respect_optouts)
         if img_stream is not None:
             return key, img_stream, err
     return key, None, err
@@ -96,6 +82,7 @@ class Downloader:
         retries,
         user_agent_token,
         disallowed_header_directives,
+        respect_optouts=True,
         blurring_bbox_col=None,
     ) -> None:
         self.sample_writer_class = sample_writer_class
@@ -113,11 +100,8 @@ class Downloader:
         self.encode_format = encode_format
         self.retries = retries
         self.user_agent_token = None if user_agent_token is None else user_agent_token.strip().lower()
-        self.disallowed_header_directives = (
-            None
-            if disallowed_header_directives is None
-            else {directive.strip().lower() for directive in disallowed_header_directives}
-        )
+        self.disallowed_header_directives = None if disallowed_header_directives is None else True
+        self.respect_optouts = self.disallowed_header_directives or respect_optouts
         self.blurring_bbox_col = blurring_bbox_col
 
     def __call__(
@@ -167,7 +151,6 @@ class Downloader:
 
         status_dict = CappedCounter()
 
-        count = len(shard_to_dl)
         successes = 0
         failed_to_download = 0
         failed_to_resize = 0
@@ -178,6 +161,19 @@ class Downloader:
         )
         bbox_indice = self.column_list.index(self.blurring_bbox_col) if self.blurring_bbox_col is not None else None
         key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
+
+        # filter key_url_list if optouts are respected
+        if self.respect_optouts:
+            try:
+                allowed_flags = dd.is_allowed(
+                    urls=[entry[1] for entry in key_url_list],
+                    user_agent=self.user_agent_token,
+                )
+                key_url_list = [key_url_list[i] for i, allowed in enumerate(allowed_flags) if allowed]
+            except Exception as err:  # pylint: disable=broad-except
+                print(f"Datadiligence preprocessing failed. Allowing all. Reason: {err}")
+
+        count = len(key_url_list)
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize
         # limit the memory usage
@@ -207,7 +203,7 @@ class Downloader:
                     timeout=self.timeout,
                     retries=self.retries,
                     user_agent_token=self.user_agent_token,
-                    disallowed_header_directives=self.disallowed_header_directives,
+                    respect_optouts=self.respect_optouts,
                 ),
                 loader,
             ):
