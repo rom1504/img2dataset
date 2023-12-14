@@ -55,15 +55,21 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     except Exception as err:  # pylint: disable=broad-except
         if img_stream is not None:
             img_stream.close()
-        return key, None, str(err)
+        return key, None, err
 
 
 def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):
     for _ in range(retries + 1):
         key, img_stream, err = download_image(row, timeout, user_agent_token, disallowed_header_directives)
         if img_stream is not None:
-            return key, img_stream, err
-    return key, None, err
+            return key, img_stream, None
+        if hasattr(err, "status") and err.status not in (408, 429, 500, 502, 503, 504):
+            break
+        if hasattr(err, "status") and err.status == 429:  # too many requests
+            retry_after = err.headers.get("Retry-After")
+            if retry_after and retry_after.isdigit() and int(retry_after) < 10:
+                time.sleep(int(retry_after))
+    return key, None, str(err)
 
 
 def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count):
