@@ -25,6 +25,7 @@ class Reader:
     - save_additional_columns: the list of additional columns to save
     - number_sample_per_shard: the number of samples per shard
     - done_shards: a set of already done shards
+    - start_shard_id: the shard id to begin downloading from
     """
 
     def __init__(
@@ -39,7 +40,7 @@ class Reader:
         number_sample_per_shard,
         done_shards,
         tmp_path,
-        start_shard_id,
+        start_shard_id: int = 0,
     ) -> None:
         self.input_format = input_format
         self.url_col = url_col
