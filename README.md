@@ -173,7 +173,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **min_image_size** minimum size of the image to download (default *0*)
 * **max_image_area** maximum area of the image to download (default *inf*)
 * **max_aspect_ratio** maximum aspect ratio of the image to download (default *inf*)
-* **incremental_mode** Can be "incremental" or "overwrite". For "incremental", img2dataset will download all the shards that were not downloaded, for "overwrite" img2dataset will delete recursively the output folder then start from zero (default *incremental*)
+* **incremental_mode** Can be "incremental", "overwrite" or "extend". For "incremental", img2dataset will download all the shards that were not downloaded, for "overwrite" img2dataset will delete recursively the output folder then start from zero, for "extend" img2dataset will download shards from the next available shard number (default *incremental*)
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
 * **user_agent_token** Additional identifying token that will be added to the User-Agent header sent with HTTP requests to download images; for example: "img2downloader". (default *None*)
 * **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset. To ignore x-robots-tags, pass '[]'. (default '["noai", "noimageai", "noindex", "noimageindex"]')

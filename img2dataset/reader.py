@@ -39,6 +39,7 @@ class Reader:
         number_sample_per_shard,
         done_shards,
         tmp_path,
+        start_shard_id,
     ) -> None:
         self.input_format = input_format
         self.url_col = url_col
@@ -48,6 +49,7 @@ class Reader:
         self.save_additional_columns = save_additional_columns
         self.number_sample_per_shard = number_sample_per_shard
         self.done_shards = done_shards
+        self.start_shard_id =  start_shard_id
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
         self.fs = fs
@@ -190,7 +192,7 @@ class Reader:
         shard is a tuple (sample id, sample)
         sample is a tuple of the columns
         """
-        start_shard_id = 0
+        start_shard_id = self.start_shard_id
         for i, input_file in enumerate(self.input_files):
             print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
 
