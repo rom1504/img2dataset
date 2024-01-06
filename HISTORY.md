@@ -1,3 +1,7 @@
+## 1.43.0
+
+* Remove version restriction for fsspec
+
 ## 1.42.0
 
 * ray distibutor (thanks @Vaishaal)
