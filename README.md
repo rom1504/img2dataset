@@ -192,7 +192,7 @@ Img2dataset support several formats. There are trade off for which to choose:
 
 ## Encode format choice
 
-Images can be encoded in jpeg, png or webp, with diffent quality settings.
+Images can be encoded in jpeg, png or webp, with different quality settings.
 
 Here are a few comparisons of space used for 1M images at 256 x 256:
 

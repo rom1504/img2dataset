@@ -6,7 +6,7 @@
 
 * ray distibutor (thanks @Vaishaal)
 * Remove tmp_dir only if the output dir is not in s3 (thanks @ezzarum)
-* support more intput formats (thanks @ldfandian)
+* support more input formats (thanks @ldfandian)
 
 ## 1.41.0
 
@@ -333,7 +333,7 @@ better aws s3 support:
 
 ## 1.5.3
 
-* increase stability by closing the pool and tarwriter explictely
+* increase stability by closing the pool and tarwriter explicitly
 
 ## 1.5.2
 
