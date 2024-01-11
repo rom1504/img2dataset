@@ -7,5 +7,5 @@ pyarrow>=6.0.1,<10.1.0
 exifread-nocycle>=3.0.1,<4
 albumentations>=1.1.0,<2
 dataclasses>=0.6,<1.0.0
-wandb>=0.12.10,<0.13
+wandb>=0.12.10,<0.17
 fsspec
