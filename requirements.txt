@@ -1,11 +1,11 @@
 tqdm>=4.62.3,<5
 opencv-python-headless>=4.5.5.62,<5
-fire>=0.4.0,<0.5.0
+fire>=0.5.0,<0.6.0
 webdataset>=0.2.5,<0.3
-pandas>=1.1.5,<2
-pyarrow>=6.0.1,<10.1.0
+pandas>=1.1.5,<3
+pyarrow>=6.0.1,<15
 exifread-nocycle>=3.0.1,<4
 albumentations>=1.1.0,<2
 dataclasses>=0.6,<1.0.0
-wandb>=0.12.10,<0.13
+wandb>=0.16.0,<0.17
 fsspec
