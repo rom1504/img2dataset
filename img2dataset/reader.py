@@ -56,7 +56,7 @@ class Reader:
         if fs.isdir(url_path):
             self.input_files = sorted(fs.glob(url_path + "/*." + input_format))
             if len(self.input_files) == 0:
-                raise Exception(f"No file found at path {url_path} with extension {input_format}")
+                raise ValueError(f"No file found at path {url_path} with extension {input_format}")
         else:
             self.input_files = [url_path]
 
@@ -160,7 +160,7 @@ class Reader:
                     else:
                         raise e
             # can't reach here
-            raise Exception("Failed to write to file.")
+            raise ValueError("Failed to write to file.")
 
         for i in range(10):
             shards = []
