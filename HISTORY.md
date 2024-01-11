@@ -1,3 +1,7 @@
+## 1.44.0
+
+* Deps update
+
 ## 1.43.0
 
 * Remove version restriction for fsspec
