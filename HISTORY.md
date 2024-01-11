@@ -1,3 +1,7 @@
+## 1.44.1
+
+* extend fire dep range
+
 ## 1.44.0
 
 * Deps update
