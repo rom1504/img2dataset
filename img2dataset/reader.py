@@ -50,7 +50,7 @@ class Reader:
         self.save_additional_columns = save_additional_columns
         self.number_sample_per_shard = number_sample_per_shard
         self.done_shards = done_shards
-        self.start_shard_id =  start_shard_id
+        self.start_shard_id = start_shard_id
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
         self.fs = fs
