@@ -147,6 +147,7 @@ def download(
     save_caption = caption_col is not None
 
     fs, output_path = fsspec.core.url_to_fs(output_folder)
+    start_shard_id = 0
 
     if not fs.exists(output_path):
         fs.mkdir(output_path)
@@ -157,6 +158,10 @@ def download(
         elif incremental_mode == "overwrite":
             fs.rm(output_path, recursive=True)
             fs.mkdir(output_path)
+            done_shards = set()
+        elif incremental_mode == "extend":
+            existing_shards = [int(x.split("/")[-1].split("_")[0]) for x in fs.glob(output_path + "/*.json")]
+            start_shard_id = max(existing_shards, default=-1) + 1
             done_shards = set()
         else:
             raise ValueError(f"Unknown incremental mode {incremental_mode}")
@@ -187,6 +192,7 @@ def download(
         number_sample_per_shard,
         done_shards,
         tmp_path,
+        start_shard_id,
     )
 
     if output_format == "webdataset":
