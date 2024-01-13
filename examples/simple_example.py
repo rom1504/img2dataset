@@ -2,7 +2,7 @@ from img2dataset import download
 import shutil
 import os
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     output_dir = os.path.abspath("bench")
 
     if os.path.exists(output_dir):

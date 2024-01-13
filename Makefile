@@ -8,7 +8,7 @@ install-dev: ## [Local development] Install test requirements
 lint: ## [Local development] Run mypy, pylint and black
 	python -m mypy img2dataset
 	python -m pylint img2dataset
-	python -m black --check -l 120 img2dataset
+	python -m black --check -l 120 .
 
 black: ## [Local development] Auto-format python code using black
 	python -m black -l 120 .

@@ -123,7 +123,6 @@ def test_download_input_format(input_format, output_format, tmp_path):
     )
 
     if output_format != "dummy":
-
         df = pd.read_parquet(image_folder_name + "/00000.parquet")
 
         expected_columns = [
@@ -169,7 +168,16 @@ def test_download_input_format(input_format, output_format, tmp_path):
 
         assert len(pd.read_parquet(image_folder_name + "/00000.parquet").index) == expected_file_count
     elif output_format == "dummy":
-        l = [x for x in glob.glob(image_folder_name + "/*") if (not x.endswith(".json") and not x.endswith(".jsonl") and not x.endswith(".json.gz") and not x.endswith(".jsonl.gz")) ]
+        l = [
+            x
+            for x in glob.glob(image_folder_name + "/*")
+            if (
+                not x.endswith(".json")
+                and not x.endswith(".jsonl")
+                and not x.endswith(".json.gz")
+                and not x.endswith(".jsonl.gz")
+            )
+        ]
         assert len(l) == 0
     elif output_format == "tfrecord":
         l = glob.glob(image_folder_name + "/*.tfrecord")

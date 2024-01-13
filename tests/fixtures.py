@@ -38,7 +38,7 @@ def setup_fixtures(count=5, disallowed=0):
 
 def generate_url_list_txt(output_file, test_list, compression_on=False):
     if compression_on:
-        f = gzip.open(output_file, 'wt')
+        f = gzip.open(output_file, "wt")
     else:
         f = open(output_file, "w")
     with f:
@@ -63,7 +63,7 @@ def generate_json(output_file, test_list, compression=None):
 
 def generate_jsonl(output_file, test_list, compression=None):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_json(output_file, orient='records', lines=True, compression=compression)
+    df.to_json(output_file, orient="records", lines=True, compression=compression)
 
 
 def generate_parquet(output_file, test_list):
