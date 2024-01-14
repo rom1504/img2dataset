@@ -83,7 +83,7 @@ with each number being the position in the list. The subfolders avoids having to
 
 If **captions** are provided, they will be saved as 0.txt, 1.txt, ...
 
-If **compute_key** is provided, the filename keys will be computed from this function instead of the default 000000000.jpg to 'unique_key'.jpg
+If **compute_key** is provided, the filename keys ({key}.jpg) will be computed from this function instead of the default.
 
 This can then easily be fed into machine learning training or any other use case.
 

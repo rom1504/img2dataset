@@ -224,7 +224,7 @@ class Downloader:
                         }
                     }
                     if self.compute_key is None:
-                        str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count, additional_columns)
+                        str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
                     else:
                         str_key = self.compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count, additional_columns)
                     meta = {
