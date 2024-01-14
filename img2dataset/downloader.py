@@ -226,8 +226,9 @@ class Downloader:
                     if self.compute_key_override is None:
                         str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
                     else:
-                        str_key = self.compute_key_override(key, shard_id, oom_sample_per_shard,
-                                                   self.oom_shard_count, additional_columns)
+                        str_key = self.compute_key_override(
+                            key, shard_id, oom_sample_per_shard, self.oom_shard_count, additional_columns
+                        )
                     meta = {
                         **additional_columns,
                         "key": str_key,
