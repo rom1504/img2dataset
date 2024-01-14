@@ -97,6 +97,7 @@ class Downloader:
         user_agent_token,
         disallowed_header_directives,
         blurring_bbox_col=None,
+        compute_key=None,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -119,6 +120,7 @@ class Downloader:
             else {directive.strip().lower() for directive in disallowed_header_directives}
         )
         self.blurring_bbox_col = blurring_bbox_col
+        self.compute_key = compute_key
 
     def __call__(
         self,
@@ -213,14 +215,20 @@ class Downloader:
             ):
                 try:
                     _, sample_data = shard_to_dl[key]
-                    str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
-                    meta = {
-                        # Skip columns containing a the verification hash and only save the compute hash
+                    additional_columns = {      
+                        # Skip columns containing a the verification hash and only save the compute hash                  
                         **{
                             self.column_list[i]: sample_data[i]
                             for i in range(len(self.column_list))
                             if (hash_indice is None or i != hash_indice)
-                        },
+                        }
+                    }
+                    if self.compute_key is None:
+                        str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count, additional_columns)
+                    else:
+                        str_key = self.compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count, additional_columns)
+                    meta = {
+                        **additional_columns,                     
                         "key": str_key,
                         "status": None,
                         "error_message": error_message,

@@ -83,6 +83,8 @@ with each number being the position in the list. The subfolders avoids having to
 
 If **captions** are provided, they will be saved as 0.txt, 1.txt, ...
 
+If **compute_key** is provided, the filename keys will be computed from this function instead of the default 000000000.jpg to 'unique_key'.jpg
+
 This can then easily be fed into machine learning training or any other use case.
 
 Also .json files named 0.json, 1.json,... are saved with these keys:
@@ -177,11 +179,43 @@ This module exposes a single function `download` which takes the same arguments 
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
 * **user_agent_token** Additional identifying token that will be added to the User-Agent header sent with HTTP requests to download images; for example: "img2downloader". (default *None*)
 * **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset. To ignore x-robots-tags, pass '[]'. (default '["noai", "noimageai", "noindex", "noimageindex"]')
+* **compute_key** A function reference to override the default function used to compute the key for a given sample set. If set to None, img2dataset create keys as a combination of its shard number and count within the shard e.g. 100001.jpg, 100001.txt. (default *None*)
 
 ## Incremental mode
 
 If a first download got interrupted for any reason, you can run again with --incremental "incremental" (this is the default) and using the same output folder , the same number_sample_per_shard and the same input urls, and img2dataset will complete the download.
 
+## Compute key paramater function
+
+To override the default method in calculating a samples key, pass a function reference to the compute_key parameter. This function will be passed 6 parameters, and it should return a single string, *unique across the entire dataset* being downloaded. The parameters it will be passed are:
+- key: the index of the sample in the shard
+- shard_id: the shard id this sample belongs too
+- oom_sample_per_shard: the number of samples per shard
+- oom_shard_count: the total number of shards
+- additional_columns: a dictionary containing any additional columns specified in initial parameters for this sample
+
+As an example you can reconstruct the default method for computing a key:
+```python
+def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count, additional_columns):
+    true_key = (10**oom_sample_per_shard) * shard_id + key
+    key_format = oom_sample_per_shard + oom_shard_count
+    str_key = "{true_key:0{key_format}d}".format(
+        key_format=key_format, true_key=true_key
+    )
+    return str_key
+```
+Alternatively, if your dataset had some additional which you specified, one of which was a uid across the dataset, you could simply do the following:
+```python
+def compute_key(key, shard_id, oom_sample_per_shard, oom_shard_count, additional_columns):
+    return str(additional_columns['uid'])
+```
+Which would change the output to be:
+* output_folder
+    * 00000
+        * *your_uid_0*.jpg
+        * *your_uid_0*.txt
+        * *your_uid_1*.jpg
+        ...
 ## Output format choice
 
 Img2dataset support several formats. There are trade off for which to choose:
