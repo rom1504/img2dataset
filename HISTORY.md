@@ -1,3 +1,8 @@
+## 1.45.0
+
+* update pyarrow
+* add incremental model extend (thanks @edwardguil)
+
 ## 1.44.1
 
 * extend fire dep range
