@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 import fire
+import ssl
 import logging
 from .logger import LoggerProcess
 from .resizer import Resizer
@@ -108,12 +109,18 @@ def download(
     max_shard_retry: int = 1,
     user_agent_token: Optional[str] = None,
     disallowed_header_directives: Optional[List[str]] = None,
+    ignore_ssl_certificate: bool = False,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     if disallowed_header_directives is None:
         disallowed_header_directives = ["noai", "noimageai", "noindex", "noimageindex"]
     if len(disallowed_header_directives) == 0:
         disallowed_header_directives = None
+
+    if ignore_ssl_certificate:
+        ssl._create_default_https_context = ssl._create_unverified_context 
+    else:
+        ssl._create_default_https_context = ssl.create_default_context
 
     config_parameters = dict(locals())
     arguments_validator(config_parameters)
