@@ -64,12 +64,12 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives,
 
 
 def download_image_with_retry(
-        row, 
-        timeout, 
-        retries, 
-        user_agent_token, 
-        disallowed_header_directives, 
-        ignore_ssl_certificate
+    row,
+    timeout,
+    retries,
+    user_agent_token,
+    disallowed_header_directives,
+    ignore_ssl_certificate
 ):
     for _ in range(retries + 1):
         key, img_stream, err = download_image(
