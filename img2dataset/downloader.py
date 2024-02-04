@@ -71,6 +71,7 @@ def download_image_with_retry(
     disallowed_header_directives,
     ignore_ssl_certificate
 ):
+    """Download an image with urllib, retrying if it fails."""
     for _ in range(retries + 1):
         key, img_stream, err = download_image(
             row, timeout, user_agent_token, disallowed_header_directives, ignore_ssl_certificate
