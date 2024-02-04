@@ -35,7 +35,7 @@ def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     return False
 
 
-def download_image(row, timeout, user_agent_token, disallowed_header_directives):
+def download_image(row, timeout, user_agent_token, disallowed_header_directives, ignore_ssl_certificate):
     """Download an image with urllib"""
     key, url = row
     img_stream = None
@@ -45,8 +45,9 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     try:
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
+        if ignore_ssl_certificate:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
         with urllib.request.urlopen(request, context=ctx, timeout=timeout) as r:
             if disallowed_header_directives and is_disallowed(
                 r.headers,
@@ -62,9 +63,18 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
         return key, None, str(err)
 
 
-def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):
+def download_image_with_retry(
+        row, 
+        timeout, 
+        retries, 
+        user_agent_token, 
+        disallowed_header_directives, 
+        ignore_ssl_certificate
+):
     for _ in range(retries + 1):
-        key, img_stream, err = download_image(row, timeout, user_agent_token, disallowed_header_directives)
+        key, img_stream, err = download_image(
+            row, timeout, user_agent_token, disallowed_header_directives, ignore_ssl_certificate
+        )
         if img_stream is not None:
             return key, img_stream, err
     return key, None, err
@@ -214,6 +224,7 @@ class Downloader:
                     retries=self.retries,
                     user_agent_token=self.user_agent_token,
                     disallowed_header_directives=self.disallowed_header_directives,
+                    ignore_ssl_certificate=self.ignore_ssl_certificate,
                 ),
                 loader,
             ):
