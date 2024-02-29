@@ -22,5 +22,11 @@ async def get():
     return "hi"
 
 
+@app.get("/robots.txt")
+async def get_robots_txt():
+    return Response(content="User-Agent: *\nDisallow: /disallowed/robots", media_type="text/plain")
+
+
 app.mount("/allowed", StaticFiles(directory=test_folder), name="static_allowed")
-app.mount("/disallowed", StaticFilesXRobotsTagHeader(directory=test_folder), name="static_disallowed")
+app.mount("/disallowed/robots", StaticFiles(directory=test_folder), name="static_disallowed_robots")
+app.mount("/disallowed/header", StaticFilesXRobotsTagHeader(directory=test_folder), name="static_disallowed_header")

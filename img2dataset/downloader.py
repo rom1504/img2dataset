@@ -1,8 +1,10 @@
 """the downloader module handles the downloading"""
 
 from multiprocessing.pool import ThreadPool
-from threading import Semaphore
+from threading import Semaphore, local
+import urllib.parse
 import urllib.request
+import urllib.robotparser
 import io
 import math
 import exifread
@@ -34,6 +36,73 @@ def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     return False
 
 
+class RobotFileParser(urllib.robotparser.RobotFileParser):
+    """Extends RobotFileParser to handle Request urls, and to parse responses more in line with RFC9309"""
+
+    def __init__(self, url=""):
+        super().__init__()
+        self.set_url(url)
+
+    def set_url(self, url):
+        """Sets the URL referring to a robots.txt file, from either a url string or a Request object"""
+        self.url = url
+        if isinstance(url, urllib.request.Request):
+            self.host = url.host
+            self.path = url.selector
+        else:
+            self.host, self.path = urllib.parse.urlparse(url)[1:3]
+
+    def read(self):
+        """Reads the robots.txt URL and feeds it to the parser.
+        This code is based on the cpython implementation of RobotFileParser.read() and keeps the same behaviour
+        of handling authentication failures (401 and 403 status codes) as unreachable statuses, unlike RFC8089
+        examples which include those codes in the range of unavailable statuses"""
+        try:
+            with urllib.request.urlopen(self.url, timeout=10) as f:
+                if f.info().get_content_type() != "text/plain":
+                    # server did not respond with a parsable robots.txt file, handle the same as unavailable status
+                    self.allow_all = True
+                else:
+                    raw = f.read()
+                    self.parse(raw.decode("utf-8").splitlines())
+        except urllib.error.HTTPError as err:
+            # behaviour based on https://github.com/python/cpython/blob/main/Lib/urllib/robotparser.py
+            if err.code in (401, 403) or 500 <= err.code <= 599:
+                # server is unreachable, deny all
+                self.disallow_all = True
+            elif 400 <= err.code <= 499:
+                # robots.txt is unavailable, allow all (even though future requests are likely to fail)
+                self.allow_all = True
+        except Exception:  # pylint: disable=broad-except
+            # treat other errors as meaning the server is unreachable (timeout, ssl error, dns failure)
+            self.disallow_all = True
+
+
+thread_context = local()
+
+
+def init_thread_context():
+    thread_context.robots_txt_cache = {}
+
+
+def can_fetch(url, user_agent):
+    """Returns True if the given user agent is allowed to fetch this url based on the hosts robots.txt"""
+    robots_txt_cache = thread_context.robots_txt_cache
+
+    robots_url = urllib.parse.urljoin(url, "/robots.txt")
+    if robots_url not in robots_txt_cache:
+        robot_parser = RobotFileParser(urllib.request.Request(robots_url, headers={"User-Agent": user_agent}))
+        robot_parser.read()
+        robots_txt_cache[robots_url] = robot_parser
+    else:
+        robot_parser = robots_txt_cache[robots_url]
+        if time.time() - robot_parser.mtime() > 24 * 60 * 60:
+            # reread robots.txt if it's been more than 24 hours since it was last fetched.
+            robot_parser.read()
+
+    return robot_parser.can_fetch(user_agent, url)
+
+
 def download_image(row, timeout, user_agent_token, disallowed_header_directives):
     """Download an image with urllib"""
     key, url = row
@@ -42,6 +111,9 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
+        if not can_fetch(url, user_agent_string):
+            return key, None, "Use of image disallowed by robots.txt directive"
+
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         with urllib.request.urlopen(request, timeout=timeout) as r:
             if disallowed_header_directives and is_disallowed(
@@ -200,7 +272,7 @@ class Downloader:
             self.encode_format,
         )
         oom_sample_per_shard = math.ceil(math.log10(self.number_sample_per_shard))
-        with ThreadPool(self.thread_count) as thread_pool:
+        with ThreadPool(self.thread_count, init_thread_context) as thread_pool:
             for key, img_stream, error_message in thread_pool.imap_unordered(
                 lambda x: download_image_with_retry(
                     x,
