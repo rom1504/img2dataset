@@ -1,11 +1,33 @@
-"""blurrer module to blur parts of the image"""
+"""Bounding box processing"""
+from abc import ABC, abstractmethod
+from enum import Enum
 
 import numpy as np
-
 import albumentations as A
 
 
-class BoundingBoxBlurrer:
+class BBoxOperation(Enum):
+    blur = 0  # pylint: disable=invalid-name
+    crop = 1  # pylint: disable=invalid-name
+
+
+class BBoxProcessor(ABC):
+    """
+    Abstract class for Bounding box processing
+    """
+
+    def __init__(self, operation):
+        self.operation = operation
+
+    @abstractmethod
+    def __call__(self):
+        pass
+
+    def get_operation(self) -> BBoxOperation:
+        return self.operation
+
+
+class BlurProcessor(BBoxProcessor):
     """blur images based on a bounding box.
 
     The bounding box used is assumed to have format [x_min, y_min, x_max, y_max]
@@ -13,8 +35,8 @@ class BoundingBoxBlurrer:
     image).
     """
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(BBoxOperation.blur, *args, **kwargs)
 
     def __call__(self, img, bbox_list):
         """Apply blurring to bboxes of an image.
@@ -78,3 +100,24 @@ class BoundingBoxBlurrer:
         result = (result * 255.0).astype(np.uint8)
 
         return result
+
+
+class CropProcessor(BBoxProcessor):
+    """Crop images based on a bounding box.
+
+    The bounding box used is assumed to have format [x_min, y_min, x_max, y_max]
+    (with elements being floats in [0,1], relative to the original shape of the
+    image).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(BBoxOperation.crop, *args, **kwargs)
+
+    def __call__(self, img, bbox_list):
+        height, width = img.shape[0], img.shape[1]
+        x_min = int(bbox_list[0] * width)
+        y_min = int(bbox_list[1] * height)
+        x_max = int(bbox_list[2] * width)
+        y_max = int(bbox_list[3] * height)
+        img = img[y_min:y_max, x_min:x_max]
+        return img

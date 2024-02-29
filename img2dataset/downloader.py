@@ -96,7 +96,7 @@ class Downloader:
         retries,
         user_agent_token,
         disallowed_header_directives,
-        blurring_bbox_col=None,
+        bbox_col=None,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -118,7 +118,7 @@ class Downloader:
             if disallowed_header_directives is None
             else {directive.strip().lower() for directive in disallowed_header_directives}
         )
-        self.blurring_bbox_col = blurring_bbox_col
+        self.bbox_col = bbox_col
 
     def __call__(
         self,
@@ -176,7 +176,7 @@ class Downloader:
         hash_indice = (
             self.column_list.index(self.verify_hash_type) if self.verify_hash_type in self.column_list else None
         )
-        bbox_indice = self.column_list.index(self.blurring_bbox_col) if self.blurring_bbox_col is not None else None
+        bbox_indice = self.column_list.index(self.bbox_col) if self.bbox_col is not None else None
         key_url_list = [(key, x[url_indice]) for key, x in shard_to_dl]
 
         # this prevents an accumulation of more than twice the number of threads in sample ready to resize

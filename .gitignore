@@ -1,3 +1,4 @@
+images/
 *.egg-info
 .vscode
 .env
