@@ -38,9 +38,10 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
     """Download an image with urllib"""
     key, url = row
     img_stream = None
-    user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
+    user_agent_string = "img2dataset/1.x ("
     if user_agent_token:
-        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
+        user_agent_string += f"compatible; {user_agent_token}; "
+    user_agent_string += "+https://github.com/rom1504/img2dataset)"
     try:
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
         with urllib.request.urlopen(request, timeout=timeout) as r:
