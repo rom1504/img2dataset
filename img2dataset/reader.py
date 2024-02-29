@@ -97,7 +97,7 @@ class Reader:
                 compression = "gzip"
             with self.fs.open(input_file, encoding="utf-8", mode="rb", compression=compression) as file:
                 if self.input_format in ["txt", "txt.gz"]:
-                    df = csv_pa.read_csv(file, read_options=csv_pa.ReadOptions(column_names=["url"]))
+                    df = pa.Table.from_pandas(pd.DataFrame({"url" : file.read().decode().splitlines()}))
                 elif self.input_format in ["json", "json.gz"]:
                     df = pa.Table.from_pandas(pd.read_json(file))
                 elif self.input_format in ["csv", "csv.gz"]:
