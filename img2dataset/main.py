@@ -1,6 +1,6 @@
 """Img2dataset"""
 
-from typing import List, Optional
+from typing import List, Optional, Callable
 import fire
 import logging
 from .logger import LoggerProcess
@@ -108,6 +108,7 @@ def download(
     max_shard_retry: int = 1,
     user_agent_token: Optional[str] = None,
     disallowed_header_directives: Optional[List[str]] = None,
+    compute_key: Optional[Callable] = None,
 ):
     """Download is the main entry point of img2dataset, it uses multiple processes and download multiple files"""
     if disallowed_header_directives is None:
@@ -247,6 +248,7 @@ def download(
         user_agent_token=user_agent_token,
         disallowed_header_directives=disallowed_header_directives,
         blurring_bbox_col=bbox_col,
+        compute_key_override=compute_key,
     )
 
     print("Starting the downloading of this file")
