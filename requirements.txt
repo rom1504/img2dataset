@@ -1,6 +1,6 @@
 tqdm>=4.62.3,<5
 opencv-python-headless>=4.5.5.62,<5
-fire>=0.4.0,<0.6.0
+fire>=0.4.0,<0.7.0
 webdataset>=0.2.5,<0.3
 pandas>=1.1.5,<3
 pyarrow>=6.0.1,<16
