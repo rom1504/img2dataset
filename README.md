@@ -54,9 +54,9 @@ See options below.
 First get some image url list. For example:
 
 ```bash
-echo 'https://placekitten.com/200/305' >> myimglist.txt
-echo 'https://placekitten.com/200/304' >> myimglist.txt
-echo 'https://placekitten.com/200/303' >> myimglist.txt
+echo 'https://picsum.photos/200/305' >> myimglist.txt
+echo 'https://picsum.photos/200/304' >> myimglist.txt
+echo 'https://picsum.photos/200/303' >> myimglist.txt
 ```
 
 Then, run the tool:
