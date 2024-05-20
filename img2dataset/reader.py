@@ -40,6 +40,7 @@ class Reader:
         number_sample_per_shard,
         done_shards,
         tmp_path,
+        newlines_in_captions,
         start_shard_id: int = 0,
     ) -> None:
         self.input_format = input_format
@@ -50,6 +51,7 @@ class Reader:
         self.save_additional_columns = save_additional_columns
         self.number_sample_per_shard = number_sample_per_shard
         self.done_shards = done_shards
+        self.newlines_in_captions = newlines_in_captions
         self.start_shard_id = start_shard_id
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
@@ -97,13 +99,22 @@ class Reader:
                 compression = "gzip"
             with self.fs.open(input_file, encoding="utf-8", mode="rb", compression=compression) as file:
                 if self.input_format in ["txt", "txt.gz"]:
-                    df = csv_pa.read_csv(file, read_options=csv_pa.ReadOptions(column_names=["url"]))
+                    df = csv_pa.read_csv(
+                        file,
+                        read_options=csv_pa.ReadOptions(column_names=["url"]),
+                        parse_options=csv_pa.ParseOptions(newlines_in_values=self.newlines_in_captions),
+                    )
                 elif self.input_format in ["json", "json.gz"]:
                     df = pa.Table.from_pandas(pd.read_json(file))
                 elif self.input_format in ["csv", "csv.gz"]:
-                    df = csv_pa.read_csv(file)
+                    df = csv_pa.read_csv(
+                        file, parse_options=csv_pa.ParseOptions(newlines_in_values=self.newlines_in_captions)
+                    )
                 elif self.input_format in ["tsv", "tsv.gz"]:
-                    df = csv_pa.read_csv(file, parse_options=csv_pa.ParseOptions(delimiter="\t"))
+                    df = csv_pa.read_csv(
+                        file,
+                        parse_options=csv_pa.ParseOptions(delimiter="\t", newlines_in_values=self.newlines_in_captions),
+                    )
                 elif self.input_format in ["jsonl", "jsonl.gz"]:
                     df = json_pa.read_json(file)
                 else:

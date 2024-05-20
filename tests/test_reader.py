@@ -54,6 +54,7 @@ def test_reader(input_format, tmp_path):
         number_sample_per_shard=batch_size,
         done_shards=done_shards,
         tmp_path=test_folder,
+        newlines_in_captions=False,
     )
 
     if input_format in ["txt", "txt.gz"]:
