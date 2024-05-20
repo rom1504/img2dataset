@@ -4,6 +4,7 @@ import glob
 import random
 import os
 import sys
+import gzip
 
 
 def setup_fixtures(count=5, disallowed=0):
@@ -35,30 +36,34 @@ def setup_fixtures(count=5, disallowed=0):
     return test_list
 
 
-def generate_url_list_txt(output_file, test_list):
-    with open(output_file, "w") as f:
+def generate_url_list_txt(output_file, test_list, compression_on=False):
+    if compression_on:
+        f = gzip.open(output_file, "wt")
+    else:
+        f = open(output_file, "w")
+    with f:
         for _, url in test_list:
             f.write(url + "\n")
 
 
-def generate_csv(output_file, test_list):
+def generate_csv(output_file, test_list, compression=None):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_csv(output_file)
+    df.to_csv(output_file, compression=compression)
 
 
-def generate_tsv(output_file, test_list):
+def generate_tsv(output_file, test_list, compression=None):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_csv(output_file, sep="\t")
+    df.to_csv(output_file, sep="\t", compression=compression)
 
 
-def generate_tsv_gz(output_file, test_list):
+def generate_json(output_file, test_list, compression=None):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_csv(output_file, sep="\t", compression="gzip")
+    df.to_json(output_file, compression=compression)
 
 
-def generate_json(output_file, test_list):
+def generate_jsonl(output_file, test_list, compression=None):
     df = pd.DataFrame(test_list, columns=["caption", "url"])
-    df.to_json(output_file)
+    df.to_json(output_file, orient="records", lines=True, compression=compression)
 
 
 def generate_parquet(output_file, test_list):
@@ -70,18 +75,33 @@ def generate_input_file(input_format, url_list_name, test_list):
     if input_format == "txt":
         url_list_name += ".txt"
         generate_url_list_txt(url_list_name, test_list)
+    elif input_format == "txt.gz":
+        url_list_name += ".txt.gz"
+        generate_url_list_txt(url_list_name, test_list, True)
     elif input_format == "csv":
         url_list_name += ".csv"
         generate_csv(url_list_name, test_list)
+    elif input_format == "csv.gz":
+        url_list_name += ".csv.gz"
+        generate_csv(url_list_name, test_list, "gzip")
     elif input_format == "tsv":
         url_list_name += ".tsv"
         generate_tsv(url_list_name, test_list)
     elif input_format == "tsv.gz":
         url_list_name += ".tsv.gz"
-        generate_tsv_gz(url_list_name, test_list)
+        generate_tsv(url_list_name, test_list, "gzip")
     elif input_format == "json":
         url_list_name += ".json"
         generate_json(url_list_name, test_list)
+    elif input_format == "json.gz":
+        url_list_name += ".json.gz"
+        generate_json(url_list_name, test_list, "gzip")
+    elif input_format == "jsonl":
+        url_list_name += ".jsonl"
+        generate_jsonl(url_list_name, test_list)
+    elif input_format == "jsonl.gz":
+        url_list_name += ".jsonl.gz"
+        generate_jsonl(url_list_name, test_list, "gzip")
     elif input_format == "parquet":
         url_list_name += ".parquet"
         generate_parquet(url_list_name, test_list)

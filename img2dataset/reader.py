@@ -5,7 +5,8 @@ import math
 import fsspec
 import time
 import pyarrow.parquet as pq
-import pyarrow.csv as csv_pq
+import pyarrow.csv as csv_pa
+import pyarrow.json as json_pa
 import pyarrow as pa
 import pandas as pd
 
@@ -24,6 +25,7 @@ class Reader:
     - save_additional_columns: the list of additional columns to save
     - number_sample_per_shard: the number of samples per shard
     - done_shards: a set of already done shards
+    - start_shard_id: the shard id to begin downloading from
     """
 
     def __init__(
@@ -39,6 +41,7 @@ class Reader:
         done_shards,
         tmp_path,
         newlines_in_captions,
+        start_shard_id: int = 0,
     ) -> None:
         self.input_format = input_format
         self.url_col = url_col
@@ -49,21 +52,22 @@ class Reader:
         self.number_sample_per_shard = number_sample_per_shard
         self.done_shards = done_shards
         self.newlines_in_captions = newlines_in_captions
+        self.start_shard_id = start_shard_id
 
         fs, url_path = fsspec.core.url_to_fs(url_list)
         self.fs = fs
         self.tmp_path = tmp_path
 
         if fs.isdir(url_path):
-            self.input_files = sorted(fs.glob(url_path + "/*." + input_format))
+            self.input_files = sorted(fs.glob(url_path.rstrip("/") + "/*." + input_format))
             if len(self.input_files) == 0:
-                raise Exception(f"No file found at path {url_path} with extension {input_format}")
+                raise ValueError(f"No file found at path {url_path} with extension {input_format}")
         else:
             self.input_files = [url_path]
 
-        if self.input_format == "txt":
+        if self.input_format in ["txt", "txt.gz"]:
             self.column_list = ["url"]
-        elif self.input_format in ["json", "csv", "tsv", "tsv.gz", "parquet"]:
+        elif self.input_format in ["json", "json.gz", "jsonl", "jsonl.gz", "csv", "csv.gz", "tsv", "tsv.gz", "parquet"]:
             self.column_list = self.save_additional_columns if self.save_additional_columns is not None else []
             if self.caption_col is not None:
                 self.column_list = self.column_list + ["caption"]
@@ -78,30 +82,43 @@ class Reader:
 
     def _save_to_arrow(self, input_file, start_shard_id):
         """Read the input file and save to arrow files in a temporary directory"""
-        if self.input_format in ["txt", "json", "csv", "tsv"]:
-            with self.fs.open(input_file, mode="rb") as file:
-                if self.input_format == "txt":
+        if self.input_format in [
+            "txt",
+            "txt.gz",
+            "csv",
+            "csv.gz",
+            "tsv",
+            "tsv.gz",
+            "json",
+            "json.gz",
+            "jsonl",
+            "jsonl.gz",
+        ]:
+            compression = None
+            if self.input_format.endswith(".gz"):
+                compression = "gzip"
+            with self.fs.open(input_file, encoding="utf-8", mode="rb", compression=compression) as file:
+                if self.input_format in ["txt", "txt.gz"]:
                     df = csv_pq.read_csv(
                         file,
                         read_options=csv_pq.ReadOptions(column_names=["url"]),
                         parse_options=csv_pq.ParseOptions(newlines_in_values=self.newlines_in_captions),
                     )
-                elif self.input_format == "json":
+                elif self.input_format in ["json", "json.gz"]:
                     df = pa.Table.from_pandas(pd.read_json(file))
-                elif self.input_format == "csv":
+                elif self.input_format in ["csv", "csv.gz"]:
                     df = csv_pq.read_csv(
                         file, parse_options=csv_pq.ParseOptions(newlines_in_values=self.newlines_in_captions)
                     )
-                elif self.input_format == "tsv":
+                elif self.input_format in ["tsv", "tsv.gz"]:
                     df = csv_pq.read_csv(
                         file,
                         parse_options=csv_pq.ParseOptions(delimiter="\t", newlines_in_values=self.newlines_in_captions),
                     )
+                elif self.input_format in ["jsonl", "jsonl.gz"]:
+                    df = json_pa.read_json(file)
                 else:
                     raise ValueError(f"Unknown input format {self.input_format}")
-        elif self.input_format == "tsv.gz":
-            with self.fs.open(input_file, encoding="utf-8", mode="rb", compression="gzip") as file:
-                df = csv_pq.read_csv(file, parse_options=csv_pq.ParseOptions(delimiter="\t"))
         elif self.input_format == "parquet":
             with self.fs.open(input_file, mode="rb") as file:
                 columns_to_read = [self.url_col]
@@ -157,7 +174,7 @@ class Reader:
                     else:
                         raise e
             # can't reach here
-            raise Exception("Failed to write to file.")
+            raise ValueError("Failed to write to file.")
 
         for i in range(10):
             shards = []
@@ -187,7 +204,7 @@ class Reader:
         shard is a tuple (sample id, sample)
         sample is a tuple of the columns
         """
-        start_shard_id = 0
+        start_shard_id = self.start_shard_id
         for i, input_file in enumerate(self.input_files):
             print("Sharding file number " + str(i + 1) + " of " + str(len(self.input_files)) + " called " + input_file)
 

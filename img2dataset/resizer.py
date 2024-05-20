@@ -7,16 +7,16 @@ from enum import Enum
 import imghdr
 import os
 
-_INTER_STR_TO_CV2 = dict(
-    nearest=cv2.INTER_NEAREST,
-    linear=cv2.INTER_LINEAR,
-    bilinear=cv2.INTER_LINEAR,
-    cubic=cv2.INTER_CUBIC,
-    bicubic=cv2.INTER_CUBIC,
-    area=cv2.INTER_AREA,
-    lanczos=cv2.INTER_LANCZOS4,
-    lanczos4=cv2.INTER_LANCZOS4,
-)
+_INTER_STR_TO_CV2 = {
+    "nearest": cv2.INTER_NEAREST,
+    "linear": cv2.INTER_LINEAR,
+    "bilinear": cv2.INTER_LINEAR,
+    "cubic": cv2.INTER_CUBIC,
+    "bicubic": cv2.INTER_CUBIC,
+    "area": cv2.INTER_AREA,
+    "lanczos": cv2.INTER_LANCZOS4,
+    "lanczos4": cv2.INTER_LANCZOS4,
+}
 
 
 class ResizeMode(Enum):
@@ -62,7 +62,7 @@ class SuppressStdoutStderr:
 def inter_str_to_cv2(inter_str):
     inter_str = inter_str.lower()
     if inter_str not in _INTER_STR_TO_CV2:
-        raise Exception(f"Invalid option for interpolation: {inter_str}")
+        raise ValueError(f"Invalid option for interpolation: {inter_str}")
     return _INTER_STR_TO_CV2[inter_str]
 
 
@@ -107,7 +107,7 @@ class Resizer:
         self.image_size = image_size
         if isinstance(resize_mode, str):
             if resize_mode not in ResizeMode.__members__:  # pylint: disable=unsupported-membership-test
-                raise Exception(f"Invalid option for resize_mode: {resize_mode}")
+                raise ValueError(f"Invalid option for resize_mode: {resize_mode}")
             resize_mode = ResizeMode[resize_mode]
         self.resize_mode = resize_mode
         self.resize_only_if_bigger = resize_only_if_bigger
@@ -125,7 +125,7 @@ class Resizer:
             cv2_img_quality = int(cv2.IMWRITE_WEBP_QUALITY)
             self.what_ext = "webp"
         if cv2_img_quality is None:
-            raise Exception(f"Invalid option for encode_format: {encode_format}")
+            raise ValueError(f"Invalid option for encode_format: {encode_format}")
         self.encode_params = [cv2_img_quality, encode_quality]
         self.skip_reencode = skip_reencode
         self.disable_all_reencoding = disable_all_reencoding
@@ -150,7 +150,7 @@ class Resizer:
                 img_buf = np.frombuffer(img_stream.read(), np.uint8)
                 img = cv2.imdecode(img_buf, cv2.IMREAD_UNCHANGED)
                 if img is None:
-                    raise Exception("Image decoding error")
+                    raise ValueError("Image decoding error")
                 if len(img.shape) == 3 and img.shape[-1] == 4:
                     # alpha matting with white background
                     alpha = img[:, :, 3, np.newaxis]

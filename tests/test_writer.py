@@ -70,7 +70,6 @@ def test_writer(writer_type, tmp_path):
     writer.close()
 
     if writer_type != "dummy":
-
         df = pd.read_parquet(output_folder + "/00000.parquet")
 
         expected_columns = [

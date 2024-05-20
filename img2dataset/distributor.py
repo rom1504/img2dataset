@@ -28,7 +28,7 @@ def multiprocessing_distributor(processes_count, downloader, reader, _, max_shar
 
         def run(gen):
             failed_shards = []
-            for (status, row) in tqdm(process_pool.imap_unordered(downloader, gen)):
+            for status, row in tqdm(process_pool.imap_unordered(downloader, gen)):
                 if status is False:
                     failed_shards.append(row)
             return failed_shards
@@ -56,7 +56,7 @@ def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_sh
             failed_shards = []
             for batch in batcher(gen, subjob_size):
                 rdd = spark.sparkContext.parallelize(batch, len(batch))
-                for (status, row) in rdd.map(downloader).collect():
+                for status, row in rdd.map(downloader).collect():
                     if status is False:
                         failed_shards.append(row)
             return failed_shards
@@ -64,6 +64,29 @@ def pyspark_distributor(processes_count, downloader, reader, subjob_size, max_sh
         failed_shards = run(reader)
 
         retrier(run, failed_shards, max_shard_retry)
+
+
+try:
+    import ray  # pylint: disable=import-outside-toplevel
+
+    @ray.remote
+    def ray_download(downloader, shards):
+        status, row = downloader(shards)
+        return status, row
+
+    def ray_distributor(processes_count, downloader, reader, _, max_shard_retry):  # type: ignore
+        # pylint: disable=unused-argument
+        ret = []
+        count = 0
+        for task in reader:
+            count += 1
+            ret.append(ray_download.remote(downloader, task))
+        ray.get(ret)
+
+except ModuleNotFoundError as e:
+
+    def ray_distributor(processes_count, downloader, reader, subjob_size, max_shard_retry):  # type: ignore  # pylint: disable=unused-argument
+        return None
 
 
 @contextmanager

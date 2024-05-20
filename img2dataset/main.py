@@ -15,7 +15,11 @@ from .writer import (
 )
 from .reader import Reader
 from .downloader import Downloader
-from .distributor import multiprocessing_distributor, pyspark_distributor
+from .distributor import (
+    multiprocessing_distributor,
+    pyspark_distributor,
+    ray_distributor,
+)
 import fsspec
 import sys
 import signal
@@ -144,6 +148,7 @@ def download(
     save_caption = caption_col is not None
 
     fs, output_path = fsspec.core.url_to_fs(output_folder)
+    start_shard_id = 0
 
     if not fs.exists(output_path):
         fs.mkdir(output_path)
@@ -154,6 +159,10 @@ def download(
         elif incremental_mode == "overwrite":
             fs.rm(output_path, recursive=True)
             fs.mkdir(output_path)
+            done_shards = set()
+        elif incremental_mode == "extend":
+            existing_shards = [int(x.split("/")[-1].split("_")[0]) for x in fs.glob(output_path + "/*.json")]
+            start_shard_id = max(existing_shards, default=-1) + 1
             done_shards = set()
         else:
             raise ValueError(f"Unknown incremental mode {incremental_mode}")
@@ -185,6 +194,7 @@ def download(
         done_shards,
         tmp_path,
         newlines_in_captions,
+        start_shard_id,
     )
 
     if output_format == "webdataset":
@@ -246,6 +256,8 @@ def download(
         distributor_fn = multiprocessing_distributor
     elif distributor == "pyspark":
         distributor_fn = pyspark_distributor
+    elif distributor == "ray":
+        distributor_fn = ray_distributor
     else:
         raise ValueError(f"Distributor {distributor} not supported")
 
@@ -257,7 +269,9 @@ def download(
         max_shard_retry,
     )
     logger_process.join()
-    fs.rm(tmp_dir, recursive=True)
+
+    if not hasattr(fs, "s3"):
+        fs.rm(tmp_dir, recursive=True)
 
 
 def main():

@@ -1,3 +1,26 @@
+## 1.45.0
+
+* update pyarrow
+* add incremental model extend (thanks @edwardguil)
+
+## 1.44.1
+
+* extend fire dep range
+
+## 1.44.0
+
+* Deps update
+
+## 1.43.0
+
+* Remove version restriction for fsspec
+
+## 1.42.0
+
+* ray distibutor (thanks @Vaishaal)
+* Remove tmp_dir only if the output dir is not in s3 (thanks @ezzarum)
+* support more input formats (thanks @ldfandian)
+
 ## 1.41.0
 
 * Verify hashes during download. (thanks @GeorgiosSmyrnis and @carlini)
@@ -323,7 +346,7 @@ better aws s3 support:
 
 ## 1.5.3
 
-* increase stability by closing the pool and tarwriter explictely
+* increase stability by closing the pool and tarwriter explicitly
 
 ## 1.5.2
 

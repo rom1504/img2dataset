@@ -4,7 +4,7 @@
 
 LAION-Face is first used as the training set of [FaRL](https://github.com/FacePerceiver/FaRL), which provides powerful pre-training transformer backbones for face analysis tasks.
 
-For more details, please check the offical repo at https://github.com/FacePerceiver/LAION-Face .
+For more details, please check the official repo at https://github.com/FacePerceiver/LAION-Face .
 
 ## Download and convert metadata
 ```bash
