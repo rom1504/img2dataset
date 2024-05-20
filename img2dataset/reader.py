@@ -99,21 +99,21 @@ class Reader:
                 compression = "gzip"
             with self.fs.open(input_file, encoding="utf-8", mode="rb", compression=compression) as file:
                 if self.input_format in ["txt", "txt.gz"]:
-                    df = csv_pq.read_csv(
+                    df = csv_pa.read_csv(
                         file,
-                        read_options=csv_pq.ReadOptions(column_names=["url"]),
-                        parse_options=csv_pq.ParseOptions(newlines_in_values=self.newlines_in_captions),
+                        read_options=csv_pa.ReadOptions(column_names=["url"]),
+                        parse_options=csv_pa.ParseOptions(newlines_in_values=self.newlines_in_captions),
                     )
                 elif self.input_format in ["json", "json.gz"]:
                     df = pa.Table.from_pandas(pd.read_json(file))
                 elif self.input_format in ["csv", "csv.gz"]:
-                    df = csv_pq.read_csv(
-                        file, parse_options=csv_pq.ParseOptions(newlines_in_values=self.newlines_in_captions)
+                    df = csv_pa.read_csv(
+                        file, parse_options=csv_pa.ParseOptions(newlines_in_values=self.newlines_in_captions)
                     )
                 elif self.input_format in ["tsv", "tsv.gz"]:
-                    df = csv_pq.read_csv(
+                    df = csv_pa.read_csv(
                         file,
-                        parse_options=csv_pq.ParseOptions(delimiter="\t", newlines_in_values=self.newlines_in_captions),
+                        parse_options=csv_pa.ParseOptions(delimiter="\t", newlines_in_values=self.newlines_in_captions),
                     )
                 elif self.input_format in ["jsonl", "jsonl.gz"]:
                     df = json_pa.read_json(file)
