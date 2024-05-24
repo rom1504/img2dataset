@@ -25,6 +25,7 @@ class ResizeMode(Enum):
     center_crop = 2  # pylint: disable=invalid-name
     border = 3  # pylint: disable=invalid-name
     keep_ratio_largest = 4  # pylint: disable=invalid-name
+    fixed = 5  # pylint: disable=invalid-name
 
 
 # thanks https://stackoverflow.com/questions/11130156/suppress-stdout-stderr-print-from-python-functions
@@ -74,7 +75,7 @@ class Resizer:
     Should be used to resize one image at a time
 
     Options:
-        resize_mode: "no", "keep_ratio", "center_crop", "border"
+        resize_mode: "no", "keep_ratio", "center_crop", "border", "fixed"
         resize_only_if_bigger: if True, resize only if image is bigger than image_size
         image_size: size of the output image to resize
     """
@@ -186,11 +187,14 @@ class Resizer:
                             img = A.center_crop(img, self.image_size, self.image_size)
                         encode_needed = True
                         maybe_blur_still_needed = False
-                elif self.resize_mode in (ResizeMode.border, ResizeMode.keep_ratio_largest):
+                elif self.resize_mode in (ResizeMode.border, ResizeMode.keep_ratio_largest, ResizeMode.fixed):
                     downscale = max(original_width, original_height) > self.image_size
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
-                        img = A.longest_max_size(img, self.image_size, interpolation=interpolation)
+                        if self.resize_mode == ResizeMode.fixed:
+                            img = A.resize(img, self.image_size, self.image_size, interpolation=interpolation)
+                        else:
+                            img = A.longest_max_size(img, self.image_size, interpolation=interpolation)
                         if blurring_bbox_list is not None and self.blurrer is not None:
                             img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
                         if self.resize_mode == ResizeMode.border:

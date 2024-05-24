@@ -122,7 +122,7 @@ def check_one_image_size(img, img_unresized, image_size, resize_mode, resize_onl
     if resize_only_if_bigger:
         if (
             max(width_unresized, height_unresized) <= image_size
-            and resize_mode == "border"
+            and resize_mode in ["border", "fixed"]
             or min(width_unresized, height_unresized) <= image_size
             and resize_mode in ["keep_ratio", "center_crop"]
         ):
@@ -137,7 +137,7 @@ def check_one_image_size(img, img_unresized, image_size, resize_mode, resize_onl
     if not resized:
         return
 
-    if resize_mode == "border":
+    if resize_mode in ["border", "fixed"]:
         if width != image_size or height != image_size:
             raise Exception(f"Image size is not 256x256 in border mode found={width}x{height}")
     elif resize_mode == "keep_ratio":
