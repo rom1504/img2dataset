@@ -196,13 +196,14 @@ def write_stats(
 class LoggerProcess(multiprocessing.context.SpawnProcess):
     """Logger process that reads stats files regularly, aggregates and send to wandb / print to terminal"""
 
-    def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, log_interval=5):
+    def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, log_interval=5, wandb_job_name=None):
         super().__init__()
         self.log_interval = log_interval
         self.enable_wandb = enable_wandb
         self.output_folder = output_folder
         self.stats_files = set()
         self.wandb_project = wandb_project
+        self.wandb_job_name = wandb_job_name
         self.done_shards = set()
         self.config_parameters = config_parameters
         ctx = multiprocessing.get_context("spawn")
@@ -214,7 +215,12 @@ class LoggerProcess(multiprocessing.context.SpawnProcess):
         fs, output_path = fsspec.core.url_to_fs(self.output_folder, use_listings_cache=False)
 
         if self.enable_wandb:
-            self.current_run = wandb.init(project=self.wandb_project, config=self.config_parameters, anonymous="allow")
+            self.current_run = wandb.init(
+                project=self.wandb_project,
+                name=self.wandb_job_name,
+                config=self.config_parameters,
+                anonymous="allow",
+            )
         else:
             self.current_run = None
         self.total_speed_logger = SpeedLogger("total", enable_wandb=self.enable_wandb)
