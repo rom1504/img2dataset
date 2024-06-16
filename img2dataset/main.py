@@ -128,7 +128,9 @@ def download(
     output_folder = make_path_absolute(output_folder)
     url_list = make_path_absolute(url_list)
 
-    logger_process = LoggerProcess(output_folder, enable_wandb, wandb_project, config_parameters, wandb_job_name=wandb_job_name)
+    logger_process = LoggerProcess(
+        output_folder, enable_wandb, wandb_project, config_parameters, wandb_job_name=wandb_job_name
+    )
 
     tmp_path = output_folder + "/_tmp"
     fs, tmp_dir = fsspec.core.url_to_fs(tmp_path)

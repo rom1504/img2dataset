@@ -196,7 +196,15 @@ def write_stats(
 class LoggerProcess(multiprocessing.context.SpawnProcess):
     """Logger process that reads stats files regularly, aggregates and send to wandb / print to terminal"""
 
-    def __init__(self, output_folder, enable_wandb, wandb_project, config_parameters, log_interval=5, wandb_job_name=None):
+    def __init__(
+        self,
+        output_folder,
+        enable_wandb,
+        wandb_project,
+        config_parameters,
+        log_interval=5,
+        wandb_job_name=None
+    ):
         super().__init__()
         self.log_interval = log_interval
         self.enable_wandb = enable_wandb
