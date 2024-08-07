@@ -12,10 +12,39 @@ import hashlib
 import pyarrow as pa
 import traceback
 import datadiligence as dd
+import os
 
 import fsspec
 from .logger import CappedCounter
 from .logger import write_stats
+
+
+class RedirectHandler(urllib.request.HTTPRedirectHandler):
+    """
+    Custom redirect handler, since urllib won't maintain query args in redirect requests.
+    """
+
+    def http_error_302(self, req, fp, code, msg, headers):
+        return self.handle_redirect(req, headers)
+
+    def http_error_301(self, req, fp, code, msg, headers):
+        return self.handle_redirect(req, headers)
+
+    def handle_redirect(self, req, headers):
+        # Extract the redirect URL
+        redirect_url = headers['Location']
+
+        # fix for query arguments not being preserved on redirects
+        redirect_url_parsed = urllib.parse.urlparse(redirect_url)
+        if not redirect_url_parsed.query:
+            redirect_url = urllib.parse.urlunparse(redirect_url_parsed)
+
+        # Create a new request for the redirected URL
+        new_req = urllib.request.Request(redirect_url)
+        new_req.add_header("User-agent", req.headers["User-agent"])
+
+        # Follow the redirect
+        return urllib.request.urlopen(new_req)
 
 
 def download_image(row, timeout, user_agent_token, respect_optouts):
@@ -26,8 +55,13 @@ def download_image(row, timeout, user_agent_token, respect_optouts):
     if user_agent_token:
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
-        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
-        with urllib.request.urlopen(request, timeout=timeout) as r:
+        headers = {"User-Agent": user_agent_string}
+        if url.index("https://export.source.plus") == 0:
+            headers["Authorization"] = "API " + os.environ.get("SOURCEPLUS_DOWNLOAD_KEY")
+
+        request = urllib.request.Request(url, data=None, headers=headers)
+        opener = urllib.request.build_opener(RedirectHandler)
+        with opener.open(request, timeout=timeout) as r:
             if respect_optouts:
                 is_allowed = dd.is_allowed(response=r, user_agent=user_agent_string)
                 if not is_allowed:
@@ -208,6 +242,7 @@ class Downloader:
                 loader,
             ):
                 try:
+
                     _, sample_data = shard_to_dl[key]
                     str_key = compute_key(key, shard_id, oom_sample_per_shard, self.oom_shard_count)
                     meta = {
@@ -242,7 +277,6 @@ class Downloader:
                             sample_data[caption_indice] if caption_indice is not None else None,
                             meta,
                         )
-                        semaphore.release()
                         continue
 
                     if hash_indice is not None:
@@ -262,7 +296,6 @@ class Downloader:
                             )
                             img_stream.close()
                             del img_stream
-                            semaphore.release()
                             continue
 
                     img_stream.seek(0)
@@ -289,7 +322,6 @@ class Downloader:
                         )
                         img_stream.close()
                         del img_stream
-                        semaphore.release()
                         continue
                     successes += 1
                     status = "success"
@@ -327,10 +359,12 @@ class Downloader:
                         sample_data[caption_indice] if caption_indice is not None else None,
                         meta,
                     )
+
                 except Exception as err:  # pylint: disable=broad-except
                     traceback.print_exc()
                     print(f"Sample {key} failed to download: {err}")
-                semaphore.release()
+                finally:
+                    semaphore.release()
 
             sample_writer.close()
             thread_pool.terminate()
