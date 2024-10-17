@@ -56,9 +56,12 @@ def download_image(row, timeout, user_agent_token, respect_optouts):
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
         headers = {"User-Agent": user_agent_string}
-        if url.index("https://export.source.plus") == 0:
-            headers["Authorization"] = "API " + os.environ.get("SOURCEPLUS_DOWNLOAD_KEY")
-
+        try:
+            if url.index("https://export.source.plus") == 0:
+                headers["Authorization"] = "API " + os.environ.get("SOURCEPLUS_DOWNLOAD_KEY")
+        except Exception as e:
+            # means the url doens't start with the key
+            pass
         request = urllib.request.Request(url, data=None, headers=headers)
         opener = urllib.request.build_opener(RedirectHandler)
         with opener.open(request, timeout=timeout) as r:
