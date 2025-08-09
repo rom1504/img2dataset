@@ -1,3 +1,9 @@
+## 1.46.0
+
+* Fix albumentations deprecation and NumPy 2.0+ compatibility issues
+* Fix glob pattern when gcs url path has a trailing slash (thanks @kafonek)
+* Fix usage example in README (thanks @johnbradley2008)
+
 ## 1.45.0
 
 * update pyarrow
