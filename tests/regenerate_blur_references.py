@@ -11,7 +11,7 @@ from img2dataset.main import download
 def regenerate_reference_images():
     """Regenerate all reference images for blur+resize tests"""
     current_folder = os.path.dirname(__file__)
-    test_folder = os.path.join(current_folder, "tests", "blur_test_files")
+    test_folder = os.path.join(current_folder, "blur_test_files")
     input_parquet = os.path.join(test_folder, "test_bbox.parquet")
 
     resize_modes = ["no", "border", "keep_ratio", "keep_ratio_largest", "center_crop"]
