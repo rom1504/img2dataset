@@ -1,4 +1,0 @@
-Requirement already satisfied: pydantic in ./.env/lib/python3.10/site-packages (2.8.2)
-Requirement already satisfied: typing-extensions>=4.6.1 in ./.env/lib/python3.10/site-packages (from pydantic) (4.14.1)
-Requirement already satisfied: pydantic-core==2.20.1 in ./.env/lib/python3.10/site-packages (from pydantic) (2.20.1)
-Requirement already satisfied: annotated-types>=0.4.0 in ./.env/lib/python3.10/site-packages (from pydantic) (0.7.0)
