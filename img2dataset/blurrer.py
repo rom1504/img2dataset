@@ -74,11 +74,11 @@ class BoundingBoxBlurrer:
         kernel_size = max(3, int(2 * np.ceil(sigma) + 1))
         if kernel_size % 2 == 0:  # Ensure odd kernel size
             kernel_size += 1
-        
+
         # Set fixed seed for deterministic results
         np.random.seed(42)
         random.seed(42)
-        
+
         # Use tuple format (min, max) with same value for exact kernel size
         blur_transform = A.GaussianBlur(blur_limit=(kernel_size, kernel_size), p=1.0, always_apply=True)
         blurred_img = blur_transform(image=img)["image"]

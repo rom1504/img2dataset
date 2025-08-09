@@ -13,7 +13,7 @@ def test_blurrer():
     # Set fixed seed for deterministic results
     np.random.seed(42)
     random.seed(42)
-    
+
     current_folder = os.path.dirname(__file__)
     test_folder = os.path.join(current_folder, "blur_test_files")
     orig_image_path = os.path.join(test_folder, "original.png")
@@ -28,6 +28,6 @@ def test_blurrer():
 
     # Test with the same seed as used to generate reference
     blur_image_test = blurrer(orig_image, bbox)
-    
+
     # Test exact match with reference (now that we have deterministic blur)
     assert np.array_equal(blur_image, blur_image_test)

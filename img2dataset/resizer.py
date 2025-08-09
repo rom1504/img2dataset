@@ -180,7 +180,9 @@ class Resizer:
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
                         # Use SmallestMaxSize transform instead of deprecated smallest_max_size function
-                        smallest_max_transform = A.SmallestMaxSize(max_size=self.image_size, interpolation=interpolation, p=1.0)
+                        smallest_max_transform = A.SmallestMaxSize(
+                            max_size=self.image_size, interpolation=interpolation, p=1.0
+                        )
                         img = smallest_max_transform(image=img)["image"]
                         if blurring_bbox_list is not None and self.blurrer is not None:
                             img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
@@ -195,7 +197,9 @@ class Resizer:
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
                         # Use LongestMaxSize transform instead of deprecated longest_max_size function
-                        longest_max_transform = A.LongestMaxSize(max_size=self.image_size, interpolation=interpolation, p=1.0)
+                        longest_max_transform = A.LongestMaxSize(
+                            max_size=self.image_size, interpolation=interpolation, p=1.0
+                        )
                         img = longest_max_transform(image=img)["image"]
                         if blurring_bbox_list is not None and self.blurrer is not None:
                             img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
@@ -206,7 +210,7 @@ class Resizer:
                                 min_width=self.image_size,
                                 border_mode=cv2.BORDER_CONSTANT,
                                 value=[255, 255, 255],
-                                p=1.0
+                                p=1.0,
                             )
                             img = pad_transform(image=img)["image"]
                         encode_needed = True
