@@ -1,6 +1,7 @@
 """blurrer module to blur parts of the image"""
 
 import numpy as np
+import random
 
 import albumentations as A
 
@@ -68,9 +69,20 @@ class BoundingBoxBlurrer:
             mask[adjusted_bbox[1] : adjusted_bbox[3], adjusted_bbox[0] : adjusted_bbox[2], ...] = 1
 
         sigma = 0.1 * max_diagonal
-        ksize = int(2 * np.ceil(4 * sigma)) + 1
-        blurred_img = A.augmentations.gaussian_blur(img, ksize=ksize, sigma=sigma)
-        blurred_mask = A.augmentations.gaussian_blur(mask, ksize=ksize, sigma=sigma)
+        # Use GaussianBlur transform instead of deprecated gaussian_blur function
+        # blur_limit needs to be an odd integer, so convert sigma to appropriate kernel size
+        kernel_size = max(3, int(2 * np.ceil(sigma) + 1))
+        if kernel_size % 2 == 0:  # Ensure odd kernel size
+            kernel_size += 1
+
+        # Set fixed seed for deterministic results
+        np.random.seed(42)
+        random.seed(42)
+
+        # Use tuple format (min, max) with same value for exact kernel size
+        blur_transform = A.GaussianBlur(blur_limit=(kernel_size, kernel_size), p=1.0, always_apply=True)
+        blurred_img = blur_transform(image=img)["image"]
+        blurred_mask = blur_transform(image=mask)["image"]
 
         result = img * (1 - blurred_mask) + blurred_img * blurred_mask
 

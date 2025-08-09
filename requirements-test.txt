@@ -1,5 +1,5 @@
 black==24.1.1
-mypy==1.8.0
+mypy==1.13.0
 pylint==3.0.3
 pytest-cov==4.1.0
 pytest-xdist==3.5.0
@@ -11,5 +11,4 @@ fastapi
 tensorflow
 tensorflow_io
 types-requests
-types-pkg_resources
 ray
