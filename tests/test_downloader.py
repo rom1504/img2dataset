@@ -113,9 +113,9 @@ def test_downloader(tmp_path):
     test_folder = str(tmp_path)
     n_allowed = 5
     n_disallowed = 5
-    test_list = setup_fixtures(count=n_allowed, disallowed=n_disallowed)
+    test_list = setup_fixtures(count=n_allowed, disallowed_robots=n_disallowed, disallowed_header=n_disallowed)
 
-    assert len(test_list) == n_allowed + n_disallowed
+    assert len(test_list) == n_allowed + n_disallowed * 2
 
     image_folder_name = os.path.join(test_folder, "images")
 

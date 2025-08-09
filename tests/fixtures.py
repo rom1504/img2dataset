@@ -7,31 +7,38 @@ import sys
 import gzip
 
 
-def setup_fixtures(count=5, disallowed=0):
+def setup_fixtures(count=5, disallowed_robots=0, disallowed_header=0):
     test_list = []
     current_folder = os.path.dirname(__file__)
     test_folder = current_folder + "/" + "resize_test_image"
     port = f"123{sys.version_info.minor}"
     image_paths = glob.glob(test_folder + "/*")
     for i in range(count):
-        item = random.randint(0, len(image_paths) - 1)
+        path = random.choice(image_paths)
         test_list.append(
             (
                 f"caption {i}" if i != 0 else "",
-                image_paths[item].replace(test_folder, f"http://localhost:{port}/allowed"),
+                path.replace(test_folder, f"http://localhost:{port}/allowed"),
             )
         )
-    test_list = test_list[:count]
 
-    for i in range(disallowed):
-        item = random.randint(0, len(image_paths) - 1)
+    for i in range(disallowed_robots):
+        path = random.choice(image_paths)
         test_list.append(
             (
                 f"caption {i}" if i != 0 else "",
-                image_paths[item].replace(test_folder, f"http://localhost:{port}/disallowed"),
+                path.replace(test_folder, f"http://localhost:{port}/disallowed/robots"),
             )
         )
-    test_list = test_list[: count + disallowed]
+
+    for i in range(disallowed_header):
+        path = random.choice(image_paths)
+        test_list.append(
+            (
+                f"caption {i}" if i != 0 else "",
+                path.replace(test_folder, f"http://localhost:{port}/disallowed/header"),
+            )
+        )
 
     return test_list
 
