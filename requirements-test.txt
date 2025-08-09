@@ -3,7 +3,7 @@ mypy==1.17.1
 pylint==3.0.3
 pytest-cov==4.1.0
 pytest-xdist==3.5.0
-pytest==8.0.0
+pytest==8.4.1
 psutil
 pyspark
 uvicorn
