@@ -1,3 +1,7 @@
+## 1.47.0
+
+* Increase range of pyarrow
+
 ## 1.46.0
 
 * Fix albumentations deprecation and NumPy 2.0+ compatibility issues
