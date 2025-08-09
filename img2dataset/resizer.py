@@ -179,28 +179,36 @@ class Resizer:
                     downscale = min(original_width, original_height) > self.image_size
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
-                        img = A.smallest_max_size(img, self.image_size, interpolation=interpolation)
+                        # Use SmallestMaxSize transform instead of deprecated smallest_max_size function
+                        smallest_max_transform = A.SmallestMaxSize(max_size=self.image_size, interpolation=interpolation, p=1.0)
+                        img = smallest_max_transform(image=img)["image"]
                         if blurring_bbox_list is not None and self.blurrer is not None:
                             img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
                         if self.resize_mode == ResizeMode.center_crop:
-                            img = A.center_crop(img, self.image_size, self.image_size)
+                            # Use CenterCrop transform instead of deprecated center_crop function
+                            center_crop_transform = A.CenterCrop(height=self.image_size, width=self.image_size)
+                            img = center_crop_transform(image=img)["image"]
                         encode_needed = True
                         maybe_blur_still_needed = False
                 elif self.resize_mode in (ResizeMode.border, ResizeMode.keep_ratio_largest):
                     downscale = max(original_width, original_height) > self.image_size
                     if not self.resize_only_if_bigger or downscale:
                         interpolation = self.downscale_interpolation if downscale else self.upscale_interpolation
-                        img = A.longest_max_size(img, self.image_size, interpolation=interpolation)
+                        # Use LongestMaxSize transform instead of deprecated longest_max_size function
+                        longest_max_transform = A.LongestMaxSize(max_size=self.image_size, interpolation=interpolation, p=1.0)
+                        img = longest_max_transform(image=img)["image"]
                         if blurring_bbox_list is not None and self.blurrer is not None:
                             img = self.blurrer(img=img, bbox_list=blurring_bbox_list)
                         if self.resize_mode == ResizeMode.border:
-                            img = A.pad(
-                                img,
-                                self.image_size,
-                                self.image_size,
+                            # Use PadIfNeeded transform instead of deprecated pad function
+                            pad_transform = A.PadIfNeeded(
+                                min_height=self.image_size,
+                                min_width=self.image_size,
                                 border_mode=cv2.BORDER_CONSTANT,
                                 value=[255, 255, 255],
+                                p=1.0
                             )
+                            img = pad_transform(image=img)["image"]
                         encode_needed = True
                         maybe_blur_still_needed = False
 

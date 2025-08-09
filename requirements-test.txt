@@ -11,5 +11,4 @@ fastapi
 tensorflow
 tensorflow_io
 types-requests
-types-pkg_resources
 ray
