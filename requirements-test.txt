@@ -1,9 +1,9 @@
-black==24.1.0
-mypy==1.8.0
-pylint==3.0.3
-pytest-cov==4.1.0
-pytest-xdist==3.5.0
-pytest==7.4.4
+black==24.1.1
+mypy==1.17.1
+pylint==3.3.8
+pytest-cov==6.2.1
+pytest-xdist==3.8.0
+pytest==8.4.1
 psutil
 pyspark
 uvicorn
@@ -11,5 +11,4 @@ fastapi
 tensorflow
 tensorflow_io
 types-requests
-types-pkg_resources
 ray
