@@ -177,6 +177,7 @@ This module exposes a single function `download` which takes the same arguments 
 * **max_shard_retry** Number of time to retry failed shards at the end (default *1*)
 * **user_agent_token** Additional identifying token that will be added to the User-Agent header sent with HTTP requests to download images; for example: "img2downloader". (default *None*)
 * **disallowed_header_directives** List of X-Robots-Tags header directives that, if present in HTTP response when downloading an image, will cause the image to be excluded from the output dataset. To ignore x-robots-tags, pass '[]'. (default '["noai", "noimageai", "noindex", "noimageindex"]')
+* **ignore_ssl_certificate** If set to True, SSL certificate verification will be disabled when downloading images. This allows downloading from servers with invalid or self-signed certificates, but reduces security. Use with caution. (default *False*)
 
 ## Incremental mode
 
@@ -230,6 +231,18 @@ Some dataset (for example laion5B) expose hashes of original images.
 If you want to be extra safe, you may automatically drop out the images that do not match theses hashes.
 In that case you can use `--compute_hash "md5" --verify_hash '["md5","md5"]'` 
 Some of those images are actually still good but have been slightly changed by the websites.
+
+## SSL Certificate Handling
+
+By default, img2dataset verifies SSL certificates when downloading images. However, some servers may have invalid or self-signed certificates.
+
+To download images from such servers, you can disable SSL certificate verification:
+
+```bash
+img2dataset --url_list=myimglist.txt --output_folder=output_folder --ignore_ssl_certificate=True
+```
+
+**Warning**: Disabling SSL certificate verification reduces security by making downloads vulnerable to man-in-the-middle attacks. Only use this option when necessary and when you trust the source.
 
 ## How to tweak the options
 

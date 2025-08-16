@@ -4,7 +4,7 @@ import albumentations as A
 import cv2
 import numpy as np
 from enum import Enum
-import imghdr
+import imghdr  # pylint: disable=deprecated-module
 import os
 
 _INTER_STR_TO_CV2 = {
