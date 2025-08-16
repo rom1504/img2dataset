@@ -4,6 +4,7 @@ from multiprocessing.pool import ThreadPool
 from threading import Semaphore
 import urllib.request
 import io
+import ssl
 import math
 import exifread
 import json
@@ -34,7 +35,7 @@ def is_disallowed(headers, user_agent_token, disallowed_header_directives):
     return False
 
 
-def download_image(row, timeout, user_agent_token, disallowed_header_directives):
+def download_image(row, timeout, user_agent_token, disallowed_header_directives, ignore_ssl_certificate):
     """Download an image with urllib"""
     key, url = row
     img_stream = None
@@ -43,7 +44,11 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
         user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
     try:
         request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
-        with urllib.request.urlopen(request, timeout=timeout) as r:
+        ctx = ssl.create_default_context()
+        if ignore_ssl_certificate:
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+        with urllib.request.urlopen(request, context=ctx, timeout=timeout) as r:
             if disallowed_header_directives and is_disallowed(
                 r.headers,
                 user_agent_token,
@@ -58,9 +63,23 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives)
         return key, None, str(err)
 
 
-def download_image_with_retry(row, timeout, retries, user_agent_token, disallowed_header_directives):
+def download_image_with_retry(
+    row,
+    timeout,
+    retries,
+    user_agent_token,
+    disallowed_header_directives,
+    ignore_ssl_certificate,
+):
+    """Download an image with urllib, retrying if it fails."""
     for _ in range(retries + 1):
-        key, img_stream, err = download_image(row, timeout, user_agent_token, disallowed_header_directives)
+        key, img_stream, err = download_image(
+            row,
+            timeout,
+            user_agent_token,
+            disallowed_header_directives,
+            ignore_ssl_certificate,
+        )
         if img_stream is not None:
             return key, img_stream, err
     return key, None, err
@@ -97,6 +116,7 @@ class Downloader:
         user_agent_token,
         disallowed_header_directives,
         blurring_bbox_col=None,
+        ignore_ssl_certificate=False,
     ) -> None:
         self.sample_writer_class = sample_writer_class
         self.resizer = resizer
@@ -119,6 +139,7 @@ class Downloader:
             else {directive.strip().lower() for directive in disallowed_header_directives}
         )
         self.blurring_bbox_col = blurring_bbox_col
+        self.ignore_ssl_certificate = ignore_ssl_certificate
 
     def __call__(
         self,
@@ -208,6 +229,7 @@ class Downloader:
                     retries=self.retries,
                     user_agent_token=self.user_agent_token,
                     disallowed_header_directives=self.disallowed_header_directives,
+                    ignore_ssl_certificate=self.ignore_ssl_certificate,
                 ),
                 loader,
             ):

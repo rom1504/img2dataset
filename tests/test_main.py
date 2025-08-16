@@ -500,3 +500,23 @@ def test_verify_hash(tmp_path):
     df = pd.read_parquet(os.path.join(output_folder, "00000.parquet"))
 
     assert df["sha256"].isna().to_numpy().sum() == 1
+
+
+def test_ignore_ssl_certificate_parameter(tmp_path):
+    test_folder = str(tmp_path)
+    test_list = setup_fixtures()
+    url_list_name = os.path.join(test_folder, "url_list")
+    image_folder_name = os.path.join(test_folder, "images")
+
+    url_list_name = generate_input_file("txt", url_list_name, test_list)
+
+    download(
+        url_list_name,
+        image_size=256,
+        output_folder=image_folder_name,
+        thread_count=32,
+        ignore_ssl_certificate=True,
+    )
+
+    l = get_all_files(image_folder_name, "jpg")
+    assert len(l) == len(test_list)
