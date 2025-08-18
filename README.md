@@ -213,6 +213,23 @@ Notes:
 * webp at quality >100 is lossless ([see OpenCV Docs](https://docs.opencv.org/3.4/d8/d6a/group__imgcodecs__flags.html))
 * same quality scale between formats does not mean same image quality
 
+## Image resizing options
+
+Enabling the option to resize images to a smaller size (for example, 256x256 pixels) can significantly cut down the total space required for a dataset as compared to storing raw images without resizing. 
+
+### Recommended Image Resolutions:
+* **Clip-based Models**: It is advisable to use an image size of 256 pixels.
+* **Text2Image Models**: Employ multiple sets such as:
+  * A base model trained with an image size of 256 pixels.
+  * A few samples of larger resolutions, such as 512 or 1024 pixels, that are intended for super-resolution models.
+* **Document Understanding Models**: Adopt a resolution of 1024 pixels.
+
+### Suggested Resize_Mode Settings:
+* *keep_ratio* set as True helps in avoiding distortion.
+* Although distortion is not notably harmful for image understanding models, it can cause significant issues for generative models.
+* Enable *resize_only_if_bigger* as True prevents the unnecessary resizing of smaller images.
+* Adding a border helps in avoiding cutting off parts of images. However, it can waste model capacity by computing irrelevant pixels, thereby underutilizing the model's performance.
+
 ## Filtering the dataset
 
 Whenever feasible, you should pre-filter your dataset prior to downloading.
