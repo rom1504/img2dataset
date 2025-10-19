@@ -7,6 +7,7 @@ This extends the traditional img2dataset CLI with service-oriented commands.
 import fire
 from .main import download  # Traditional download function
 from .cli.service import start_service, enqueue, materialize
+from .server.status_server import run_status_server
 
 
 class Img2DatasetCLI:
@@ -18,6 +19,7 @@ class Img2DatasetCLI:
         service: Start service mode (segment appender)
         enqueue: Enqueue URLs to ingest queue
         materialize: Materialize dataset from segments
+        status: Run web status server
     """
 
     def download(self, *args, **kwargs):
@@ -105,6 +107,20 @@ class Img2DatasetCLI:
             manifest_path=manifest_path,
             output_format=output_format
         )
+
+    def status(self, output_folder: str, port: int = 8080, host: str = "0.0.0.0"):
+        """
+        Run web status server.
+
+        Provides a simple web UI and REST API to monitor the system status.
+        Runs independently and only reads from databases.
+
+        Args:
+            output_folder: Output directory to monitor
+            port: Port to listen on (default: 8080)
+            host: Host to bind to (default: 0.0.0.0)
+        """
+        return run_status_server(output_folder=output_folder, port=port, host=host)
 
 
 def main():
