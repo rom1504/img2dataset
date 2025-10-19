@@ -31,7 +31,7 @@ class ShardMaterializer:
         segment_reader: SegmentReader,
         output_dir: str,
         shard_size: int = 10000,
-        mode: str = "manifest"
+        mode: str = "manifest",
     ):
         """
         Initialize shard materializer.
@@ -74,52 +74,38 @@ class ShardMaterializer:
 
         for batch in self.index.iter_all(batch_size=1000):
             for entry in batch:
-                current_manifest.append({
-                    "item_id": entry.item_id,
-                    "segment_id": entry.segment_id,
-                    "offset": entry.offset,
-                    "length": entry.length,
-                    "mime": entry.mime
-                })
+                current_manifest.append(
+                    {
+                        "item_id": entry.item_id,
+                        "segment_id": entry.segment_id,
+                        "offset": entry.offset,
+                        "length": entry.length,
+                        "mime": entry.mime,
+                    }
+                )
                 items_in_shard += 1
 
                 # Write shard when full
                 if items_in_shard >= self.shard_size:
-                    self._write_manifest_shard(
-                        manifest_dir,
-                        dataset_name,
-                        shard_id,
-                        current_manifest
-                    )
+                    self._write_manifest_shard(manifest_dir, dataset_name, shard_id, current_manifest)
                     shard_id += 1
                     items_in_shard = 0
                     current_manifest = []
 
         # Write remaining items
         if current_manifest:
-            self._write_manifest_shard(
-                manifest_dir,
-                dataset_name,
-                shard_id,
-                current_manifest
-            )
+            self._write_manifest_shard(manifest_dir, dataset_name, shard_id, current_manifest)
 
         print(f"Created {shard_id + 1} manifest shards")
         return str(manifest_dir)
 
-    def _write_manifest_shard(
-        self,
-        manifest_dir: Path,
-        dataset_name: str,
-        shard_id: int,
-        items: List[Dict[str, Any]]
-    ):
+    def _write_manifest_shard(self, manifest_dir: Path, dataset_name: str, shard_id: int, items: List[Dict[str, Any]]):
         """Write a single manifest shard."""
         manifest_path = manifest_dir / f"{dataset_name}-{shard_id:06d}.jsonl"
 
-        with open(manifest_path, 'w') as f:
+        with open(manifest_path, "w") as f:
             for item in items:
-                f.write(json.dumps(item) + '\n')
+                f.write(json.dumps(item) + "\n")
 
     def materialize_physical(self, dataset_name: str = "dataset") -> str:
         """
@@ -150,14 +136,10 @@ class ShardMaterializer:
                     # Open new shard if needed
                     if current_tar is None:
                         current_tar_path = shard_dir / f"{dataset_name}-{shard_id:06d}.tar"
-                        current_tar = tarfile.open(current_tar_path, 'w')
+                        current_tar = tarfile.open(current_tar_path, "w")
 
                     # Read item from segment
-                    data = self.segment_reader.read(
-                        entry.segment_id,
-                        entry.offset,
-                        entry.length
-                    )
+                    data = self.segment_reader.read(entry.segment_id, entry.offset, entry.length)
 
                     # Write to TAR
                     tarinfo = tarfile.TarInfo(name=entry.item_id)
@@ -208,7 +190,7 @@ def materialize_shards(
     output_dir: str,
     dataset_name: str = "dataset",
     shard_size: int = 10000,
-    mode: str = "manifest"
+    mode: str = "manifest",
 ) -> str:
     """
     Convenience function to materialize shards.
@@ -229,11 +211,7 @@ def materialize_shards(
 
     try:
         materializer = ShardMaterializer(
-            index=index,
-            segment_reader=reader,
-            output_dir=output_dir,
-            shard_size=shard_size,
-            mode=mode
+            index=index, segment_reader=reader, output_dir=output_dir, shard_size=shard_size, mode=mode
         )
         return materializer.run(dataset_name=dataset_name)
     finally:

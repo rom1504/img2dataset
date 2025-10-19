@@ -12,10 +12,7 @@ from img2dataset.core.io import SegmentWriter, SegmentReader
 def test_segment_writer_basic():
     """Test basic segment writing."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        writer = SegmentWriter(
-            segments_dir=tmpdir,
-            max_size=10 * 1024  # 10KB for testing
-        )
+        writer = SegmentWriter(segments_dir=tmpdir, max_size=10 * 1024)  # 10KB for testing
 
         # Append items
         seg1, off1, len1 = writer.append("item1", b"data1", "image/jpeg")
@@ -36,20 +33,12 @@ def test_segment_writer_basic():
 def test_segment_writer_rolling():
     """Test segment rolling on size threshold."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        writer = SegmentWriter(
-            segments_dir=tmpdir,
-            max_size=2048,  # 2KB
-            max_items=None
-        )
+        writer = SegmentWriter(segments_dir=tmpdir, max_size=2048, max_items=None)  # 2KB
 
         # Append enough data to trigger roll
         segments_used = set()
         for i in range(10):
-            seg, off, length = writer.append(
-                f"item{i}",
-                b"x" * 500,  # 500 bytes each
-                "image/jpeg"
-            )
+            seg, off, length = writer.append(f"item{i}", b"x" * 500, "image/jpeg")  # 500 bytes each
             segments_used.add(seg)
 
         writer.close()
@@ -109,11 +98,7 @@ def test_segment_iteration():
         # Write some data
         writer = SegmentWriter(segments_dir=tmpdir)
 
-        items = [
-            ("item1", b"data1"),
-            ("item2", b"data2"),
-            ("item3", b"data3")
-        ]
+        items = [("item1", b"data1"), ("item2", b"data2"), ("item3", b"data3")]
 
         segment_id = None
         for item_id, data in items:

@@ -56,11 +56,11 @@ class SQLiteBus(EventBus):
     @contextmanager
     def _get_connection(self):
         """Get a thread-local database connection."""
-        if not hasattr(self._local, 'conn'):
+        if not hasattr(self._local, "conn"):
             self._local.conn = sqlite3.connect(
                 self.db_path,
-                isolation_level='IMMEDIATE',  # Use IMMEDIATE for better concurrency
-                check_same_thread=False
+                isolation_level="IMMEDIATE",  # Use IMMEDIATE for better concurrency
+                check_same_thread=False,
             )
             # Enable WAL mode for better concurrent access
             self._local.conn.execute("PRAGMA journal_mode=WAL")
@@ -75,7 +75,8 @@ class SQLiteBus(EventBus):
     def _init_db(self):
         """Initialize database schema if not exists."""
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     topic TEXT NOT NULL,
@@ -83,14 +84,18 @@ class SQLiteBus(EventBus):
                     value TEXT NOT NULL,
                     timestamp INTEGER NOT NULL
                 )
-            """)
+            """
+            )
 
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_events_topic_id
                 ON events(topic, id)
-            """)
+            """
+            )
 
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS consumer_offsets (
                     topic TEXT NOT NULL,
                     consumer_group TEXT NOT NULL,
@@ -98,7 +103,8 @@ class SQLiteBus(EventBus):
                     updated_at INTEGER NOT NULL,
                     PRIMARY KEY (topic, consumer_group)
                 )
-            """)
+            """
+            )
 
             conn.commit()
 
@@ -120,16 +126,12 @@ class SQLiteBus(EventBus):
                 INSERT INTO events (topic, key, value, timestamp)
                 VALUES (?, ?, ?, ?)
                 """,
-                (topic, key, value_json, timestamp)
+                (topic, key, value_json, timestamp),
             )
             conn.commit()
 
     def subscribe(
-        self,
-        topic: str,
-        group: str,
-        auto_commit: bool = True,
-        start_offset: Optional[int] = None
+        self, topic: str, group: str, auto_commit: bool = True, start_offset: Optional[int] = None
     ) -> Iterator[Event]:
         """
         Subscribe to a topic as part of a consumer group.
@@ -145,11 +147,10 @@ class SQLiteBus(EventBus):
         """
         # Determine starting offset
         if start_offset is not None:
-            current_offset = start_offset
+            current_offset: int = start_offset
         else:
-            current_offset = self.get_offset(topic, group)
-            if current_offset is None:
-                current_offset = 0
+            offset_result = self.get_offset(topic, group)
+            current_offset = offset_result if offset_result is not None else 0
 
         with self._get_connection() as conn:
             while True:
@@ -162,7 +163,7 @@ class SQLiteBus(EventBus):
                     ORDER BY id
                     LIMIT 100
                     """,
-                    (topic, current_offset)
+                    (topic, current_offset),
                 )
 
                 rows = cursor.fetchall()
@@ -174,11 +175,7 @@ class SQLiteBus(EventBus):
                     event_id, topic, key, value_json, timestamp = row
 
                     event = Event(
-                        topic=topic,
-                        key=key,
-                        value=json.loads(value_json),
-                        timestamp=timestamp,
-                        offset=event_id
+                        topic=topic, key=key, value=json.loads(value_json), timestamp=timestamp, offset=event_id
                     )
 
                     yield event
@@ -209,7 +206,7 @@ class SQLiteBus(EventBus):
                     offset = excluded.offset,
                     updated_at = excluded.updated_at
                 """,
-                (topic, group, offset, timestamp)
+                (topic, group, offset, timestamp),
             )
             conn.commit()
 
@@ -230,7 +227,7 @@ class SQLiteBus(EventBus):
                 SELECT offset FROM consumer_offsets
                 WHERE topic = ? AND consumer_group = ?
                 """,
-                (topic, group)
+                (topic, group),
             )
             row = cursor.fetchone()
             return row[0] if row else None
@@ -246,10 +243,7 @@ class SQLiteBus(EventBus):
             Number of events
         """
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT COUNT(*) FROM events WHERE topic = ?",
-                (topic,)
-            )
+            cursor = conn.execute("SELECT COUNT(*) FROM events WHERE topic = ?", (topic,))
             return cursor.fetchone()[0]
 
     def get_latest_offset(self, topic: str) -> Optional[int]:
@@ -263,15 +257,12 @@ class SQLiteBus(EventBus):
             Latest offset, or None if topic is empty
         """
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT MAX(id) FROM events WHERE topic = ?",
-                (topic,)
-            )
+            cursor = conn.execute("SELECT MAX(id) FROM events WHERE topic = ?", (topic,))
             result = cursor.fetchone()[0]
             return result
 
     def close(self) -> None:
         """Close the database connection."""
-        if hasattr(self._local, 'conn'):
+        if hasattr(self._local, "conn"):
             self._local.conn.close()
-            delattr(self._local, 'conn')
+            delattr(self._local, "conn")

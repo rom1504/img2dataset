@@ -29,7 +29,7 @@ class HTTPFetcher:
         retries: int = 3,
         timeout: int = 10,
         disallowed_header_directives: Optional[list] = None,
-        ignore_ssl_certificate: bool = False
+        ignore_ssl_certificate: bool = False,
     ):
         """
         Initialize HTTP fetcher.
@@ -45,7 +45,10 @@ class HTTPFetcher:
         self.retries = retries
         self.timeout = timeout
         self.disallowed_header_directives = disallowed_header_directives or [
-            "noai", "noimageai", "noindex", "noimageindex"
+            "noai",
+            "noimageai",
+            "noindex",
+            "noimageindex",
         ]
         self.ignore_ssl_certificate = ignore_ssl_certificate
 
@@ -94,6 +97,7 @@ class HTTPFetcher:
                 context = None
                 if self.ignore_ssl_certificate:
                     import ssl
+
                     context = ssl._create_unverified_context()
 
                 # Perform request
@@ -121,7 +125,7 @@ class HTTPFetcher:
 
             # Exponential backoff before retry
             if attempt < self.retries:
-                backoff = 2 ** attempt
+                backoff = 2**attempt
                 time.sleep(backoff)
 
         return None, last_error
@@ -133,7 +137,7 @@ def download_image_with_retry(
     user_agent: str = "img2dataset/2.0",
     timeout: int = 10,
     disallowed_header_directives: Optional[list] = None,
-    ignore_ssl_certificate: bool = False
+    ignore_ssl_certificate: bool = False,
 ) -> Tuple[Optional[bytes], Optional[str]]:
     """
     Download an image from URL with retries.
@@ -156,6 +160,6 @@ def download_image_with_retry(
         retries=retries,
         timeout=timeout,
         disallowed_header_directives=disallowed_header_directives,
-        ignore_ssl_certificate=ignore_ssl_certificate
+        ignore_ssl_certificate=ignore_ssl_certificate,
     )
     return fetcher.fetch(url)

@@ -13,7 +13,7 @@ Features:
 
 import io
 import time
-from typing import Iterator, Tuple, Optional
+from typing import Iterator, Tuple, Optional, List, Dict, Any
 from PIL import Image
 import numpy as np
 
@@ -34,7 +34,7 @@ class SegmentDataLoader:
         segment_reader: SegmentReader,
         batch_size: int = 32,
         start_segment: Optional[str] = None,
-        start_offset: int = 0
+        start_offset: int = 0,
     ):
         """
         Initialize segment data loader.
@@ -67,17 +67,13 @@ class SegmentDataLoader:
 
         while True:
             # Fetch next batch from index
-            batch = self.index.sample_sequential(
-                limit=1000,
-                start_segment=cursor_segment,
-                start_offset=cursor_offset
-            )
+            batch = self.index.sample_sequential(limit=1000, start_segment=cursor_segment, start_offset=cursor_offset)
 
             if not batch:
                 break
 
             # Group by segment for locality
-            by_segment = {}
+            by_segment: Dict[str, List[Any]] = {}
             for entry in batch:
                 if entry.segment_id not in by_segment:
                     by_segment[entry.segment_id] = []
@@ -89,11 +85,7 @@ class SegmentDataLoader:
 
                 for entry in entries:
                     # Read bytes from segment
-                    data = self.segment_reader.read(
-                        entry.segment_id,
-                        entry.offset,
-                        entry.length
-                    )
+                    data = self.segment_reader.read(entry.segment_id, entry.offset, entry.length)
 
                     yield (entry.item_id, data, entry.mime)
 
@@ -141,12 +133,7 @@ class SegmentDataLoader:
             yield (batch_ids, batch_images)
 
 
-def train_example(
-    index_path: str,
-    segments_dir: str,
-    batch_size: int = 32,
-    max_batches: Optional[int] = None
-):
+def train_example(index_path: str, segments_dir: str, batch_size: int = 32, max_batches: Optional[int] = None):
     """
     Example training loop reading from segments.
 
@@ -166,11 +153,7 @@ def train_example(
     index = IndexStore(db_path=index_path)
     reader = SegmentReader(segments_dir=segments_dir)
 
-    loader = SegmentDataLoader(
-        index=index,
-        segment_reader=reader,
-        batch_size=batch_size
-    )
+    loader = SegmentDataLoader(index=index, segment_reader=reader, batch_size=batch_size)
 
     try:
         print(f"Starting training (batch_size={batch_size})")
@@ -183,18 +166,18 @@ def train_example(
             images_processed += len(batch_images)
 
             # Example preprocessing: convert to arrays and normalize
-            batch_arrays = []
+            batch_arrays_list: List[np.ndarray] = []
             for image in batch_images:
                 # Resize to fixed size
                 image = image.resize((224, 224))
                 # Convert to RGB if needed
-                if image.mode != 'RGB':
-                    image = image.convert('RGB')
+                if image.mode != "RGB":
+                    image = image.convert("RGB")
                 # To numpy array
                 arr = np.array(image, dtype=np.float32) / 255.0
-                batch_arrays.append(arr)
+                batch_arrays_list.append(arr)
 
-            batch_arrays = np.stack(batch_arrays)
+            batch_arrays = np.stack(batch_arrays_list)
 
             # Your training code here
             # model.train_step(batch_arrays)
@@ -203,8 +186,7 @@ def train_example(
             if batches_processed % 10 == 0:
                 elapsed = time.time() - start_time
                 throughput = images_processed / elapsed if elapsed > 0 else 0
-                print(f"Batch {batches_processed}: {images_processed} images "
-                      f"({throughput:.1f} img/sec)")
+                print(f"Batch {batches_processed}: {images_processed} images " f"({throughput:.1f} img/sec)")
 
             # Stop if max reached
             if max_batches and batches_processed >= max_batches:

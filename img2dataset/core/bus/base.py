@@ -28,6 +28,7 @@ class Event:
         timestamp: Unix timestamp when event was published
         offset: Sequential offset within the topic (for resumption)
     """
+
     topic: str
     key: str
     value: Dict[str, Any]
@@ -64,11 +65,7 @@ class EventBus(ABC):
 
     @abstractmethod
     def subscribe(
-        self,
-        topic: str,
-        group: str,
-        auto_commit: bool = True,
-        start_offset: Optional[int] = None
+        self, topic: str, group: str, auto_commit: bool = True, start_offset: Optional[int] = None
     ) -> Iterator[Event]:
         """
         Subscribe to a topic as part of a consumer group.
@@ -131,7 +128,7 @@ def create_event_envelope(
     payload: Dict[str, Any],
     payload_version: int = 1,
     producer_id: Optional[str] = None,
-    attempt: int = 1
+    attempt: int = 1,
 ) -> Dict[str, Any]:
     """
     Create a standardized event envelope for forwards/backwards compatibility.
@@ -152,15 +149,9 @@ def create_event_envelope(
     return {
         "event_id": event_id,
         "occurred_at": int(time.time()),
-        "entity": {
-            "type": entity_type,
-            "id": entity_id
-        },
+        "entity": {"type": entity_type, "id": entity_id},
         "kind": kind,
         "payload_version": payload_version,
         "payload": payload,
-        "trace": {
-            "producer": producer_id or "unknown",
-            "attempt": attempt
-        }
+        "trace": {"producer": producer_id or "unknown", "attempt": attempt},
     }

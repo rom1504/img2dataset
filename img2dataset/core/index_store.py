@@ -33,6 +33,7 @@ class IndexEntry:
     """
     Represents a single item in the index.
     """
+
     item_id: str
     segment_id: str
     offset: int
@@ -63,12 +64,8 @@ class IndexStore:
     @contextmanager
     def _get_connection(self):
         """Get a thread-local database connection."""
-        if not hasattr(self._local, 'conn'):
-            self._local.conn = sqlite3.connect(
-                self.db_path,
-                isolation_level='IMMEDIATE',
-                check_same_thread=False
-            )
+        if not hasattr(self._local, "conn"):
+            self._local.conn = sqlite3.connect(self.db_path, isolation_level="IMMEDIATE", check_same_thread=False)
             # Enable WAL mode for better concurrent access
             self._local.conn.execute("PRAGMA journal_mode=WAL")
             self._local.conn.execute("PRAGMA synchronous=NORMAL")
@@ -84,7 +81,8 @@ class IndexStore:
     def _init_db(self):
         """Initialize database schema."""
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS items (
                     item_id TEXT PRIMARY KEY,
                     segment_id TEXT NOT NULL,
@@ -94,19 +92,24 @@ class IndexStore:
                     ts_ingest INTEGER NOT NULL,
                     sha256 TEXT NOT NULL
                 )
-            """)
+            """
+            )
 
             # Index for sequential reading by segment
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_items_seg_off
                 ON items(segment_id, offset)
-            """)
+            """
+            )
 
             # Index for timestamp queries
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE INDEX IF NOT EXISTS idx_items_ts
                 ON items(ts_ingest)
-            """)
+            """
+            )
 
             conn.commit()
 
@@ -118,7 +121,7 @@ class IndexStore:
         length: int,
         mime: str,
         sha256: str,
-        ts_ingest: Optional[int] = None
+        ts_ingest: Optional[int] = None,
     ) -> bool:
         """
         Insert a new item into the index (idempotent).
@@ -145,7 +148,7 @@ class IndexStore:
                     INSERT INTO items (item_id, segment_id, offset, length, mime, ts_ingest, sha256)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (item_id, segment_id, offset, length, mime, ts_ingest, sha256)
+                    (item_id, segment_id, offset, length, mime, ts_ingest, sha256),
                 )
                 conn.commit()
                 return True
@@ -170,7 +173,7 @@ class IndexStore:
                 FROM items
                 WHERE item_id = ?
                 """,
-                (item_id,)
+                (item_id,),
             )
             row = cursor.fetchone()
             if row:
@@ -188,10 +191,7 @@ class IndexStore:
             True if exists, False otherwise
         """
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT 1 FROM items WHERE item_id = ? LIMIT 1",
-                (item_id,)
-            )
+            cursor = conn.execute("SELECT 1 FROM items WHERE item_id = ? LIMIT 1", (item_id,))
             return cursor.fetchone() is not None
 
     def get_by_segment(self, segment_id: str) -> List[IndexEntry]:
@@ -212,15 +212,12 @@ class IndexStore:
                 WHERE segment_id = ?
                 ORDER BY offset
                 """,
-                (segment_id,)
+                (segment_id,),
             )
             return [IndexEntry(**dict(row)) for row in cursor.fetchall()]
 
     def sample_sequential(
-        self,
-        limit: int,
-        start_segment: Optional[str] = None,
-        start_offset: int = 0
+        self, limit: int, start_segment: Optional[str] = None, start_offset: int = 0
     ) -> List[IndexEntry]:
         """
         Sample items sequentially for optimal IO performance.
@@ -246,7 +243,7 @@ class IndexStore:
                     ORDER BY segment_id, offset
                     LIMIT ?
                     """,
-                    (start_segment, start_segment, start_offset, limit)
+                    (start_segment, start_segment, start_offset, limit),
                 )
             else:
                 cursor = conn.execute(
@@ -256,7 +253,7 @@ class IndexStore:
                     ORDER BY segment_id, offset
                     LIMIT ?
                     """,
-                    (limit,)
+                    (limit,),
                 )
 
             return [IndexEntry(**dict(row)) for row in cursor.fetchall()]
@@ -283,10 +280,7 @@ class IndexStore:
             Item count
         """
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT COUNT(*) FROM items WHERE segment_id = ?",
-                (segment_id,)
-            )
+            cursor = conn.execute("SELECT COUNT(*) FROM items WHERE segment_id = ?", (segment_id,))
             return cursor.fetchone()[0]
 
     def get_segments(self) -> List[str]:
@@ -297,9 +291,7 @@ class IndexStore:
             List of segment IDs
         """
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT DISTINCT segment_id FROM items ORDER BY segment_id"
-            )
+            cursor = conn.execute("SELECT DISTINCT segment_id FROM items ORDER BY segment_id")
             return [row[0] for row in cursor.fetchall()]
 
     def iter_all(self, batch_size: int = 1000) -> Iterator[List[IndexEntry]]:
@@ -322,7 +314,7 @@ class IndexStore:
                     ORDER BY segment_id, offset
                     LIMIT ? OFFSET ?
                     """,
-                    (batch_size, offset)
+                    (batch_size, offset),
                 )
                 rows = cursor.fetchall()
                 if not rows:
@@ -359,26 +351,28 @@ class IndexStore:
 
         if not rows:
             # Create empty parquet with schema
-            schema = pa.schema([
-                ('item_id', pa.string()),
-                ('segment_id', pa.string()),
-                ('offset', pa.int64()),
-                ('length', pa.int64()),
-                ('mime', pa.string()),
-                ('ts_ingest', pa.int64()),
-                ('sha256', pa.string()),
-            ])
+            schema = pa.schema(
+                [
+                    ("item_id", pa.string()),
+                    ("segment_id", pa.string()),
+                    ("offset", pa.int64()),
+                    ("length", pa.int64()),
+                    ("mime", pa.string()),
+                    ("ts_ingest", pa.int64()),
+                    ("sha256", pa.string()),
+                ]
+            )
             table = pa.Table.from_pydict({}, schema=schema)
         else:
             # Convert to Arrow table
             data = {
-                'item_id': [row['item_id'] for row in rows],
-                'segment_id': [row['segment_id'] for row in rows],
-                'offset': [row['offset'] for row in rows],
-                'length': [row['length'] for row in rows],
-                'mime': [row['mime'] for row in rows],
-                'ts_ingest': [row['ts_ingest'] for row in rows],
-                'sha256': [row['sha256'] for row in rows],
+                "item_id": [row["item_id"] for row in rows],
+                "segment_id": [row["segment_id"] for row in rows],
+                "offset": [row["offset"] for row in rows],
+                "length": [row["length"] for row in rows],
+                "mime": [row["mime"] for row in rows],
+                "ts_ingest": [row["ts_ingest"] for row in rows],
+                "sha256": [row["sha256"] for row in rows],
             }
             table = pa.Table.from_pydict(data)
 
@@ -387,9 +381,9 @@ class IndexStore:
 
     def close(self) -> None:
         """Close the database connection."""
-        if hasattr(self._local, 'conn'):
+        if hasattr(self._local, "conn"):
             self._local.conn.close()
-            delattr(self._local, 'conn')
+            delattr(self._local, "conn")
 
 
 def compute_item_id(data: bytes) -> str:

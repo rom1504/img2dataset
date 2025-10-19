@@ -97,7 +97,7 @@ def test_event_envelope():
         entity_id="item-456",
         kind="APPEND",
         payload={"data": "test"},
-        producer_id="test-producer"
+        producer_id="test-producer",
     )
 
     assert envelope["event_id"] == "test-123"

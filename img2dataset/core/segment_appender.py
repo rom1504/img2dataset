@@ -33,8 +33,9 @@ def generate_ulid() -> str:
     """
     import random
     import string
+
     timestamp = int(time.time() * 1000)
-    random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    random_suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
     return f"{timestamp:013d}{random_suffix}"
 
 
@@ -55,21 +56,22 @@ def guess_mime_type(data: bytes, url: str) -> str:
         return mime_type
 
     # Try to detect from magic bytes
-    if data[:2] == b'\xff\xd8':
-        return 'image/jpeg'
-    elif data[:8] == b'\x89PNG\r\n\x1a\n':
-        return 'image/png'
-    elif data[:4] == b'RIFF' and data[8:12] == b'WEBP':
-        return 'image/webp'
-    elif data[:2] == b'GIF':
-        return 'image/gif'
+    if data[:2] == b"\xff\xd8":
+        return "image/jpeg"
+    elif data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    elif data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    elif data[:2] == b"GIF":
+        return "image/gif"
 
-    return 'application/octet-stream'
+    return "application/octet-stream"
 
 
 @dataclass
 class AppenderStats:
     """Statistics for segment appender."""
+
     items_processed: int = 0
     items_appended: int = 0
     items_deduplicated: int = 0
@@ -97,7 +99,7 @@ class SegmentAppender:
         fetch_timeout: int = 10,
         user_agent: str = "img2dataset/2.0",
         disallowed_header_directives: Optional[list] = None,
-        producer_id: Optional[str] = None
+        producer_id: Optional[str] = None,
     ):
         """
         Initialize segment appender.
@@ -148,7 +150,7 @@ class SegmentAppender:
             retries=self.fetch_retries,
             timeout=self.fetch_timeout,
             user_agent=self.user_agent,
-            disallowed_header_directives=self.disallowed_header_directives
+            disallowed_header_directives=self.disallowed_header_directives,
         )
 
         if error or data is None:
@@ -169,11 +171,7 @@ class SegmentAppender:
 
         # Append to segment
         try:
-            segment_id, offset, length = self.segment_writer.append(
-                item_id=item_id,
-                data=data,
-                mime=mime
-            )
+            segment_id, offset, length = self.segment_writer.append(item_id=item_id, data=data, mime=mime)
         except Exception as e:
             # Failed to append
             self.stats.items_failed += 1
@@ -188,7 +186,7 @@ class SegmentAppender:
             length=length,
             mime=mime,
             sha256=sha256,
-            ts_ingest=ts_ingest
+            ts_ingest=ts_ingest,
         )
 
         if not inserted:
@@ -210,7 +208,7 @@ class SegmentAppender:
             "length": length,
             "mime": mime,
             "ts_ingest": ts_ingest,
-            "source_url": source_url
+            "source_url": source_url,
         }
 
         envelope = create_event_envelope(
@@ -219,14 +217,10 @@ class SegmentAppender:
             entity_id=item_id,
             kind="APPEND",
             payload=event_payload,
-            producer_id=self.producer_id
+            producer_id=self.producer_id,
         )
 
-        self.bus.publish(
-            topic="segments.events",
-            key=item_id,
-            value=envelope
-        )
+        self.bus.publish(topic="segments.events", key=item_id, value=envelope)
 
         # Check if segment should be sealed
         current_segment = self.segment_writer.get_current_segment()
@@ -250,7 +244,7 @@ class SegmentAppender:
             "items": sealed.items,
             "bytes": sealed.bytes,
             "uri": f"file://{sealed.path}",
-            "ts_close": sealed.ts_closed
+            "ts_close": sealed.ts_closed,
         }
 
         envelope = create_event_envelope(
@@ -259,14 +253,10 @@ class SegmentAppender:
             entity_id=sealed.segment_id,
             kind="SEGMENT_CLOSED",
             payload=event_payload,
-            producer_id=self.producer_id
+            producer_id=self.producer_id,
         )
 
-        self.bus.publish(
-            topic="segments.events",
-            key=sealed.segment_id,
-            value=envelope
-        )
+        self.bus.publish(topic="segments.events", key=sealed.segment_id, value=envelope)
 
     def run(self, max_items: Optional[int] = None):
         """
@@ -282,11 +272,7 @@ class SegmentAppender:
 
         try:
             # Subscribe to ingest.items
-            for event in self.bus.subscribe(
-                topic="ingest.items",
-                group=self.consumer_group,
-                auto_commit=True
-            ):
+            for event in self.bus.subscribe(topic="ingest.items", group=self.consumer_group, auto_commit=True):
                 if not self._running:
                     break
 
@@ -298,10 +284,12 @@ class SegmentAppender:
 
                 # Progress logging
                 if items_processed % 100 == 0:
-                    print(f"Processed {items_processed} items "
-                          f"(appended={self.stats.items_appended}, "
-                          f"dedup={self.stats.items_deduplicated}, "
-                          f"failed={self.stats.items_failed})")
+                    print(
+                        f"Processed {items_processed} items "
+                        f"(appended={self.stats.items_appended}, "
+                        f"dedup={self.stats.items_deduplicated}, "
+                        f"failed={self.stats.items_failed})"
+                    )
 
                 # Check max items
                 if max_items is not None and items_processed >= max_items:

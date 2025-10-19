@@ -16,26 +16,147 @@ from img2dataset.core.segment_appender import SegmentAppender
 def create_test_image():
     """Create a minimal test JPEG image."""
     # Minimal JPEG (1x1 pixel, red)
-    jpeg_data = bytes([
-        0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46,
-        0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
-        0x00, 0x01, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
-        0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08,
-        0x07, 0x07, 0x07, 0x09, 0x09, 0x08, 0x0A, 0x0C,
-        0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
-        0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D,
-        0x1A, 0x1C, 0x1C, 0x20, 0x24, 0x2E, 0x27, 0x20,
-        0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
-        0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27,
-        0x39, 0x3D, 0x38, 0x32, 0x3C, 0x2E, 0x33, 0x34,
-        0x32, 0xFF, 0xC0, 0x00, 0x0B, 0x08, 0x00, 0x01,
-        0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0xFF, 0xC4,
-        0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0xFF, 0xDA, 0x00, 0x08,
-        0x01, 0x01, 0x00, 0x00, 0x3F, 0x00, 0x7F, 0xFF,
-        0xD9
-    ])
+    jpeg_data = bytes(
+        [
+            0xFF,
+            0xD8,
+            0xFF,
+            0xE0,
+            0x00,
+            0x10,
+            0x4A,
+            0x46,
+            0x49,
+            0x46,
+            0x00,
+            0x01,
+            0x01,
+            0x00,
+            0x00,
+            0x01,
+            0x00,
+            0x01,
+            0x00,
+            0x00,
+            0xFF,
+            0xDB,
+            0x00,
+            0x43,
+            0x00,
+            0x08,
+            0x06,
+            0x06,
+            0x07,
+            0x06,
+            0x05,
+            0x08,
+            0x07,
+            0x07,
+            0x07,
+            0x09,
+            0x09,
+            0x08,
+            0x0A,
+            0x0C,
+            0x14,
+            0x0D,
+            0x0C,
+            0x0B,
+            0x0B,
+            0x0C,
+            0x19,
+            0x12,
+            0x13,
+            0x0F,
+            0x14,
+            0x1D,
+            0x1A,
+            0x1F,
+            0x1E,
+            0x1D,
+            0x1A,
+            0x1C,
+            0x1C,
+            0x20,
+            0x24,
+            0x2E,
+            0x27,
+            0x20,
+            0x22,
+            0x2C,
+            0x23,
+            0x1C,
+            0x1C,
+            0x28,
+            0x37,
+            0x29,
+            0x2C,
+            0x30,
+            0x31,
+            0x34,
+            0x34,
+            0x34,
+            0x1F,
+            0x27,
+            0x39,
+            0x3D,
+            0x38,
+            0x32,
+            0x3C,
+            0x2E,
+            0x33,
+            0x34,
+            0x32,
+            0xFF,
+            0xC0,
+            0x00,
+            0x0B,
+            0x08,
+            0x00,
+            0x01,
+            0x00,
+            0x01,
+            0x01,
+            0x01,
+            0x11,
+            0x00,
+            0xFF,
+            0xC4,
+            0x00,
+            0x14,
+            0x00,
+            0x01,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0xFF,
+            0xDA,
+            0x00,
+            0x08,
+            0x01,
+            0x01,
+            0x00,
+            0x00,
+            0x3F,
+            0x00,
+            0x7F,
+            0xFF,
+            0xD9,
+        ]
+    )
     return jpeg_data
 
 
@@ -49,27 +170,18 @@ def test_end_to_end_simple():
         # Setup
         bus = SQLiteBus(db_path=str(tmpdir / "bus.db"))
         index = IndexStore(db_path=str(tmpdir / "index.db"))
-        segment_writer = SegmentWriter(
-            segments_dir=str(tmpdir / "segments"),
-            max_size=1024 * 1024  # 1MB
-        )
+        segment_writer = SegmentWriter(segments_dir=str(tmpdir / "segments"), max_size=1024 * 1024)  # 1MB
 
         # Create test image
         test_image = create_test_image()
 
         # Enqueue items (simulate URLs, but we'll use data URIs)
         import base64
+
         data_uri = f"data:image/jpeg;base64,{base64.b64encode(test_image).decode()}"
 
         for i in range(5):
-            bus.publish(
-                topic="ingest.items",
-                key=f"item{i}",
-                value={
-                    "source_url": data_uri,
-                    "meta": {"index": i}
-                }
-            )
+            bus.publish(topic="ingest.items", key=f"item{i}", value={"source_url": data_uri, "meta": {"index": i}})
 
         # Note: The segment appender expects real URLs
         # For this test, we'll test the components separately
@@ -79,11 +191,7 @@ def test_end_to_end_simple():
 
         for i in range(5):
             item_id = compute_item_id(test_image + str(i).encode())
-            seg, off, length = segment_writer.append(
-                item_id=item_id,
-                data=test_image,
-                mime="image/jpeg"
-            )
+            seg, off, length = segment_writer.append(item_id=item_id, data=test_image, mime="image/jpeg")
 
             index.insert(
                 item_id=item_id,
@@ -92,7 +200,7 @@ def test_end_to_end_simple():
                 length=length,
                 mime="image/jpeg",
                 sha256=item_id,
-                ts_ingest=int(time.time())
+                ts_ingest=int(time.time()),
             )
 
         segment_writer.close()

@@ -25,7 +25,7 @@ def start_service(
     fetch_retries: int = 3,
     fetch_timeout: int = 10,
     user_agent_token: Optional[str] = None,
-    max_items: Optional[int] = None
+    max_items: Optional[int] = None,
 ):
     """
     Start a local service (bus + segment appender).
@@ -56,10 +56,7 @@ def start_service(
 
     bus = SQLiteBus(db_path=str(bus_path))
     index = IndexStore(db_path=str(index_path))
-    segment_writer = SegmentWriter(
-        segments_dir=str(segments_dir),
-        max_size=max_segment_size
-    )
+    segment_writer = SegmentWriter(segments_dir=str(segments_dir), max_size=max_segment_size)
 
     # Build user agent
     user_agent = f"img2dataset/2.0"
@@ -73,7 +70,7 @@ def start_service(
         segment_writer=segment_writer,
         fetch_retries=fetch_retries,
         fetch_timeout=fetch_timeout,
-        user_agent=user_agent
+        user_agent=user_agent,
     )
 
     try:
@@ -87,12 +84,7 @@ def start_service(
         bus.close()
 
 
-def enqueue(
-    url_list: str,
-    output_folder: str = "output",
-    input_format: str = "txt",
-    url_col: str = "url"
-):
+def enqueue(url_list: str, output_folder: str = "output", input_format: str = "txt", url_col: str = "url"):
     """
     Enqueue URLs to ingest.items topic.
 
@@ -115,11 +107,12 @@ def enqueue(
         urls = []
 
         if input_format == "txt":
-            with open(url_list, 'r') as f:
+            with open(url_list, "r") as f:
                 urls = [line.strip() for line in f if line.strip()]
 
         elif input_format == "csv":
             import pandas as pd
+
             df = pd.read_csv(url_list)
             if url_col not in df.columns:
                 print(f"Error: Column '{url_col}' not found in CSV")
@@ -128,16 +121,20 @@ def enqueue(
 
         elif input_format == "json":
             import json
-            with open(url_list, 'r') as f:
+
+            with open(url_list, "r") as f:
                 data = json.load(f)
                 if isinstance(data, list):
-                    urls = [item.get(url_col) if isinstance(item, dict) else item for item in data]
+                    # Extract URLs and filter out None values
+                    urls_raw = [item.get(url_col) if isinstance(item, dict) else item for item in data]
+                    urls = [u for u in urls_raw if u is not None and isinstance(u, str)]
                 else:
                     print("Error: JSON must be a list")
                     return
 
         elif input_format == "parquet":
             import pandas as pd
+
             df = pd.read_parquet(url_list)
             if url_col not in df.columns:
                 print(f"Error: Column '{url_col}' not found in Parquet")
@@ -153,17 +150,9 @@ def enqueue(
             if not url:
                 continue
 
-            event = {
-                "source_url": url,
-                "meta": {},
-                "ts_enq": int(time.time())
-            }
+            event = {"source_url": url, "meta": {}, "ts_enq": int(time.time())}
 
-            bus.publish(
-                topic="ingest.items",
-                key=url,
-                value=event
-            )
+            bus.publish(topic="ingest.items", key=url, value=event)
 
             if (i + 1) % 1000 == 0:
                 print(f"Enqueued {i + 1} URLs...")
@@ -174,11 +163,7 @@ def enqueue(
         bus.close()
 
 
-def materialize(
-    output_folder: str = "output",
-    manifest_path: str = "manifest.json",
-    output_format: str = "manifest"
-):
+def materialize(output_folder: str = "output", manifest_path: str = "manifest.json", output_format: str = "manifest"):
     """
     Materialize a dataset from segments.
 
@@ -204,15 +189,17 @@ def materialize(
             manifest = []
             for batch in index.iter_all(batch_size=1000):
                 for entry in batch:
-                    manifest.append({
-                        "item_id": entry.item_id,
-                        "segment_id": entry.segment_id,
-                        "offset": entry.offset,
-                        "length": entry.length,
-                        "mime": entry.mime
-                    })
+                    manifest.append(
+                        {
+                            "item_id": entry.item_id,
+                            "segment_id": entry.segment_id,
+                            "offset": entry.offset,
+                            "length": entry.length,
+                            "mime": entry.mime,
+                        }
+                    )
 
-            with open(manifest_path, 'w') as f:
+            with open(manifest_path, "w") as f:
                 json.dump(manifest, f, indent=2)
 
             print(f"Materialized {len(manifest)} items to {manifest_path}")

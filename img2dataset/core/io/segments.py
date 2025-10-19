@@ -30,6 +30,7 @@ class SegmentMetadata:
     """
     Metadata for a segment file.
     """
+
     segment_id: str
     path: str
     items: int
@@ -65,7 +66,7 @@ class SegmentWriter:
         segment_prefix: str = "seg",
         max_size: int = DEFAULT_MAX_SIZE,
         max_items: Optional[int] = None,
-        fsync_interval: int = DEFAULT_FSYNC_INTERVAL
+        fsync_interval: int = DEFAULT_FSYNC_INTERVAL,
     ):
         """
         Initialize segment writer.
@@ -105,7 +106,7 @@ class SegmentWriter:
                 try:
                     # Format: seg-0001.tar
                     name = path.stem
-                    counter_str = name.split('-')[-1]
+                    counter_str = name.split("-")[-1]
                     counters.append(int(counter_str))
                 except (ValueError, IndexError):
                     pass
@@ -131,19 +132,14 @@ class SegmentWriter:
         segment_path = self._get_segment_path(segment_id)
 
         # Open file in binary append mode
-        self.current_file = open(segment_path, 'wb')
+        self.current_file = open(segment_path, "wb")
         # Create TAR writer
-        self.current_tar = tarfile.open(fileobj=self.current_file, mode='w|')
+        self.current_tar = tarfile.open(fileobj=self.current_file, mode="w|")
         self.current_offset = 0
         self.items_since_fsync = 0
 
         metadata = SegmentMetadata(
-            segment_id=segment_id,
-            path=str(segment_path),
-            items=0,
-            bytes=0,
-            ts_created=int(time.time()),
-            sealed=False
+            segment_id=segment_id, path=str(segment_path), items=0, bytes=0, ts_created=int(time.time()), sealed=False
         )
         self.current_segment = metadata
         return metadata
@@ -174,6 +170,11 @@ class SegmentWriter:
 
         # Record offset before write
         offset_before = self.current_offset
+
+        # Assert that we have valid segment (for mypy)
+        assert self.current_tar is not None
+        assert self.current_segment is not None
+        assert self.current_file is not None
 
         # Create TAR member
         tarinfo = tarfile.TarInfo(name=item_id)
@@ -307,7 +308,7 @@ class SegmentReader:
 
         # For TAR format, we need to skip the 512-byte header
         # and read the actual data
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             f.seek(offset + 512)  # Skip TAR header
             data = f.read(length)
 
@@ -328,7 +329,7 @@ class SegmentReader:
         """
         path = self._get_segment_path(segment_id)
 
-        with tarfile.open(path, 'r|') as tar:
+        with tarfile.open(path, "r|") as tar:
             for member in tar:
                 if member.name == item_id:
                     f = tar.extractfile(member)
@@ -345,7 +346,7 @@ class SegmentReader:
         """
         path = self._get_segment_path(segment_id)
 
-        with tarfile.open(path, 'r|') as tar:
+        with tarfile.open(path, "r|") as tar:
             current_offset = 0
             for member in tar:
                 f = tar.extractfile(member)

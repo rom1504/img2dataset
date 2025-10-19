@@ -16,23 +16,13 @@ def test_index_store_basic():
 
         # Insert items
         inserted = index.insert(
-            item_id="item1",
-            segment_id="seg-001",
-            offset=0,
-            length=1024,
-            mime="image/jpeg",
-            sha256="abc123"
+            item_id="item1", segment_id="seg-001", offset=0, length=1024, mime="image/jpeg", sha256="abc123"
         )
         assert inserted is True
 
         # Duplicate insert should be idempotent
         inserted = index.insert(
-            item_id="item1",
-            segment_id="seg-001",
-            offset=0,
-            length=1024,
-            mime="image/jpeg",
-            sha256="abc123"
+            item_id="item1", segment_id="seg-001", offset=0, length=1024, mime="image/jpeg", sha256="abc123"
         )
         assert inserted is False
 
@@ -66,7 +56,7 @@ def test_index_store_sequential_scan():
                     offset=item_idx * 1000,
                     length=1000,
                     mime="image/jpeg",
-                    sha256=f"hash-{seg_id}-{item_idx}"
+                    sha256=f"hash-{seg_id}-{item_idx}",
                 )
 
         # Sequential scan should return items in segment order
@@ -83,11 +73,7 @@ def test_index_store_sequential_scan():
             prev_offset = entry.offset
 
         # Resume from middle
-        samples = index.sample_sequential(
-            limit=10,
-            start_segment="seg-001",
-            start_offset=5000
-        )
+        samples = index.sample_sequential(limit=10, start_segment="seg-001", start_offset=5000)
         assert len(samples) == 10
         assert samples[0].segment_id == "seg-001"
         assert samples[0].offset >= 5000
@@ -109,7 +95,7 @@ def test_index_store_count():
                 offset=i * 1000,
                 length=1000,
                 mime="image/jpeg",
-                sha256=f"hash-{i}"
+                sha256=f"hash-{i}",
             )
 
         for i in range(3):
@@ -119,7 +105,7 @@ def test_index_store_count():
                 offset=i * 1000,
                 length=1000,
                 mime="image/jpeg",
-                sha256=f"hash-seg2-{i}"
+                sha256=f"hash-seg2-{i}",
             )
 
         assert index.count() == 8
