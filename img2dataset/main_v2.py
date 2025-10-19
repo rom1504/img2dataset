@@ -38,13 +38,15 @@ class Img2DatasetCLI:
         fetch_retries: int = 3,
         fetch_timeout: int = 10,
         user_agent_token: str = None,
-        max_items: int = None
+        max_items: int = None,
+        thread_count: int = 32
     ):
         """
         Start service mode (segment appender).
 
         This runs a local segment appender that consumes URLs from the
-        ingest.items queue and writes to segments.
+        ingest.items queue and writes to segments. Downloads happen in
+        parallel using multiple threads.
 
         Args:
             output_folder: Output directory for segments, index, and bus
@@ -53,6 +55,7 @@ class Img2DatasetCLI:
             fetch_timeout: HTTP timeout in seconds (default: 10)
             user_agent_token: Optional token for User-Agent string
             max_items: Maximum items to process (default: unlimited)
+            thread_count: Number of download threads (default: 32)
         """
         return start_service(
             output_folder=output_folder,
@@ -60,7 +63,8 @@ class Img2DatasetCLI:
             fetch_retries=fetch_retries,
             fetch_timeout=fetch_timeout,
             user_agent_token=user_agent_token,
-            max_items=max_items
+            max_items=max_items,
+            thread_count=thread_count
         )
 
     def enqueue(

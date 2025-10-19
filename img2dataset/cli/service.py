@@ -24,12 +24,13 @@ def start_service(
     fetch_timeout: int = 10,
     user_agent_token: Optional[str] = None,
     max_items: Optional[int] = None,
+    thread_count: int = 32,
 ):
     """
     Start a local service (bus + segment appender).
 
     This runs a segment appender that consumes from ingest.items and writes
-    to segments and index.
+    to segments and index. Downloads happen in parallel using multiple threads.
 
     Args:
         output_folder: Output directory for segments, index, and bus
@@ -38,6 +39,7 @@ def start_service(
         fetch_timeout: HTTP timeout in seconds
         user_agent_token: Optional token for User-Agent string
         max_items: Maximum items to process (None = unlimited)
+        thread_count: Number of download threads (default: 32)
     """
     output_path = Path(output_folder)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -69,6 +71,7 @@ def start_service(
         fetch_retries=fetch_retries,
         fetch_timeout=fetch_timeout,
         user_agent=user_agent,
+        thread_count=thread_count,
     )
 
     try:

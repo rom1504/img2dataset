@@ -14,9 +14,11 @@ This is the ONLY component that writes to segments and the index.
 
 import time
 import os
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 import mimetypes
+from threading import Semaphore, Lock
+from multiprocessing.pool import ThreadPool
 
 from .bus import EventBus, create_event_envelope
 from .index_store import IndexStore, compute_item_id
@@ -100,6 +102,7 @@ class SegmentAppender:
         user_agent: str = "img2dataset/2.0",
         disallowed_header_directives: Optional[list] = None,
         producer_id: Optional[str] = None,
+        thread_count: int = 32,
     ):
         """
         Initialize segment appender.
@@ -114,6 +117,7 @@ class SegmentAppender:
             user_agent: User-Agent string for HTTP requests
             disallowed_header_directives: X-Robots-Tag directives to respect
             producer_id: Optional producer identifier
+            thread_count: Number of download threads (default: 32)
         """
         self.bus = bus
         self.index = index
@@ -124,26 +128,25 @@ class SegmentAppender:
         self.user_agent = user_agent
         self.disallowed_header_directives = disallowed_header_directives
         self.producer_id = producer_id or f"appender@{os.uname().nodename}"
+        self.thread_count = thread_count
 
         self.stats = AppenderStats()
         self._running = False
+        self._stats_lock = Lock()  # For thread-safe stats updates
 
-    def _process_item(self, event_data: Dict[str, Any]) -> bool:
+    def _download_item(self, event_data: Dict[str, Any]) -> Tuple[str, Optional[bytes], Optional[str]]:
         """
-        Process a single item from ingest.items.
+        Download a single item (for use in thread pool).
 
         Args:
             event_data: Event payload from ingest.items
 
         Returns:
-            True if successful, False otherwise
+            Tuple of (source_url, data, error)
         """
         source_url = event_data.get("source_url")
         if not source_url:
-            return False
-
-        # Meta is available for future use (e.g., metadata enrichment)
-        # meta = event_data.get("meta", {})
+            return (source_url or "", None, "No source URL")
 
         # Fetch bytes from source
         data, error = download_image_with_retry(
@@ -154,17 +157,27 @@ class SegmentAppender:
             disallowed_header_directives=self.disallowed_header_directives,
         )
 
-        if error or data is None:
-            self.stats.items_failed += 1
-            return False
+        return (source_url, data, error)
 
+    def _write_downloaded_item(self, source_url: str, data: bytes) -> bool:
+        """
+        Write a downloaded item to segments (called after parallel download).
+
+        Args:
+            source_url: Source URL of the item
+            data: Downloaded image bytes
+
+        Returns:
+            True if successful, False otherwise
+        """
         # Compute item_id (sha256)
         item_id = compute_item_id(data)
         sha256 = item_id  # Same as item_id
 
         # Check for deduplication
         if self.index.exists(item_id):
-            self.stats.items_deduplicated += 1
+            with self._stats_lock:
+                self.stats.items_deduplicated += 1
             return True  # Already exists, skip (idempotent)
 
         # Guess MIME type
@@ -175,7 +188,8 @@ class SegmentAppender:
             segment_id, offset, length = self.segment_writer.append(item_id=item_id, data=data, mime=mime)
         except Exception:  # pylint: disable=broad-exception-caught
             # Failed to append - catch all exceptions for robustness
-            self.stats.items_failed += 1
+            with self._stats_lock:
+                self.stats.items_failed += 1
             return False
 
         # Insert into index
@@ -193,12 +207,14 @@ class SegmentAppender:
         if not inserted:
             # Race condition: another process inserted first
             # This is OK, we skip (idempotent)
-            self.stats.items_deduplicated += 1
+            with self._stats_lock:
+                self.stats.items_deduplicated += 1
             return True
 
         # Update stats
-        self.stats.items_appended += 1
-        self.stats.bytes_appended += length
+        with self._stats_lock:
+            self.stats.items_appended += 1
+            self.stats.bytes_appended += length
 
         # Publish APPEND event
         event_payload = {
@@ -237,7 +253,8 @@ class SegmentAppender:
         if sealed is None:
             return
 
-        self.stats.segments_closed += 1
+        with self._stats_lock:
+            self.stats.segments_closed += 1
 
         # Publish SEGMENT_CLOSED event
         event_payload = {
@@ -262,7 +279,10 @@ class SegmentAppender:
 
     def run(self, max_items: Optional[int] = None):
         """
-        Run the segment appender (consume and process items).
+        Run the segment appender with parallel downloads.
+
+        Downloads happen in parallel using a thread pool, but writes to segments
+        are serialized to maintain consistency.
 
         Args:
             max_items: Maximum number of items to process (None = unlimited)
@@ -270,32 +290,47 @@ class SegmentAppender:
         self._running = True
         items_processed = 0
 
-        print(f"Segment Appender starting (consumer_group={self.consumer_group})")
+        print(f"Segment Appender starting (consumer_group={self.consumer_group}, threads={self.thread_count})")
+
+        # Semaphore to control memory usage (like old implementation)
+        semaphore = Semaphore(self.thread_count * 2)
 
         try:
+            # Collect events in batches for parallel processing
+            batch = []
+            batch_size = self.thread_count * 2  # Process 2x thread_count at a time
+
             # Subscribe to ingest.items
             for event in self.bus.subscribe(topic="ingest.items", group=self.consumer_group, auto_commit=True):
                 if not self._running:
                     break
 
-                self.stats.items_processed += 1
-                items_processed += 1
+                batch.append(event.value)
 
-                # Process the item
-                self._process_item(event.value)
+                # Process batch when full or reached max_items
+                if len(batch) >= batch_size or (max_items and items_processed + len(batch) >= max_items):
+                    self._process_batch(batch, semaphore)
+                    items_processed += len(batch)
 
-                # Progress logging
-                if items_processed % 100 == 0:
-                    print(
-                        f"Processed {items_processed} items "
-                        f"(appended={self.stats.items_appended}, "
-                        f"dedup={self.stats.items_deduplicated}, "
-                        f"failed={self.stats.items_failed})"
-                    )
+                    # Progress logging
+                    if items_processed % 100 == 0:
+                        print(
+                            f"Processed {items_processed} items "
+                            f"(appended={self.stats.items_appended}, "
+                            f"dedup={self.stats.items_deduplicated}, "
+                            f"failed={self.stats.items_failed})"
+                        )
 
-                # Check max items
-                if max_items is not None and items_processed >= max_items:
-                    break
+                    batch = []
+
+                    # Check max items
+                    if max_items is not None and items_processed >= max_items:
+                        break
+
+            # Process remaining batch
+            if batch and self._running:
+                self._process_batch(batch, semaphore)
+                items_processed += len(batch)
 
         finally:
             # Seal any open segment
@@ -303,6 +338,38 @@ class SegmentAppender:
                 self._seal_current_segment()
 
             print(f"Segment Appender finished: {self.stats}")
+
+    def _process_batch(self, batch: list, semaphore: Semaphore):
+        """
+        Process a batch of items with parallel downloads.
+
+        Args:
+            batch: List of event payloads
+            semaphore: Semaphore for memory control
+        """
+        # Create thread pool and download in parallel
+        with ThreadPool(self.thread_count) as pool:
+            # Generator that yields items and acquires semaphore
+            def item_generator():
+                for item in batch:
+                    semaphore.acquire()  # pylint: disable=consider-using-with
+                    yield item
+
+            # Download in parallel using imap_unordered (unordered for speed)
+            for source_url, data, error in pool.imap_unordered(self._download_item, item_generator()):
+                try:
+                    with self._stats_lock:
+                        self.stats.items_processed += 1
+
+                    if error or data is None:
+                        with self._stats_lock:
+                            self.stats.items_failed += 1
+                    else:
+                        # Write to segments (serialized, thread-safe)
+                        self._write_downloaded_item(source_url, data)
+
+                finally:
+                    semaphore.release()
 
     def stop(self):
         """Stop the appender gracefully."""
