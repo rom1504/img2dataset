@@ -23,7 +23,7 @@ import threading
 import hashlib
 import time
 from pathlib import Path
-from typing import Optional, List, Dict, Any, Iterator
+from typing import Optional, List, Iterator
 from dataclasses import dataclass
 from contextlib import contextmanager
 
@@ -333,10 +333,11 @@ class IndexStore:
             output_path: Path to output Parquet file
         """
         try:
+            # pylint: disable=import-outside-toplevel
             import pyarrow as pa
             import pyarrow.parquet as pq
-        except ImportError:
-            raise ImportError("pyarrow is required for Parquet export. Install with: pip install pyarrow")
+        except ImportError as exc:
+            raise ImportError("pyarrow is required for Parquet export. Install with: pip install pyarrow") from exc
 
         # Read all data from SQLite
         with self._get_connection() as conn:

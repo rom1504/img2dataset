@@ -9,7 +9,6 @@ import time
 import urllib.request
 import urllib.error
 from typing import Optional, Tuple
-from io import BytesIO
 
 
 class HTTPFetcher:
@@ -96,9 +95,10 @@ class HTTPFetcher:
                 # Set up SSL context if needed
                 context = None
                 if self.ignore_ssl_certificate:
+                    # pylint: disable=import-outside-toplevel
                     import ssl
 
-                    context = ssl._create_unverified_context()
+                    context = ssl._create_unverified_context()  # pylint: disable=protected-access
 
                 # Perform request
                 with urllib.request.urlopen(request, timeout=self.timeout, context=context) as response:
@@ -120,7 +120,7 @@ class HTTPFetcher:
             except urllib.error.URLError as e:
                 last_error = f"URL error: {e.reason}"
 
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 last_error = f"Unexpected error: {type(e).__name__}: {str(e)}"
 
             # Exponential backoff before retry

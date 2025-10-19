@@ -18,10 +18,9 @@ Design:
 import os
 import io
 import tarfile
-import hashlib
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Tuple
 from dataclasses import dataclass
 
 
@@ -132,9 +131,9 @@ class SegmentWriter:
         segment_path = self._get_segment_path(segment_id)
 
         # Open file in binary append mode
-        self.current_file = open(segment_path, "wb")
+        self.current_file = open(segment_path, "wb")  # pylint: disable=consider-using-with
         # Create TAR writer
-        self.current_tar = tarfile.open(fileobj=self.current_file, mode="w|")
+        self.current_tar = tarfile.open(fileobj=self.current_file, mode="w|")  # pylint: disable=consider-using-with
         self.current_offset = 0
         self.items_since_fsync = 0
 
@@ -144,7 +143,7 @@ class SegmentWriter:
         self.current_segment = metadata
         return metadata
 
-    def append(self, item_id: str, data: bytes, mime: str) -> Tuple[str, int, int]:
+    def append(self, item_id: str, data: bytes, mime: str) -> Tuple[str, int, int]:  # pylint: disable=unused-argument
         """
         Append an item to the current segment.
 

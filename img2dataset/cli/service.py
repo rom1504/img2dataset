@@ -7,8 +7,6 @@ This module provides service-oriented commands:
 - materialize: Build manifests/shards from index
 """
 
-import os
-import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -59,7 +57,7 @@ def start_service(
     segment_writer = SegmentWriter(segments_dir=str(segments_dir), max_size=max_segment_size)
 
     # Build user agent
-    user_agent = f"img2dataset/2.0"
+    user_agent = "img2dataset/2.0"
     if user_agent_token:
         user_agent += f" ({user_agent_token})"
 
@@ -107,10 +105,11 @@ def enqueue(url_list: str, output_folder: str = "output", input_format: str = "t
         urls = []
 
         if input_format == "txt":
-            with open(url_list, "r") as f:
+            with open(url_list, "r", encoding="utf-8") as f:
                 urls = [line.strip() for line in f if line.strip()]
 
         elif input_format == "csv":
+            # pylint: disable=import-outside-toplevel
             import pandas as pd
 
             df = pd.read_csv(url_list)
@@ -120,9 +119,10 @@ def enqueue(url_list: str, output_folder: str = "output", input_format: str = "t
             urls = df[url_col].tolist()
 
         elif input_format == "json":
+            # pylint: disable=import-outside-toplevel
             import json
 
-            with open(url_list, "r") as f:
+            with open(url_list, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 if isinstance(data, list):
                     # Extract URLs and filter out None values
@@ -133,6 +133,7 @@ def enqueue(url_list: str, output_folder: str = "output", input_format: str = "t
                     return
 
         elif input_format == "parquet":
+            # pylint: disable=import-outside-toplevel
             import pandas as pd
 
             df = pd.read_parquet(url_list)
@@ -184,6 +185,7 @@ def materialize(output_folder: str = "output", manifest_path: str = "manifest.js
     try:
         if output_format == "manifest":
             # Export manifest as JSON
+            # pylint: disable=import-outside-toplevel
             import json
 
             manifest = []
@@ -199,7 +201,7 @@ def materialize(output_folder: str = "output", manifest_path: str = "manifest.js
                         }
                     )
 
-            with open(manifest_path, "w") as f:
+            with open(manifest_path, "w", encoding="utf-8") as f:
                 json.dump(manifest, f, indent=2)
 
             print(f"Materialized {len(manifest)} items to {manifest_path}")

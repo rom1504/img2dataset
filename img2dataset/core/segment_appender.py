@@ -14,7 +14,6 @@ This is the ONLY component that writes to segments and the index.
 
 import time
 import os
-import hashlib
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 import mimetypes
@@ -31,6 +30,7 @@ def generate_ulid() -> str:
     For simplicity, we use timestamp + random suffix.
     In production, consider using the `ulid-py` library.
     """
+    # pylint: disable=import-outside-toplevel
     import random
     import string
 
@@ -142,7 +142,8 @@ class SegmentAppender:
         if not source_url:
             return False
 
-        meta = event_data.get("meta", {})
+        # Meta is available for future use (e.g., metadata enrichment)
+        # meta = event_data.get("meta", {})
 
         # Fetch bytes from source
         data, error = download_image_with_retry(
@@ -172,8 +173,8 @@ class SegmentAppender:
         # Append to segment
         try:
             segment_id, offset, length = self.segment_writer.append(item_id=item_id, data=data, mime=mime)
-        except Exception as e:
-            # Failed to append
+        except Exception:  # pylint: disable=broad-exception-caught
+            # Failed to append - catch all exceptions for robustness
             self.stats.items_failed += 1
             return False
 
@@ -224,6 +225,7 @@ class SegmentAppender:
 
         # Check if segment should be sealed
         current_segment = self.segment_writer.get_current_segment()
+        # pylint: disable=protected-access
         if current_segment and self.segment_writer._should_roll():
             self._seal_current_segment()
 

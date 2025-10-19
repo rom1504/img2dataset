@@ -7,14 +7,13 @@ Can work in two modes:
 2. Physical shards: Copies data to new TAR files (optional)
 """
 
-import os
 import tarfile
 import io
 import json
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 
-from ..core.index_store import IndexStore, IndexEntry
+from ..core.index_store import IndexStore
 from ..core.io import SegmentReader
 
 
@@ -103,7 +102,7 @@ class ShardMaterializer:
         """Write a single manifest shard."""
         manifest_path = manifest_dir / f"{dataset_name}-{shard_id:06d}.jsonl"
 
-        with open(manifest_path, "w") as f:
+        with open(manifest_path, "w", encoding="utf-8") as f:
             for item in items:
                 f.write(json.dumps(item) + "\n")
 
@@ -136,7 +135,7 @@ class ShardMaterializer:
                     # Open new shard if needed
                     if current_tar is None:
                         current_tar_path = shard_dir / f"{dataset_name}-{shard_id:06d}.tar"
-                        current_tar = tarfile.open(current_tar_path, "w")
+                        current_tar = tarfile.open(current_tar_path, "w")  # pylint: disable=consider-using-with
 
                     # Read item from segment
                     data = self.segment_reader.read(entry.segment_id, entry.offset, entry.length)

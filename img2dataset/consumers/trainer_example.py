@@ -17,7 +17,7 @@ from typing import Iterator, Tuple, Optional, List, Dict, Any
 from PIL import Image
 import numpy as np
 
-from ..core.index_store import IndexStore, IndexEntry
+from ..core.index_store import IndexStore
 from ..core.io import SegmentReader
 
 
@@ -101,11 +101,11 @@ class SegmentDataLoader:
         Yields:
             Tuples of (item_id, image)
         """
-        for item_id, data, mime in self.iter_items():
+        for item_id, data, _ in self.iter_items():  # mime unused
             try:
                 image = Image.open(io.BytesIO(data))
                 yield (item_id, image)
-            except Exception as e:
+            except Exception:  # pylint: disable=broad-exception-caught
                 # Skip corrupted images
                 continue
 
@@ -161,7 +161,7 @@ def train_example(index_path: str, segments_dir: str, batch_size: int = 32, max_
         batches_processed = 0
         images_processed = 0
 
-        for batch_ids, batch_images in loader.iter_batches():
+        for _, batch_images in loader.iter_batches():  # batch_ids unused
             batches_processed += 1
             images_processed += len(batch_images)
 
@@ -177,7 +177,7 @@ def train_example(index_path: str, segments_dir: str, batch_size: int = 32, max_
                 arr = np.array(image, dtype=np.float32) / 255.0
                 batch_arrays_list.append(arr)
 
-            batch_arrays = np.stack(batch_arrays_list)
+            _ = np.stack(batch_arrays_list)  # batch_arrays would be used in real training
 
             # Your training code here
             # model.train_step(batch_arrays)
@@ -186,7 +186,7 @@ def train_example(index_path: str, segments_dir: str, batch_size: int = 32, max_
             if batches_processed % 10 == 0:
                 elapsed = time.time() - start_time
                 throughput = images_processed / elapsed if elapsed > 0 else 0
-                print(f"Batch {batches_processed}: {images_processed} images " f"({throughput:.1f} img/sec)")
+                print(f"Batch {batches_processed}: {images_processed} images ({throughput:.1f} img/sec)")
 
             # Stop if max reached
             if max_batches and batches_processed >= max_batches:
@@ -194,7 +194,7 @@ def train_example(index_path: str, segments_dir: str, batch_size: int = 32, max_
 
         elapsed = time.time() - start_time
         throughput = images_processed / elapsed if elapsed > 0 else 0
-        print(f"\nTraining complete:")
+        print("\nTraining complete:")
         print(f"  Batches: {batches_processed}")
         print(f"  Images: {images_processed}")
         print(f"  Time: {elapsed:.1f}s")
@@ -211,7 +211,7 @@ if __name__ == "__main__":
         print("Usage: python -m img2dataset.consumers.trainer_example <index_path> <segments_dir>")
         sys.exit(1)
 
-    index_path = sys.argv[1]
-    segments_dir = sys.argv[2]
+    idx_path = sys.argv[1]
+    seg_dir = sys.argv[2]
 
-    train_example(index_path, segments_dir, max_batches=100)
+    train_example(idx_path, seg_dir, max_batches=100)
