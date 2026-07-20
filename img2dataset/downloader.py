@@ -39,11 +39,18 @@ def download_image(row, timeout, user_agent_token, disallowed_header_directives,
     """Download an image with urllib"""
     key, url = row
     img_stream = None
-    user_agent_string = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0"
+    # No default override: several major image hosts (e.g. Danbooru's
+    # cdn.donmai.us) block requests that self-identify as img2dataset by name
+    # -- confirmed live, this string previously read
+    # "img2dataset/1.0 (+https://github.com/rom1504/img2dataset)" and still got
+    # HTTP 403, while leaving urllib's own default User-Agent unset gets 200 on
+    # the identical URL/host. Opting in via user_agent_token (unaffected here)
+    # remains available for callers who deliberately want to self-identify.
+    headers = {}
     if user_agent_token:
-        user_agent_string += f" (compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset)"
+        headers["User-Agent"] = f"compatible; {user_agent_token}; +https://github.com/rom1504/img2dataset"
     try:
-        request = urllib.request.Request(url, data=None, headers={"User-Agent": user_agent_string})
+        request = urllib.request.Request(url, data=None, headers=headers)
         ctx = ssl.create_default_context()
         if ignore_ssl_certificate:
             ctx.check_hostname = False
